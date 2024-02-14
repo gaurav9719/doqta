@@ -16,7 +16,7 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
-
+    'user_role'=>["","Admin","Dater","Recruiter"],
     /*
     |--------------------------------------------------------------------------
     | Application Environment
@@ -57,6 +57,7 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     'asset_url' => env('ASSET_URL'),
+    'fast_api_key' => env('APP_FAST_API_KEY'),
 
     /*
     |--------------------------------------------------------------------------

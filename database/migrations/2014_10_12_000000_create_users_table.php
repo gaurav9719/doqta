@@ -3,7 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
@@ -13,14 +14,16 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('user_name');
+            $table->string('name')->nullable();
+            $table->string('user_name')->nullable();
             $table->string('email')->unique();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->date('dob')->nullable();
-            $table->string('reference_code');
+            $table->string('reference_code')->nullable();
             $table->tinyInteger("register_role_type")->default(1);
             $table->tinyInteger("current_role_id")->default(1);
+            $table->tinyInteger("recruit_type_asdater")->default(0)->comment('1:invite friend,2ghost coach,3:roserAI');
+            $table->tinyInteger("recruit_type_asrecruiter")->default(0)->comment('1:invite friend,2ghost coach,3:roserAI');
             $table->integer('country_code')->nullable();
             $table->string('phone_no',20)->nullable();
             $table->integer('country_id')->default(0);
@@ -41,6 +44,28 @@ return new class extends Migration
             $table->timestamps();
             $table->tinyInteger('is_active')->default(1)->comment('0:inactive,1 active,2deleted');
         });
+
+        DB::table('users')->insert([
+            [
+                'name' => 'Roster Admin',
+                'email' => 'admin@hosterapp.com',
+                'password' => Hash::make('Roster@2024@(+)'),
+                'register_role_type'=>1,
+                'current_role_id'=>1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ],
+
+            [
+                'name' => 'AI User',
+                'email' => 'ai@example.com',
+                'password' => Hash::make('Roster_ai@2024#$'),
+                'register_role_type'=>4,
+                'current_role_id'=>4,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]
+        ]);
     }
 
     /**

@@ -17,11 +17,10 @@ class RoleSeeder extends Seeder
 
         DB::table('roles')->insert([
             ['name' => 'Admin'],
-            ['name' => 'Recruiter'],
             ['name' => 'Dater'],
+            ['name' => 'Recruiter'],
+            ['name' => 'Roaster AI User'],
             // Add more roles as needed
         ]);
-
-
     }
 }
