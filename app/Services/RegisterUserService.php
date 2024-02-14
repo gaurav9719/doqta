@@ -99,6 +99,7 @@ class RegisterUserService extends BaseController
                     } 
                 }
             }
+
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
             return $this->sendResponse($userData, trans("message.register"), 200);
@@ -119,7 +120,7 @@ class RegisterUserService extends BaseController
 
         try {
 
-            $checkStatus = User::where(['email' => $request->email])->where('register_role_type','<>',1)->first();
+            $checkStatus = User::where(['email' => $request->email])->whereNotIn('register_role_type', [1,4])->first();
             
             if (isset($checkStatus) && !empty($checkStatus)) {
 
@@ -155,7 +156,10 @@ class RegisterUserService extends BaseController
                         // Commit the transaction
                         DB::commit();
 
+
                         $loginUser   =   $this->getUser->getAuthUser($userId);
+                      
+                        //dd($loginUser);
                         // Return a success response with user details
                         return response()->json(['status' => 200, 'message' => (trans('message.login')), 'data' => $loginUser]);
                         

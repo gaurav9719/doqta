@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -51,11 +52,15 @@ class User extends Authenticatable
     }
 
 
-    public function userStats(){
+    public function user_states(){
 
         return $this->hasMany(UserStat::class,'user_id', 'id');
     }
 
+    public function user_s(){
+
+        return $this->hasMany(UserStat::class,'user_id', 'id');
+    }
     public function user_roles(){
         
         return $this->hasMany(UserRole::class, 'user_id', 'id');

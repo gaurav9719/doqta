@@ -31,7 +31,7 @@ class UserRegister extends FormRequest
             'country_code'=>'required|numeric|regex:/^\d{1,3}$/',
             'phone_no'=>'required|numeric|digits_between:10,15|not_regex:/[a-z]/|unique:users',
             'dob'=>['required','date','date_format:Y-m-d',new AdultValidation],
-            'user_role' => 'required|integer|between:2,3',
+            'user_role' => 'required|integer|between:2,3', // 2 dater,3 recruiter
             'device_type' => 'required|integer|between:1,2',
             'gender' => 'required|integer|between:1,2',
             'device_token' => 'required',

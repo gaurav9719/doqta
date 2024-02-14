@@ -24,49 +24,34 @@ class GetUserService
     }
 
     public function getUser($userId){
-
         $user       = User::select('current_role_id')->where('id',$userId)->first();
-
-        if(isset($user)){
-
+        if(isset($user) && !empty($user)){
             $userDetail = User::where('id',$userId);
-
             if($user->current_role_id==2){  // dater
-                // $userDetail  = $userDetail->with(['userPreferences'=>function($user){
-                //     return $user->select('distance','age','gender','ghost_coach');
-                // }]);
-                // $userDetail  = $userDetail->with(['userPreferences','userStats.statistic']);
-                $userDetail  = $userDetail->with(['userPreferences','userStats']);
+
+                $userDetail  = $userDetail->with(['userPreferences','user_states']);
+
             }elseif ($user->current_role_id==3) {  
         
 
-
-
             }
             $userDetail =   $userDetail->first();
+            //dd($userDetail);
+            if( $user->current_role_id=="2" && isset($userDetail->user_states[0]) ){
+                //$user_stat =   $userDetail->user_states;
+                
+                foreach ($userDetail->user_states as $key => $statistic) {
+                    $stat   =   Stat::where('id',$statistic->stat_id)->first();
 
-            if(isset($userDetail) && !empty($userDetail)){
-            
-                // dd($userDetail);
-                if(isset($userDetail->userStats) && !empty($userDetail->userStats)){
+                    if(isset($stat) && !empty($stat)){
 
-                    $user_stat =   $userDetail->userStats;
-
-                    foreach ($user_stat as $key => $statistic) {
-                       
-                        $stat   =   Stat::where('id',$statistic->stat_id)->first();
-
-                        if(isset($stat) && !empty($stat)){
-
-                            $user_stat[$key]['question'] = $stat->question;
-                            $user_stat[$key]['min_value'] = $stat->min_value;
-                            $user_stat[$key]['max_value'] = $stat->max_value;
-
-                        }
+                        $userDetail->user_states[$key]['question'] = $stat->question;
+                        $userDetail->user_states[$key]['min_value'] = $stat->min_value;
+                        $userDetail->user_states[$key]['max_value'] = $stat->max_value;
                     }
                 }
             }
             return $userDetail;
-        }  
+        }
     }
 }

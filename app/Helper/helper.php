@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use App\Models\UserRole;
+
 function getErrorAsStringsasa($messagearr)
 {
     $message = '';
@@ -157,9 +158,19 @@ function randomCode($length = 9, $add_dashes = false, $available_sets = 'param')
 
 
 if (!function_exists('upload_file')) {
-    function upload_file($file, $folder)
+    function upload_file($file, $folder = "")
     {
-        return Storage::disk('public')->put($folder, $file);
+        $currentYear = date('Y');
+        $currentMonth = date('m');
+        $d = date('d');
+        // Create the directory path
+        $directory = "uploads/{$currentYear}/{$currentMonth}";
+
+        // Check if the directory exists, if not, create it
+        if (!Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory); // Recursive create directory
+        }
+        return Storage::disk('public')->put($directory, $file);
     }
 }
 
@@ -634,8 +645,8 @@ if (!function_exists('generateReferCode')) {
     }
 }
 
-if(!function_exists('')) {
-    function incrementByPoint($userId,$role,$point)
+if (!function_exists('')) {
+    function incrementByPoint($userId, $role, $point)
     {
         //    $affectedRows = UserRole::firstOrCreate(['user_id' => $userId, 'role_id' => $role])
         //    ->increment('points', $point);
@@ -644,6 +655,5 @@ if(!function_exists('')) {
             ['user_id' => $userId, 'role_id' => $role],
             ['points' => DB::raw('points + ' . $point)]
         );
-
     }
 }
