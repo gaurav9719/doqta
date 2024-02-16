@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Models\MyTeamMember;
 use App\Models\MyRoster;
+use carbon\Carbon;
+use App\Models\User;
 class DaterPicksController extends BaseController
 {
     //
@@ -35,48 +37,38 @@ class DaterPicksController extends BaseController
             }else{
 
                 $authUser       =       Auth::user();   
-                if($authUser->current_role_id==3){          // Dater
+                $limit          =              10;
+                if(isset($request->limit) && !empty($request->limit)){
 
-                    
+                    $limit      =              $request->limit;
+                }
+              
+                if($authUser->current_role_id==2){          // Dater
+
+                    if($request->type == 1 || $request->type == 2){ #-------- H O M E     P I C K S (1: INVITED FRIENDS) ----------#
+                  
+
+                        return $this->homeAwayPicks($request,$limit);
+
+                    }elseif ($request->type == 3) { #--------- AWAY PICKS (2:GHOST COACH AND 3:ROSTER AI)
+    
+                        $myPicker       =             MyTeamMember::where(['member_id'=>$authUser->id,'is_active'=>1])->whereIn('recruiter_type',[2,3])->simplePaginate($limit);
+                        
+                    }
+                    $typeMessages = [
+                        1 => trans('message.home_picks'),    // A W A Y      P I C K S
+                        2 => trans('message.away_picks'),    // H O M E      P I C K S
+                        3 => trans('message.away_picks')     // M Y      R O S T E R
+                    ];
+                    $message            =           $typeMessages[$request->type] ?? ''; 
                     
                     
                 }else{
 
-                    $limit          =              10;
-                    if(isset($request->limit) && !empty($request->limit)){
-    
-                        $limit      =              $request->limit;
-                    }
+                    
                 }
 
-                if($request->type == 1 || $request->type == 2){
-
-
-                    $this->homeAwayPicks($request,$limit);
-
-                    $myPicker       =             MyTeamMember::where(['member_id'=>$authUser->id,'recruiter_type'=>$request->type,'is_active'=>1]);
-
-                }elseif ($request->type == 3) {
-
-                    $myPicker       =             MyTeamMember::where(['member_id'=>$authUser->id,'is_active'=>1])->where(function($query) use ($request) {
-
-                        $query->whereIn('recruiter_type',[2,3]);
-                    });
-
-                }elseif ($request->type == 3) {
-
-
-
-
-
-                }
-                $myPicker           =             MyTeamMember::where(['member_id'=>$authUser->id,'recruiter_type'=>$request->type,'is_active'=>1]);
-                $typeMessages = [
-                    1 => trans('message.home_picks'),    // A W A Y      P I C K S
-                    2 => trans('message.away_picks'),    // H O M E      P I C K S
-                    3 => trans('message.away_picks')     // M Y      R O S T E R
-                ];
-                $message            =           $typeMessages[$request->type] ?? '';
+               
             }
             
         } catch (Exception $e) {
@@ -94,17 +86,64 @@ class DaterPicksController extends BaseController
     #--------------- GET HOME AND AWAY PICKS -----------------------#
     public function homeAwayPicks($request,$limit){
 
-        $type           =               $request->type;
-        $authUser       =               Auth::user();  
-        $myPicker       =               MyTeamMember::where(['member_id'=>$authUser->id,'is_active'=>1]);
-        if($type==1){
-            $myPicker   =               $myPicker->where(['recruiter_type'=>$request->type]);
-        }elseif ($type==2) {
-            $myPicker   =               $myPicker->where(function($query) use ($request) {
-                $query->whereIn('recruiter_type',[2,3]);
-            });
+
+        $type = $request->type;
+        $authUser = Auth::user();
+       
+        
+        $myPicker = MyTeamMember::where('member_id', $authUser->id)
+            ->where('is_active', 1);
+        
+        if ($type == 1) {
+            $myPicker->where('recruiter_type', $request->type);
+        } elseif ($type == 2) {
+            $myPicker->whereIn('recruiter_type', [2, 3]);
         }
-        return $myPicker->simplePaginate($limit);
+        
+        $myPicker = $myPicker->with(['member' => function($query) {
+
+            $query->select('id', 'name', 'email', 'dob', 'country_code', 'phone_no', 'gender', 'profile_pic');
+
+        },'member.statistics'])->simplePaginate($limit);
+        
+
+        $myPicker->each(function ($picker) {
+
+            //add recruited by
+            $recruitedBy    =   "Recruited by ";
+            if ($picker->recruiter_type==2) {
+               
+                $recruitedBy.="Ghost Coach";
+
+            }elseif ($picker->recruiter_type==3) {
+               
+                $recruitedBy.="Roster AI Coach";
+            }
+            
+            if($picker->recruiter_type==1){
+
+                $recruiter      =   MyTeam::select('recruiter_id')->where('id', $picker->team_id)->first();
+                if(isset($recruiter) && !empty($recruiter)){
+    
+                    $recruited  =   User::select('name')->where('id', $recruiter->recruiter_id)->first();
+                    if(isset($recruited) && !empty($recruited)){
+    
+                        $recruitedBy.=$recruited->name;
+    
+                    }
+                }
+            }
+            $picker->recruited_by = $recruitedBy;
+
+
+
+            if ($picker->member) {
+                $picker->member->age = Carbon::parse($picker->member->dob)->age;
+            }
+
+        });
+        // dd($myPicker);
+        return $this->sendError($myPicker, [], 400);
     }
     #--------------- GET HOME AND AWAY PICKS -----------------------#
 
@@ -114,6 +153,8 @@ class DaterPicksController extends BaseController
 
         $authUser       =               Auth::user();  
         $myRoster       =               MyRoster::where(['user_id'=>$authUser->id,'is_active'=> 1])->with(['roster'])->simplePaginate($limit);
+        
+        
     }
     #------------------------   E N D   --------------------------# 
 }

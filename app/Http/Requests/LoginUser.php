@@ -26,7 +26,7 @@ class LoginUser extends FormRequest
         return [
             //
             'email' => 'required|email',
-            'password' => 'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
+            'password' => 'required|string',
             // 'user_role' => 'required|integer|between:2,3',
             'device_type' => 'required|integer|between:1,2',
             'device_token' => 'required',

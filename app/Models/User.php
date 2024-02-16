@@ -67,6 +67,10 @@ class User extends Authenticatable
     }
 
     
+    public function statistics(){
+
+        return $this->hasMany(UserStat::class, 'user_id','id');
+    }
 
 
 
