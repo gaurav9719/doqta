@@ -199,7 +199,7 @@ class UserProfileUpdate extends BaseController
         DB::beginTransaction();
         
         try {
-            $validator = Validator::make($request->all(), ['statistics' => 'required|json','profile_pic'=>"nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048"]);
+            $validator = Validator::make($request->all(), ['statistics' => 'nullable|json','profile_pic'=>"nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048"]);
             // Check if validation fails
             if ($validator->fails()) {
                 // Return a JSON response with validation errors
@@ -207,23 +207,27 @@ class UserProfileUpdate extends BaseController
 
             } else {
                 // Validation passed, update user and user_role tables
-                $statistics = json_decode($request->statistics, true);
-                $stats = [];
-                foreach ($statistics as $key => $statistic) {
+                if(isset($request->statistics) && !empty($request->statistics)){
 
-                    if (!isset($statistic['id']) || !isset($statistic['answer'])) {
-
-                        DB::rollback();
-                        return $this->sendResponsewithoutData("Invalid json", 400);
+                    $statistics = json_decode($request->statistics, true);
+                    $stats = [];
+                    foreach ($statistics as $key => $statistic) {
+    
+                        if (!isset($statistic['id']) || !isset($statistic['answer'])) {
+    
+                            DB::rollback();
+                            return $this->sendResponsewithoutData("Invalid json", 400);
+                        }
+    
+                        UserStat::updateOrCreate(
+                            ['user_id' => $userId, 'stat_id' => $statistic['id']],
+                            ['answer' => $statistic['answer']]
+                        );
+                        $stats[] = $statistic['id'];
                     }
-
-                    UserStat::updateOrCreate(
-                        ['user_id' => $userId, 'stat_id' => $statistic['id']],
-                        ['answer' => $statistic['answer']]
-                    );
-                    $stats[] = $statistic['id'];
+                    UserStat::where(['user_id' => $userId])->whereNotIn('stat_id', $stats)->delete();
                 }
-                UserStat::where(['user_id' => $userId])->whereNotIn('stat_id', $stats)->delete();
+
                 // update picture
               
                 if($request->hasFile('profile_pic')){ 
@@ -236,7 +240,7 @@ class UserProfileUpdate extends BaseController
                 // Check if the directory exists, if not, create it
                 DB::commit();
                 $userData = $this->user->getUser($userId);
-                return $this->sendResponse($userData, trans("message.add_statistic"), 200);
+                return $this->sendResponse($userData, trans("message.updated_successfully"), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
