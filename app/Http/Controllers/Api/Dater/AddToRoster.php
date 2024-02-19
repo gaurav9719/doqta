@@ -37,21 +37,23 @@ class AddToRoster extends BaseController
 
 
     public function addToRoster(Request $request){
+        
         DB::beginTransaction();
 
         try {
             $validator = Validator::make($request->all(), ['id'=>'required|exists:my_team_members,id']);
     
             if ($validator->fails()) {
+
                 return response()->json([
                     'success'   => 422,
                     'message'   => $validator->errors()->first(),
                 ],422);
             }else{
-    
                 $authId         =  Auth::id();
                 $authUser       =  Auth::user();
                 $isExist        =  MyTeamMember::where(['id',$request->id,'member_id'=>$authId])->first();
+
                 if(isset($isExist) && !empty($isExist)){
     
                     $roster     = MyRoster::where('user_id', $authId)
@@ -68,15 +70,15 @@ class AddToRoster extends BaseController
                         $addToRoster->recruiter_id      =   (isset($recruiter) && !empty($recruiter))?$recruiter->recruiter_id:null;
                         $addToRoster->my_team_member_id =   $isExist->id;
                         $addToRoster->save();
-    
+                     
                        // Check if there's a mutual add to roster
                        $mutualSwipe = MyRoster::where('user_id', $isExist->dater_id)
                        ->where('roster_id', $authId)
                        ->where('is_active', 1)
-                       ->exists();
+                       ->first();
     
                         if(isset($mutualSwipe) && !empty($mutualSwipe)){
-    
+                            //update the my team member with update request_status
                             $matched                        =   new PartnerMatch();
                             $matched->user1_id              =   $authId;
                             $matched->user1_id              =   $isExist->dater_id;
@@ -87,22 +89,28 @@ class AddToRoster extends BaseController
                             $reciever                       =   User::find($isExist->dater_id, ['id','current_role_id', 'device_token', 'device_type']);
                             $this->notification->sendNotification(2,$reciever,$authUser,$notification_message,$notification_type);
                             $this->notification->sendNotification(2,$authUser,$reciever,$notification_message,$notification_type);
+                            MyTeamMember::where(['id',$mutualSwipe->my_team_member_id])->update('request_status',3); // matching
+                            MyTeamMember::where(['id',$mutualSwipe->my_team_member_id])->update('request_status',3); // matching
+
+
+
+
+
+                        }else{
+
+                            MyTeamMember::where(['id',$request->id,'member_id'=>$authId])->update('request_status',1);
+
                         }
                         DB::commit();
                         return $this->sendResponsewithoutData(trans('message.add_to_roster'), 200);
                     }else{
-
                         return $this->sendResponsewithoutData(trans('message.already_exist_roster'), 200);
-
                     }
                 }else{
-    
                     return $this->sendResponsewithoutData(trans('message.no_roster_found'), 422);
-    
                 }
             }
         } catch (Exception $e) {
-            
             DB::rollback();
             Log::error('Error caught: "addToEoster" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
