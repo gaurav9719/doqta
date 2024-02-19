@@ -16,10 +16,16 @@ class StatsController extends BaseController
 {
     //
 
-    protected $authId;
-
+  
+    protected $user, $userProfile, $authId, $getUser;
+    // protected $userProfile;
     public function __construct()
     {
+        $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            $this->authId = Auth::id();
+            return $next($request);
+        });
         $this->authId = Auth::id();
     }
 
@@ -28,15 +34,14 @@ class StatsController extends BaseController
 
         try {
 
-            $statistics         =       Stat::where(['is_active'=>1])->get();
+            $statistics         =       Stat::with('userStats')->where(['is_active'=>1])->get();
 
             if(isset($statistics) && !empty($statistics)){
 
                 foreach ($statistics as $key => $statistic) {
-
+                    
                     $isExist    =   UserStat::where(['user_id'=>$this->authId,'stat_id'=>$statistic->id,'is_active'=>1])->count();
                     $statistics[$key]['is_selected']= ($isExist>0)?1:0;
-
                 }
             }
             return $this->sendResponse($statistics, trans("message.statistics"), 200);

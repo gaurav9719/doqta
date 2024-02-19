@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('user_portfolios', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->string('title');
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('title')->nullable();
             $table->string('image')->nullable();
             $table->integer('position')->nullable();
             $table->boolean('is_active')->default(true)->comment('0:inactive,1:active');
