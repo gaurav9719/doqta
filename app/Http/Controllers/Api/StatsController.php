@@ -33,15 +33,17 @@ class StatsController extends BaseController
     public function Statistics(Request $request){
 
         try {
-            $authId       =       Auth::id();
-            $statistics         =       Stat::with('userStats')->where(['is_active'=>1])->get();
+            $authId             =       Auth::id();
+            $statistics         =       Stat::where(['is_active'=>1])->get();
 
             if(isset($statistics) && !empty($statistics)){
 
                 foreach ($statistics as $key => $statistic) {
                     
-                    $isExist    =   UserStat::where(['user_id'=>$authId,'stat_id'=>$statistic->id,'is_active'=>1])->count();
-                    $statistics[$key]['is_selected']= ($isExist>0)?1:0;
+                    $isExist    =   UserStat::where(['user_id'=>$authId,'stat_id'=>$statistic->id,'is_active'=>1])->first();
+
+                    $statistics[$key]['is_selected']= (isset($isExist) && !empty($isExist))?1:0;
+                    $statistics[$key]['user_stats']  = $isExist;
                 }
             }
             return $this->sendResponse($statistics, trans("message.statistics"), 200);
