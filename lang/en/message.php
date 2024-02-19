@@ -24,6 +24,9 @@ return [
     "ghost_not_found"=>"No ghost coach was discovered. Please try again.",
     "home_picks"=>"Home picks",
     "away_picks"=>"Away picks",
+    "no_roster_found"=>"No roster found",
+    "add_to_roster"=>"Add to roster successfully",
+    "already_exist_roster"=>"This person is already listed on the roster.",
  ];
 
 

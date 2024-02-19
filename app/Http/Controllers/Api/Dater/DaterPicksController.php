@@ -36,14 +36,14 @@ class DaterPicksController extends BaseController
 
             }else{
 
-                $authUser       =       Auth::user();   
+                $authUser       =               Auth::user();   
                 $limit          =              10;
                 if(isset($request->limit) && !empty($request->limit)){
 
                     $limit      =              $request->limit;
                 }
               
-                if($authUser->current_role_id==2){          // Dater
+                if($authUser->current_role_id==2){              // Dater
 
                     if($request->type == 1 || $request->type == 2){ #-------- H O M E     P I C K S (1: INVITED FRIENDS) ----------#
                   
