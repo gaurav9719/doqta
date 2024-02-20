@@ -139,8 +139,8 @@ class PortfolioController extends BaseController
                         $filePath       = $imagePath->image;
                         Storage::disk('public')->delete($filePath);
                     }
-                    
-                    UserPortfolio::where('id', $id)->delete();
+
+                    UserPortfolio::where('id', $id)->update(['image' => null]);
                     DB::commit();
                     $userData = $this->getUser->getUser($authUser->id);
                     return $this->sendResponse($userData, trans("message.delete_image"), 200);

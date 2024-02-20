@@ -42,8 +42,9 @@ class GetUserService
 
                foreach ($userDetail->portfolio as $key=> $profile) {
               
-                    $userDetail->portfolio[$key]['image']= asset('storage/'.$profile->image);
-
+                    if(isset($profile->image) && !empty($profile->image)){
+                        $userDetail->portfolio[$key]['image']= asset('storage/'.$profile->image);
+                    }
                }
 
             }
@@ -66,8 +67,10 @@ class GetUserService
             if(isset($userDetail) && !empty($userDetail)){
 
                 if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
-                
-                    $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
+                    if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
+                    
+                        $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
+                    }
 
                 }
             }

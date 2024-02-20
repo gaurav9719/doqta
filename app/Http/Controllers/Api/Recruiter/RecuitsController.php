@@ -17,8 +17,9 @@ class RecuitsController extends BaseController
     #----------  G E T       R A N D O M        R E C R U I T  ------------------#
     public function recruits(Request $request){
 
-
         
+
+
 
     }
     #-------------------------------- E N D ------------------------------------#

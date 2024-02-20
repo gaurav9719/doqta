@@ -19,7 +19,7 @@ use App\Models\Referral;
 use Carbon\Carbon;
 use App\Models\PointSystem as PointSystemModel;
 use Illuminate\Support\Facades\Log;
-
+use App\Models\UserPortfolio;
 /**
  * Class RegisterUserService.
  */
@@ -99,6 +99,18 @@ class RegisterUserService extends BaseController
                     } 
                 }
             }
+            #------------- A D D    U S E R     P I C T U R E  ------------------#
+            $position       =       1;
+            for ($i = 0; $i < 5; $i++) {
+                UserPortfolio::create([
+                    'user_id' => $userID,
+                    'image' => null,
+                    'position' => $position,
+                    // Add more fields as needed with null values
+                ]);
+                $position++;
+            }
+            #------------- A D D    U S E R     P I C T U R E  ------------------#
 
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
@@ -152,11 +164,25 @@ class RegisterUserService extends BaseController
                         $UserDevice->device_type    =   $request->device_type;
                         $UserDevice->device_token   =   $request->device_token;
                         $UserDevice->save();
+                        #------- check if portfolio doesnot exist-----------#
+                        $position                   =       1;
+                        $isPortfolioExist           =       UserPortfolio::where('user_id',$userId)->count();
+                        if($isPortfolioExist==0) {
+                            for ($i = 0; $i < 5; $i++) {
+
+                                UserPortfolio::create([
+                                    'user_id' => $userId,
+                                    'image' => null,
+                                    'position' => $position,
+                                    // Add more fields as needed with null values
+                                ]);
+                                $position++;
+                            }
+                        }
+                        #------- check if portfolio doesnot exist-----------#
 
                         // Commit the transaction
                         DB::commit();
-
-
                         $loginUser   =   $this->getUser->getAuthUser($userId);
                       
                         //dd($loginUser);
