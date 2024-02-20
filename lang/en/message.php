@@ -30,6 +30,7 @@ return [
     "updated_successfully"=>"Updated successfully.",
     "already_in_list"=>"This user already exist in your list",
     "delete_image"=>"Image deleted successfully",
+    "no_image_found"=>"Not found or removed image",
  ];
 
 

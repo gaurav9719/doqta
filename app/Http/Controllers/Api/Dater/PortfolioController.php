@@ -130,16 +130,25 @@ class PortfolioController extends BaseController
             }else{
                 $authUser       =   Auth::user();
                 $id             =   $request->segment(3);
-                $imagePath      = UserPortfolio::select('image')->where('id', $id)->first();
+                $imagePath      = UserPortfolio::select('image')->where(['id'=>$id,'user_id'=>$authUser->id])->first();
+
                 if(isset($imagePath) && !empty($imagePath)){
+
+                    if(isset($imagePath) && !empty($imagePath)){
+                        
+                        $filePath       = $imagePath->image;
+                        Storage::disk('public')->delete($filePath);
+                    }
                     
-                    $filePath       = $imagePath->image;
-                    Storage::disk('public')->delete($filePath);
+                    UserPortfolio::where('id', $id)->delete();
+                    DB::commit();
+                    $userData = $this->getUser->getUser($authUser->id);
+                    return $this->sendResponse($userData, trans("message.delete_image"), 200);
+
+                }else{
+
+                    return $this->sendResponsewithoutData(trans('message.no_image_found'), 400);
                 }
-                UserPortfolio::where('id', $id)->delete();
-                DB::commit();
-                $userData = $this->getUser->getUser($authUser->id);
-                return $this->sendResponse($userData, trans("message.delete_image"), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
