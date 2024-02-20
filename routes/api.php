@@ -98,7 +98,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(DaterPicksContro
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(PortfolioController::class)->group(function () {
 
-    Route::post('uploadPortfolio','uploadPortfolio');
+    Route::match(['delete', 'post'],'uploadPortfolio/{id?}','uploadPortfolio');
 
 });
 

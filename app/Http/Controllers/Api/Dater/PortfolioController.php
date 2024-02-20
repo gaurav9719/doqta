@@ -50,47 +50,49 @@ class PortfolioController extends BaseController
         }
     }
     #----------- U P L O A D    P O R T F O L I O S --------------#
-    public function uploadPortfolioImages($request){
-        try{
-            
-            $validator     =    Validator::make($request->all(), [ 'portfolio' => 'required|array|min:2|max:4',
-                        'portfolio.*' => 'required|image|mimes:jpeg,jpg,png,bmp,gif,svg|max:2048','position'=>'required']);// Assuming each item in the array is an image]);
-            if ($validator->fails()) {  
+    public function uploadPortfolioImages(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'portfolio' => 'required|array|min:2|max:4',
+                'portfolio.*' => 'required|image|mimes:jpeg,jpg,png,bmp,gif,svg|max:2048',
+                'position' => 'required'
+            ]);
     
+            if ($validator->fails()) {
                 return response()->json([
-                    'success'   => 422,
-                    'message'   => $validator->errors()->first(),
-                ],422);
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
     
-            }else{
-
-                $authUser       =   Auth::user();
-
-                if($request->hasFile('portfolio')){
-                    
-                    $position       =   explode(",",$request->position);
-                    $files      =   $request->file('portfolio');
-                    if(count($files)== count($position)){
-                        $images     =   [];
-                        
-                        foreach($files as $key=>$file){
-                            $image      =       upload_file($file,'portfolio');
-                            $portfolio  =       new UserPortfolio();
-                            $portfolio->image  = $image;
-                            if($position){
-                                $portfolio->position=  $position[$key];
-                            }
-                            $portfolio->user_id=$authUser->id;
-                            $portfolio->save();
-                            DB::commit();
+            $authUser = Auth::user();
+    
+            if ($request->hasFile('portfolio')) {
+                $position = explode(",", $request->position);
+                $files = $request->file('portfolio');
+    
+                if (count($files) == count($position)) {
+                    foreach ($files as $key => $file) {
+                        $image = upload_file($file, 'portfolio');
+    
+                        // Check if position image exists and delete if it does
+                        $imagePath = UserPortfolio::select('image')->where(['user_id' => $authUser->id, 'position' => $position[$key]])->first();
+    
+                        if ($imagePath && !empty($imagePath->image)) {
+                            Storage::disk('public')->delete($imagePath->image);
                         }
-                        $userData = $this->getUser->getUser($authUser->id);
-                        return $this->sendResponse($userData, trans("message.updated_successfully"), 200);
     
-                    }else{
-                        
-                        return $this->sendResponsewithoutData("Invalid profilio or position", 400);
+                        UserPortfolio::updateOrCreate(
+                            ['user_id' => $authUser->id, 'position' => $position[$key]],
+                            ['image' => $image]
+                        );
                     }
+    
+                    $userData = $this->getUser->getUser($authUser->id);
+                    return $this->sendResponse($userData, trans("message.updated_successfully"), 200);
+                } else {
+                    return $this->sendResponsewithoutData("Invalid portfolio or position", 400);
                 }
             }
         } catch (Exception $e) {
@@ -99,6 +101,7 @@ class PortfolioController extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+    
     #---------------- U P L O A D       P O R T F O L I O S--------------#
     
     

@@ -67,7 +67,6 @@ class GhostRequestController extends BaseController
     public function acceptRejectGhostReq(AcceptRejectGhostRequest $request)
     {
         try {
-
             $ghostCoach=2;
             $authUser = Auth::user();
             // Check if the user is a recruiter
@@ -79,33 +78,21 @@ class GhostRequestController extends BaseController
             $recruiterRequest = RecruiterRequest::where(['recruiter_id' => $authUser->id, 'id' => $request->request_id])->first();
             // Check if the recruiter request exists
             if (!$recruiterRequest) {
-
                 return $this->sendResponsewithoutData(trans('message.ghost_coach_request_not_found'), 404);
-
             }
             // Check if the recruiter request has already been processed
             if ($recruiterRequest->request_status != 0) {
 
                 return $this->sendResponsewithoutData(trans('message.ghost_coach_already_processrequest'), 400);
-
             }
-
             DB::beginTransaction();
-
-            $isAlreadyRecruiter                 =       Recruiter::where(['dater_id'=>$daterId,'recruiter_id'=>$authUser->id,'status'=>1])->count();
+            $isAlreadyRecruiter                 =       Recruiter::where(['dater_id'=>$recruiterRequest->dater_id,'recruiter_id'=>$recruiterRequest->recruiter_id,'status'=>1])->count();
 
             if($isAlreadyRecruiter>0){
 
                 return $this->sendResponsewithoutData(trans('message.already_in_list'), 400);
 
-            }else{ 
-
-
-
-
-
-
-
+            }
             // Update the recruiter request status
             $recruiterRequest->request_status = $request->action;
             $recruiterRequest->is_active = 0;
@@ -132,20 +119,22 @@ class GhostRequestController extends BaseController
                 $myTeam->save();
                 #------------ A D D     D A T E R     T O     M Y       T E A M ------------#
             } else {
-
                 $responseMessage = trans('message.ghost_reject_request');
-
             }
-
             DB::commit();
             return $this->sendResponsewithoutData($responseMessage, 200);
+
         } catch (Exception $e) {
+            
             DB::rollback();
             Log::error('Error caught: ghostCoachRequest ' . $e->getMessage());
             return $this->sendResponse([], trans('message.something_went_wrong'), 400);
         }
     }
     #--------------------------------------- E N D   --------------------------------------#
+
+
+    
 
 
 

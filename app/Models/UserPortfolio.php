@@ -8,4 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class UserPortfolio extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['id','user_id','image','position','is_active'] ;
 }
