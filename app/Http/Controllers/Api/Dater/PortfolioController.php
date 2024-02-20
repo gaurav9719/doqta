@@ -63,7 +63,9 @@ class PortfolioController extends BaseController
                 ],422);
     
             }else{
+
                 $authUser       =   Auth::user();
+                
                 if($request->hasFile('portfolio')){
                     
                     $position       =   explode(",",$request->position);
