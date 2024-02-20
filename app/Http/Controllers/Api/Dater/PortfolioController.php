@@ -51,7 +51,6 @@ class PortfolioController extends BaseController
     }
     #----------- U P L O A D    P O R T F O L I O S --------------#
     public function uploadPortfolioImages($request){
-        
         try{
             
             $validator     =    Validator::make($request->all(), [ 'portfolio' => 'required|array|min:2|max:4',

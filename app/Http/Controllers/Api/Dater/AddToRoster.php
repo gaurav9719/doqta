@@ -37,9 +37,7 @@ class AddToRoster extends BaseController
 
 
     public function addToRoster(Request $request){
-
         DB::beginTransaction();
-
         try {
             $validator = Validator::make($request->all(), ['id'=>'required|exists:my_team_members,id']);
     
@@ -62,9 +60,7 @@ class AddToRoster extends BaseController
                                     ->exists();
     
                     if(!$roster){
-    
                         $recruiter                      =   MyTeam::where(['id'=>$isExist->team_id,'member_id'=>$authId])->first();
-
                         $addToRoster                    =   new MyRoster();
                         $addToRoster->user_id           =   $authId;
                         $addToRoster->roster_id         =   $isExist->dater_id;
@@ -93,9 +89,7 @@ class AddToRoster extends BaseController
                             MyTeamMember::where(['id',$mutualSwipe->my_team_member_id])->update('request_status',3); // matching
                             MyTeamMember::where(['id',$isExist->id])->update('request_status',3); // matching (my)
                         }else{
-
                             MyTeamMember::where(['id',$request->id,'member_id'=>$authId])->update('request_status',1);
-
                         }
                         DB::commit();
                         return $this->sendResponsewithoutData(trans('message.add_to_roster'), 200);

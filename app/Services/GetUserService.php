@@ -29,13 +29,24 @@ class GetUserService
             $userDetail = User::where('id',$userId);
             if($user->current_role_id==2){  // dater
 
-                $userDetail  = $userDetail->with(['userPreferences','user_states']);
+                $userDetail  = $userDetail->with(['userPreferences','user_states','portfolio']);
 
             }elseif ($user->current_role_id==3) {  
         
 
             }
             $userDetail =   $userDetail->first();
+
+
+            if($user->current_role_id=="2" && isset($userDetail->portfolio[0])){
+
+               foreach ($userDetail->portfolio as $key=> $profile) {
+              
+                    $userDetail->portfolio[$key]['image']= asset('storage/'.$profile->image);
+
+               }
+
+            }
             //dd($userDetail);
             if( $user->current_role_id=="2" && isset($userDetail->user_states[0]) ){
                 //$user_stat =   $userDetail->user_states;
@@ -51,6 +62,16 @@ class GetUserService
                     }
                 }
             }
+
+            if(isset($userDetail) && !empty($userDetail)){
+
+                if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
+                
+                    $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
+
+                }
+            }
+
             return $userDetail;
         }
     }

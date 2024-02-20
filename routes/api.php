@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Notifications;
 use App\Http\Controllers\Api\Recruiter\GhostRequestController;
 use App\Http\Controllers\Api\Recruiter\MyTeamController;
 use App\Http\Controllers\Api\Dater\DaterPicksController;
+use App\Http\Controllers\Api\Dater\PortfolioController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -91,4 +92,14 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(DaterPicksContro
     Route::get('datersPicks','datersPicks');
 
 });
+
+
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(PortfolioController::class)->group(function () {
+
+    Route::post('uploadPortfolio','uploadPortfolio');
+
+});
+
+
 
