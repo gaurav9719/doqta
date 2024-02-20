@@ -139,7 +139,7 @@ class PortfolioController extends BaseController
                 UserPortfolio::where('id', $id)->delete();
                 DB::commit();
                 $userData = $this->getUser->getUser($authUser->id);
-                return $this->sendResponse($userData, trans("message.switch_user"), 200);
+                return $this->sendResponse($userData, trans("message.delete_image"), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
