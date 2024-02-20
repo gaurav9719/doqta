@@ -28,6 +28,7 @@ return [
     "add_to_roster"=>"Add to roster successfully",
     "already_exist_roster"=>"This person is already listed on the roster.",
     "updated_successfully"=>"Updated successfully.",
+    "already_in_list"=>"This user already exist in your list"
  ];
 
 

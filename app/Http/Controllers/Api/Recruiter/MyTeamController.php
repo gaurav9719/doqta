@@ -31,15 +31,15 @@ class MyTeamController extends BaseController
                     $query->where('is_active',1);
     
                 })->where(["recruiter_id"=>$authUser->id,'is_active'=>1])->get();
-    
+
                 return $this->sendResponse($myTeam,trans('message.my_team'), 200);
 
             }else{
+
                 return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
             }
 
         } catch (Exception $e) {
-
             Log::error('Error caught: "myTeam" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Recruiter\GhostRequestController;
 use App\Http\Controllers\Api\Recruiter\MyTeamController;
 use App\Http\Controllers\Api\Dater\DaterPicksController;
 use App\Http\Controllers\Api\Dater\PortfolioController;
+use App\Http\Controllers\Api\InvitesContact;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -100,6 +101,16 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(PortfolioControl
     Route::post('uploadPortfolio','uploadPortfolio');
 
 });
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(InvitesContact::class)->group(function () {
+
+    Route::post('addInvitedFriend','addInvitedFriend');
+
+});
+
+
+
+
 
 
 

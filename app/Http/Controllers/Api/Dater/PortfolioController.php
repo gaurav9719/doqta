@@ -65,7 +65,7 @@ class PortfolioController extends BaseController
             }else{
 
                 $authUser       =   Auth::user();
-                
+
                 if($request->hasFile('portfolio')){
                     
                     $position       =   explode(",",$request->position);
@@ -85,7 +85,7 @@ class PortfolioController extends BaseController
                             DB::commit();
                         }
                         $userData = $this->getUser->getUser($authUser->id);
-                        return $this->sendResponse($userData, trans("message.switch_user"), 200);
+                        return $this->sendResponse($userData, trans("message.updated_successfully"), 200);
     
                     }else{
                         
