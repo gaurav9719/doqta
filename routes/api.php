@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Recruiter\MyTeamController;
 use App\Http\Controllers\Api\Dater\DaterPicksController;
 use App\Http\Controllers\Api\Dater\PortfolioController;
 use App\Http\Controllers\Api\InvitesContact;
+use App\Http\Controllers\Api\Recruiter\RecuitsController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -107,6 +108,15 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(InvitesContact::
     Route::post('addInvitedFriend','addInvitedFriend');
 
 });
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(RecuitsController::class)->group(function () {
+
+    Route::get('recruits','recruits');
+
+});
+
+
+
 
 
 

@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('partner_matches', function (Blueprint $table) {
+        Schema::create('recruiter_benches', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user1_id');
-            $table->unsignedBigInteger('user2_id');
-            $table->foreign('user1_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('user2_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('rejectd_user_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('rejectd_user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('partner_matches');
+        Schema::dropIfExists('recruiter_benches');
     }
 };
