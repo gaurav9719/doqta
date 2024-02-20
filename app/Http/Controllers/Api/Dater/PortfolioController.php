@@ -53,8 +53,9 @@ class PortfolioController extends BaseController
     public function uploadPortfolioImages(Request $request)
     {
         try {
+
             $validator = Validator::make($request->all(), [
-                'portfolio' => 'required|array|min:2|max:5',
+                'portfolio' => 'required|array|min:1|max:5',
                 'portfolio.*' => 'required|image|mimes:jpeg,jpg,png,bmp,gif,svg|max:2048',
                 'position' => 'required'
             ]);
