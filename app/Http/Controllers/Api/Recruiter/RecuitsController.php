@@ -34,22 +34,23 @@ class RecuitsController extends BaseController
             
                 $limit                              =   $request->limit;
             }
-            $randomUser                             =      User::select('*', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))->whereHas('user_roles', function ($query) {
+            $randomUser                             =      User::select('*', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
+           ->whereHas('user_roles', function ($query) {
                 $query->where('role_id', 2);
             })
             ->where(['is_active' => 1])
             ->where("id", "<>", $authUser->id)
-            ->whereNotExists(function ($subquery) use($userId) {    #--- check in recruiter table if ghost coach is already assign
-
+            ->whereNotExists(function ($subquery) use ($userId) {
                 $subquery->select(DB::raw(1))
                     ->from('recruiter_benches')
-                    ->whereRaw("user_id ='".$userId."' AND rejectd_user_id=id AND is_active=1");
+                    ->whereRaw("user_id = '" . $userId . "' AND rejectd_user_id = id AND is_active = 1");
             })
-            ->whereHas('user_states', function ($query) {
-                $query->where('role_id', 2);
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('user_states')
+                    ->whereRaw('users.id = user_states.user_id');
             })
-
-            ->with(['portfolio','user_states'])
+            ->with(['portfolio', 'user_states'])
             ->having('distance', '<=', $distance)
             ->simplePaginate($limit);
             

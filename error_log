@@ -1,0 +1,33 @@
+[13-Feb-2024 22:43:12 America/Boise] PHP Warning:  require(/home1/dbttebmy/public_html/theroaster/vendor/autoload.php): Failed to open stream: No such file or directory in /home1/dbttebmy/public_html/theroaster/artisan on line 18
+[13-Feb-2024 22:43:12 America/Boise] PHP Warning:  require(/home1/dbttebmy/public_html/theroaster/vendor/autoload.php): Failed to open stream: No such file or directory in /home1/dbttebmy/public_html/theroaster/artisan on line 18
+[13-Feb-2024 22:43:12 America/Boise] PHP Fatal error:  Uncaught Error: Failed opening required '/home1/dbttebmy/public_html/theroaster/vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php81/root/usr/share/pear') in /home1/dbttebmy/public_html/theroaster/artisan:18
+Stack trace:
+#0 {main}
+  thrown in /home1/dbttebmy/public_html/theroaster/artisan on line 18
+[13-Feb-2024 22:43:22 America/Boise] PHP Fatal error:  Uncaught Error: Class "Illuminate\Foundation\Application" not found in /home1/dbttebmy/public_html/theroaster/bootstrap/app.php:14
+Stack trace:
+#0 /home1/dbttebmy/public_html/theroaster/artisan(20): require_once()
+#1 {main}
+  thrown in /home1/dbttebmy/public_html/theroaster/bootstrap/app.php on line 14
+[13-Feb-2024 22:44:08 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:46:46 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:47:08 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:47:18 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:47:46 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:47:49 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[13-Feb-2024 22:48:20 America/Boise] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.27. in /home1/dbttebmy/public_html/theroaster/vendor/composer/platform_check.php on line 24
+[18-Feb-2024 11:07:06 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\Api\Dater\PortfolioController::uploadPortfolio() in /home1/dbttebmy/public_html/theroaster/app/Http/Controllers/Api/Dater/PortfolioController.php on line 89
+[18-Feb-2024 11:11:10 UTC] PHP Fatal error:  Cannot redeclare App\Http\Controllers\Api\Dater\PortfolioController::uploadPortfolio() in /home1/dbttebmy/public_html/theroaster/app/Http/Controllers/Api/Dater/PortfolioController.php on line 97
+[18-Feb-2024 17:08:20 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:09:18 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:10:01 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:10:04 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:10:06 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:10:12 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:11:08 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:14:20 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:14:27 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:15:51 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:19:12 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:19:16 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
+[18-Feb-2024 17:23:02 UTC] PHP Fatal error:  Namespace declaration statement has to be the very first statement or after any declare call in the script in /home1/dbttebmy/public_html/theroaster/app/Models/User.php on line 3
