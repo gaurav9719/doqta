@@ -195,7 +195,8 @@ class UserProfileUpdate extends BaseController
     #--------------------------  A D D      U S E R     S T A T I S T I C S  -----------------#
     public function addStatistics($request)
     {
-        $userId = Auth::id();
+        $userId         = Auth::id();
+        $authUser       = Auth::user();
         DB::beginTransaction();
         
         try {
@@ -206,6 +207,13 @@ class UserProfileUpdate extends BaseController
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
 
             } else {
+
+                #------------------- C H E C K      I F     R O L E      I S    R E C R U I T E R  -------------#
+                if($authUser->current_role_id==3){
+
+                    return $this->sendResponsewithoutData(trans("message.invalidUser"), 403);
+
+                }
                 // Validation passed, update user and user_role tables
                 if(isset($request->statistics) && !empty($request->statistics)){
 

@@ -135,7 +135,7 @@ class PortfolioController extends BaseController
 
                 if(isset($imagePath) && !empty($imagePath)){
 
-                    if(isset($imagePath) && !empty($imagePath)){
+                    if(isset($imagePath->image) && !empty($imagePath->image)){
                         
                         $filePath       = $imagePath->image;
                         Storage::disk('public')->delete($filePath);

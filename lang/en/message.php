@@ -5,7 +5,7 @@ return [
     'register' => 'Registered successfully',
     'login' => 'login successfully',
     'invalidCredentials' => 'Invalid email or password!', // login api
-    'invalidUser'=>"Invalid request", // when recruiter try to access dater api
+    'invalidUser'=>"Invalid request user", // when recruiter try to access dater api
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",
     'pointSystem'=>"Point System",

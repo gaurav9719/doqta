@@ -45,12 +45,12 @@ class RecuitsController extends BaseController
                     ->from('recruiter_benches')
                     ->whereRaw("user_id = '" . $userId . "' AND rejectd_user_id = id AND is_active = 1");
             })
-            ->whereExists(function ($query) {
-                $query->select(DB::raw(1))
-                    ->from('user_states')
-                    ->whereRaw('users.id = user_states.user_id');
-            })
-            ->with(['portfolio', 'user_states'])
+            // ->whereExists(function ($query) {
+            //     $query->select(DB::raw(1))
+            //         ->from('user_stats')
+            //         ->whereRaw('users.id = user_stats.user_id');
+            // })
+            ->with(['portfolio', 'user_stats'])
             ->having('distance', '<=', $distance)
             ->simplePaginate($limit);
             
