@@ -50,7 +50,7 @@ class RecuitsController extends BaseController
             //         ->from('user_stats')
             //         ->whereRaw('users.id = user_stats.user_id');
             // })
-            ->with(['portfolio', 'user_stats'])
+            ->with(['portfolio', 'user_states'])
             ->having('distance', '<=', $distance)
             ->simplePaginate($limit);
             

@@ -52,7 +52,7 @@ class User extends Authenticatable
     }
 
 
-    public function user_stats(){
+    public function user_states(){
 
         return $this->hasMany(UserStat::class,'user_id', 'id');
     }
