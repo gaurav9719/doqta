@@ -22,8 +22,10 @@ class RecuitsController extends BaseController
     public function recruits(Request $request){
         try {
            
+       
             $authUser                              =      Auth::user();
             $userId                                =      Auth::id();
+            
             $distance                              =      10;
             if(isset($request->distance) && !empty($request->distance)) {
             
@@ -41,19 +43,22 @@ class RecuitsController extends BaseController
             ->where(['is_active' => 1])
             ->where("id", "<>", $authUser->id)
             ->whereNotExists(function ($subquery) use ($userId) {
+
                 $subquery->select(DB::raw(1))
                     ->from('recruiter_benches')
-                    ->whereRaw("user_id = '" . $userId . "' AND rejectd_user_id = id AND is_active = 1");
+                    ->whereRaw("user_id = '" . $userId . "' AND rejectd_user_id = users.id AND is_active = 1");
             })
-            // ->whereExists(function ($query) {
-            //     $query->select(DB::raw(1))
-            //         ->from('user_stats')
-            //         ->whereRaw('users.id = user_stats.user_id');
-            // })
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('user_stats')
+                    ->whereRaw('users.id = user_stats.user_id');
+            })
             ->with(['portfolio', 'user_states'])
             ->having('distance', '<=', $distance)
             ->simplePaginate($limit);
             
+
+
             // if (isset($randomUser[0]) && !empty($randomUser[0])) {
 
             //     foreach ($randomUser as $key=>$user) {           // send request to ghost coach to join

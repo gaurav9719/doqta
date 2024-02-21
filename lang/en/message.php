@@ -32,7 +32,12 @@ return [
     "delete_image"=>"Image deleted successfully",
     "no_image_found"=>"Not found or removed image",
     "random_user"=>"Random uses",
- ];
+    "no_team_found"=>"No team found",
+    "already_exist_in_member_list"=>"This user is already exist in this member list",
+    "added_to_member_list"=>"Successfully added to team",
+    "added_to_bench"=>"Successfully added to bench",
+    "same_user"=>"Team member and member both are some"
+];
 
 
 

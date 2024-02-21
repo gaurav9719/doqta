@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\Dater\DaterPicksController;
 use App\Http\Controllers\Api\Dater\PortfolioController;
 use App\Http\Controllers\Api\InvitesContact;
 use App\Http\Controllers\Api\Recruiter\RecuitsController;
+use App\Http\Controllers\Api\Recruiter\AddToMember;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -114,6 +116,16 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(RecuitsControlle
     Route::get('recruits','recruits');
 
 });
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(AddToMember::class)->group(function () {
+
+    Route::post('addToTeamBench','addToTeamBench');
+
+});
+
+
+
+
 
 
 
