@@ -36,7 +36,7 @@ class AddToRoster extends BaseController
     }
 
 
-    public function addToRoster(Request $request){
+    public function addToRosterBench(Request $request){
         DB::beginTransaction();
         try {
             $validator = Validator::make($request->all(), ['id'=>'required|exists:users,id']);

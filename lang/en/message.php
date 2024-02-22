@@ -36,7 +36,9 @@ return [
     "already_exist_in_member_list"=>"This user is already exist in this member list",
     "added_to_member_list"=>"Successfully added to team",
     "added_to_bench"=>"Successfully added to bench",
-    "same_user"=>"Team member and member both are some"
+    "same_user"=>"Team member and member both are some",
+    "message_thread"=>"Message threads",
+    "chat_history"=>"Chat history"
 ];
 
 

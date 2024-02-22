@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreign('roster_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('recruiter_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('my_team_member_id')->references('id')->on('my_team_members')->onDelete('cascade')->onUpdate('cascade');
-            $table->boolean('is_active')->default(0)->comment('1:active,0:inactive');
+            $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });
     }

@@ -32,8 +32,6 @@ class PortfolioController extends BaseController
     //
     #----------- U P L O A D    P O R T F O L I O S --------------#
     public function uploadPortfolio(Request $request,$id=""){
-        
-       
         try {
             
             if ($request->method() === 'DELETE') {
@@ -53,22 +51,18 @@ class PortfolioController extends BaseController
     public function uploadPortfolioImages(Request $request)
     {
         try {
-
             $validator = Validator::make($request->all(), [
                 'portfolio' => 'required|array|min:1|max:5',
                 'portfolio.*' => 'required|image|mimes:jpeg,jpg,png,bmp,gif,svg|max:2048',
                 'position' => 'required'
             ]);
-    
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => $validator->errors()->first(),
                 ], 422);
             }
-    
             $authUser = Auth::user();
-    
             if ($request->hasFile('portfolio')) {
                 $position = explode(",", $request->position);
                 $files = $request->file('portfolio');
@@ -89,7 +83,6 @@ class PortfolioController extends BaseController
                             ['image' => $image]
                         );
                     }
-    
                     $userData = $this->getUser->getUser($authUser->id);
                     return $this->sendResponse($userData, trans("message.updated_successfully"), 200);
                 } else {
@@ -102,20 +95,10 @@ class PortfolioController extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-    
     #---------------- U P L O A D       P O R T F O L I O S--------------#
-    
-    
-    
-    
-    
-    
-    
-    
     
     #----------  D E L E T E    P O R T F O L I O       I M A G E ------------#
     public function deletePortfolioImage($request){
-        
        DB::beginTransaction();
        //dd($request->segment(3)); // Replace 0 with the desired segment index)
         try {
@@ -129,32 +112,28 @@ class PortfolioController extends BaseController
                 ],422);
     
             }else{
+
                 $authUser       =   Auth::user();
                 $id             =   $request->segment(3);
                 $imagePath      = UserPortfolio::select('image')->where(['id'=>$id,'user_id'=>$authUser->id])->first();
 
                 if(isset($imagePath) && !empty($imagePath)){
-
                     if(isset($imagePath->image) && !empty($imagePath->image)){
-                        
                         $filePath       = $imagePath->image;
                         Storage::disk('public')->delete($filePath);
                     }
-
                     UserPortfolio::where('id', $id)->update(['image' => null]);
                     DB::commit();
                     $userData = $this->getUser->getUser($authUser->id);
                     return $this->sendResponse($userData, trans("message.delete_image"), 200);
-
                 }else{
-
                     return $this->sendResponsewithoutData(trans('message.no_image_found'), 400);
                 }
             }
-        } catch (Exception $e) {
+        }catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "uploadportfolio" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
-        } 
+        }
     }
 }
