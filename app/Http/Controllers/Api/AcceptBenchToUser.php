@@ -47,10 +47,13 @@ class AcceptBenchToUser extends BaseController
         if($authUser->current_role_id==2){  // dater profile used to add user to roster
           
             return $this->addRosterBench->addToRosterBench($request);
+
         }elseif ($authUser->current_role_id==3) { // recruiter profile dor add user to any team and bench
 
             return $this->addMemberBench->addToTeamBench($request);
+            
         }else{
+
             return $this->sendResponsewithoutData(trans("message.invalidUser"), 403);
         }
     }

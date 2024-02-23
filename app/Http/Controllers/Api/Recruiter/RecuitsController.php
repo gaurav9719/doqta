@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\UserBench;
 use App\Models\RecruiterBench;
 use Carbon\Carbon;
+use App\Models\Stat;
 class RecuitsController extends BaseController
 {
     //
@@ -36,7 +37,7 @@ class RecuitsController extends BaseController
             
                 $limit                              =   $request->limit;
             }
-            $randomUser                             =      User::select('*', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
+            $randomUser                             =      User::select('id','name','user_name','email','dob','reference_code','current_role_id','lat','long','gender','profile_pic', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
            ->whereHas('user_roles', function ($query) {
                 $query->where('role_id', 2);
             })
@@ -88,6 +89,17 @@ class RecuitsController extends BaseController
                     $user->portfolio->each(function ($profile) {
                         if ($profile->image) {
                             $profile->image = asset('storage/' . $profile->image);
+                        }
+                    });
+
+
+                    $user->user_states->each(function ($userStats) {
+                        if ($userStats->id) {
+
+                            $stat                 =   Stat::where('id',$userStats->id)->first();
+                            $userStats->question  =  (isset($stat) && !empty($stat->question)?$stat->question:null);
+                            $userStats->min_value =  (isset($stat) && !empty($stat->min_value)?$stat->min_value:0);
+                            $userStats->max_value =  (isset($stat) && !empty($stat->max_value)?$stat->max_value:0);
                         }
                     });
                     // Calculate user's age

@@ -68,6 +68,7 @@ class AddToMemberBench extends BaseController
 
     #------------------------ A D D        T O      M E M B E R  -------------------#
     public function addToMember($request,$authUser){
+        
         DB::beginTransaction();
         try {
             $isExist = MyTeam::where(['id' => $request->team_id, 'recruiter_id' => $authUser->id])->first();
@@ -75,6 +76,7 @@ class AddToMemberBench extends BaseController
             if (isset($isExist) && !empty($isExist)) {
 
                 if($isExist->member_id==$request->user_id){
+
                     return $this->sendResponsewithoutData(trans('message.same_user'), 403);
                 }
                 // Check if the user is already added to the team
@@ -90,6 +92,7 @@ class AddToMemberBench extends BaseController
                     $addToTeam->member_id = $isExist->member_id;
                     $addToTeam->dater_id = $request->user_id;
                     $addToTeam->recruiter_type = $isExist->team_type;
+                    $addToTeam->is_active = 1;
                     $addToTeam->save();
                     DB::commit(); // Commit transaction
                     return $this->sendResponsewithoutData(trans('message.added_to_member_list'), 200);

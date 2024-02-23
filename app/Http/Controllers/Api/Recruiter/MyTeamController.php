@@ -20,7 +20,8 @@ class MyTeamController extends BaseController
         try {
             
             $authUser   =   Auth::user();
-            if($authUser->current_role_id==3){  #------ recruiter ----- #
+
+            if($authUser->current_role_id==3){          #------ recruiter ----- #
 
                 $myTeam     =   MyTeam::with(['team'=>function($query){
 
@@ -40,6 +41,7 @@ class MyTeamController extends BaseController
             }
 
         } catch (Exception $e) {
+            
             Log::error('Error caught: "myTeam" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }

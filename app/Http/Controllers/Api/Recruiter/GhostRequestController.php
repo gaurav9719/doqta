@@ -25,6 +25,7 @@ class GhostRequestController extends BaseController
     public function ghostCoachRequest(Request $request)
     {
         try {
+            
             $authUser = Auth::user();
             $limit = 10;
             // dd($authUser);

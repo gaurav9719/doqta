@@ -35,19 +35,22 @@ class AddToRosterBench extends BaseController
     }
     #----------------- A D D    T O     R O S T E R     B E N C H --------------------#
     public function addToRosterBench($request){
-    
+
         try {
+
             $validator = Validator::make($request->all(), [
                 'id' => 'required_if:type,==,1|exists:my_team_members,id',
                 'type' => 'required|integer|between:0,1',
                 'user_id' => 'required|exists:users,id',
-            ],['user_id.required_if'=>"User id required"]);
+            ]);
 
             if ($validator->fails()) {
+
                 return response()->json([
                     'success' => 422,
                     'message' => $validator->errors()->first(),
                 ], 422);
+
             } else {
                 $authId     = Auth::id();
                 $authUser   = Auth::user();
@@ -70,7 +73,7 @@ class AddToRosterBench extends BaseController
 
     #---------------- A D D      T O      R O S T E R  ---------------------#
     public function addToRoster($request,$authId,$authUser){
-            // ADD TO ROSTER
+        // ADD TO ROSTER
         DB::beginTransaction();
         try {
             $isExist = MyTeamMember::where(['id' => $request->id, 'member_id' => $authId])->first();
@@ -119,6 +122,7 @@ class AddToRosterBench extends BaseController
             DB::rollback();
             Log::error('Error caught: "addToRoster" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
+
         }
     }
     #------------------------------- E N D  --------------------------------#
