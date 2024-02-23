@@ -102,13 +102,11 @@ class RegisterUserService extends BaseController
                             // ADD TO RECRUITER TABLE
                             if($role == 2){     //  join as dater
 
-                                $isExist    =   Recruiter::where(['dater_id'=>$referrerId['id'],'recruiter_id'=>$userID])->exists();
                                 $dater      =   $referrerId['id'];
                                 $recruiter  =   $userID;
 
                             }elseif ($role==3) { // join as recruiter
 
-                                $isExist    =   Recruiter::where(['dater_id'=>$userID,'recruiter_id'=>$referrerId['id']])->exists();
                                 $dater      =   $userID;
                                 $recruiter  =   $referrerId['id'];
                             }
