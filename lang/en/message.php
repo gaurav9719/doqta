@@ -38,7 +38,8 @@ return [
     "added_to_bench"=>"Successfully added to bench",
     "same_user"=>"Team member and member both are some",
     "message_thread"=>"Message threads",
-    "chat_history"=>"Chat history"
+    "chat_history"=>"Chat history",
+    "unable_to_send_message"=>"Unable to send the message"
 ];
 
 

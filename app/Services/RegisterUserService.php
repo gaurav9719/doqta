@@ -20,6 +20,10 @@ use Carbon\Carbon;
 use App\Models\PointSystem as PointSystemModel;
 use Illuminate\Support\Facades\Log;
 use App\Models\UserPortfolio;
+use App\Models\Recruiter;
+use App\Models\MyTeam;
+use Illuminate\Support\Str;
+
 /**
  * Class RegisterUserService.
  */
@@ -57,7 +61,7 @@ class RegisterUserService extends BaseController
             $userID = $user->id;
             UserDevice::where(["device_token" => $request->device_token])->delete();
             $UserDevice = new UserDevice();
-            $UserDevice->user_id = $userID;
+            $UserDevice->user_id     = $userID;
             $UserDevice->device_type = $request->device_type;
             $UserDevice->device_token = $request->device_token;
             $UserDevice->save();
@@ -82,9 +86,11 @@ class RegisterUserService extends BaseController
                     if($reference->save()){
                         // give point to referred user
                         $role                       =       ($request->user_role == '2')?3:2; 
-                        $point_id                   =       ($request->user_role == '2')?6:1; //6 invite recruiter//1 invite dater
+                        $point_id                   =       ($request->user_role == '2')?1:6; //6 invite recruiter//1 invite dater
+
                         $pointSystem                =       PointSystemModel::find($point_id)->first();
                         $point                      =       ($pointSystem)?$pointSystem->point:1;
+
                         $pointHistory               =       new PointHistory();
                         $pointHistory->role_id      =       $role;
                         $pointHistory->user_id      =       $referrerId['id'];
@@ -93,10 +99,41 @@ class RegisterUserService extends BaseController
                         $pointHistory->points       =       $point;
 
                         if($pointHistory->save()){
+                            // ADD TO RECRUITER TABLE
+                            if($role == 2){     //  join as dater
 
+                                $isExist    =   Recruiter::where(['dater_id'=>$referrerId['id'],'recruiter_id'=>$userID])->exists();
+                                $dater      =   $referrerId['id'];
+                                $recruiter  =   $userID;
+
+                            }elseif ($role==3) { // join as recruiter
+
+                                $isExist    =   Recruiter::where(['dater_id'=>$userID,'recruiter_id'=>$referrerId['id']])->exists();
+                                $dater      =   $userID;
+                                $recruiter  =   $referrerId['id'];
+                            }
+
+                            if(!Recruiter::where(['dater_id' => $dater, 'recruiter_id' => $userID])->exists()){    // not exist add to recruiter table
+                             
+                                $member                       =   User::select('name')->where(['id',$dater])->first();
+                                $addRecruiter                   =   new Recruiter();
+                                $addRecruiter->dater_id         =   $dater;
+                                $addRecruiter->recruiter_id     =   $recruiter;
+                                $addRecruiter->recruiter_type   =   1;
+                                $addRecruiter->status           =   1;
+                                $addRecruiter->save();
+                                // add to team 
+                                $myTeam                           =   new MyTeam();
+                                $myTeam->recruiter_id             =   $recruiter;
+                                $myTeam->member_id                =   $dater;
+                                $myTeam->team_name                =   (isset($member) && !empty($member)) ? Str::plural($member->name) . " Team" : "Roster's user Team" ;;
+                                $myTeam->team_type                =   1;
+                                $myTeam->is_active                =   1;
+                                $myTeam->save();
+                            }
                             incrementByPoint($referrerId['id'],$role,$point);
                         }
-                    } 
+                    }
                 }
             }
             #------------- A D D    U S E R     P I C T U R E  ------------------#
@@ -211,5 +248,6 @@ class RegisterUserService extends BaseController
     #-------------************* E N D ********** ----------------#
 
 
+    
 
 }

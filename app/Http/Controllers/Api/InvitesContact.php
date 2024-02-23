@@ -35,14 +35,13 @@ class InvitesContact extends BaseController
     
                 $role           = $request->role_id;
                 $user           = Auth::user();
-                
                 // $daterId="";
                 // $recruiterId="";
                 $referenceUser  = User::where('reference_code', $request->reference_code)->first();
                 if(isset($referenceUser) && !empty($referenceUser)) {
                     //check the auth user current role
                     if($role==3){                     // recruiter send the request to dater
-
+                        
                         $daterId                        =       $user->id;
                         $recruiterId                    =       $referenceUser->id;
                      

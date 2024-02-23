@@ -82,6 +82,7 @@ class MessageController extends Controller
                 return $this->sendResponsewithoutData(getErrorAsString($validator->errors()), 422);
 
             } else {
+
                 if (isset($request->limit) && !empty($request->limit)) {
 
                     $limit                      =               $request->limit;
@@ -122,6 +123,20 @@ class MessageController extends Controller
 
             DB::beginTransaction();
 
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
             $message_type                   =               $request->message_type;
@@ -130,29 +145,25 @@ class MessageController extends Controller
                 
                 return response()->json(['status'=>422,'message'=>"You are not allowed to message yourself."],422);
            }
-            $message                        =               Chat_thread::where(function ($query) use ($myId, $reciever) {
+            $message                        =               PartnerMatch::where(function ($query) use ($myId, $reciever) {
 
                 $query->where(['sender_id' => $myId, 'receiver_id' => $reciever])
                     ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
-            })->first();
+            })->where('is_active',1)->first();
 
-            if (isset($message) && !empty($message)) {
+            if (isset($message) && !empty($message)) {       // match is there
 
                 $message->sender_id            =          $myId;
                 $message->receiver_id          =          $reciever;
                 $message->message_type         =          $message_type;
 
-            } else {
+            } else {                                // no match or disable the chat
 
-                // create new thread
-                $message                       =               new Chat_thread();
-                $message->sender_id            =               $myId;
-                $message->receiver_id          =               $reciever;
-                $message->message_type         =               $message_type;
-
+                return $this->sendResponsewithoutData(trans('message.unable_to_send_message'), 422);
+               
             }
 
-            if (isset($request->message) && !empty($request->message)) {
+            if (isset($request->message) && !empty($request->message)) { 
 
                 $message->message           =              $request->message;
             }
