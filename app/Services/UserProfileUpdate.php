@@ -106,6 +106,7 @@ class UserProfileUpdate extends BaseController
         DB::beginTransaction();
 
         try {
+
             $authUser   = Auth::user();
             $userId     = $authUser->id;
             $role       = $authUser->current_role_id;
@@ -126,6 +127,8 @@ class UserProfileUpdate extends BaseController
                         // $unitOfMeasurement = ($unitOfMeasurement == 'kilometers') ? 6371 : 3959; // Conversion factor binding
                     if($role == 2){
 
+                        $distance           =   50; // 50 miles
+                        $limit              =   2;
                         $isSelected                                 =      UserRecruitmentChoice::where(['user_id' => $userId,'role_id' => 2,'recruiter_type'=>2])->count();
                 
                         if($isSelected==0){
@@ -148,8 +151,16 @@ class UserProfileUpdate extends BaseController
                                     ->from('recruiter_requests')
                                     ->whereRaw("user_id ='".$userId."' AND recruiter_id=id AND is_active=1");
                             })
-                            ->having('distance', '<=', 10)
-                            ->limit(2)
+
+                            //-------------- Check if not in bench TABLE -----------//
+                            ->whereNotExists(function ($subquery) use($userId) {    #--- check in recruiter_requests table if ghost coach is already receive the request
+                                $subquery->select(DB::raw(1))
+                                    ->from('user_benches')
+                                    ->whereRaw("user_id ='".$userId."' AND rejectd_user_id=id");
+                            })
+                            //---------------------  E N D  -------------------------//
+                            ->having('distance', '<=', $distance)
+                            ->limit($limit)
                             ->get();
                            
                             if (isset($ghostUsers[0]) && !empty($ghostUsers[0])) {
@@ -181,7 +192,9 @@ class UserProfileUpdate extends BaseController
                     }
                 }
                 DB::commit();
-                return $this->sendResponsewithoutData(trans("updated_recuiter"), 200);
+
+                $userData = $this->user->getUser($userId);
+                return $this->sendResponse($userData, trans("message.updated_recuiter"), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
