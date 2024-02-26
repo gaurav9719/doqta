@@ -187,9 +187,10 @@ class UserProfileUpdate extends BaseController
                                 return $this->sendResponsewithoutData(trans('message.ghost_not_found'), 400);
                             }
                         }
-                    }else{
+                    }else{  #---------- RECRUITER SIDE --------------#
                         
                         UserRole::updateOrCreate(['user_id' => $userId, 'role_id' => $role],['is_ghost_coach' => 1]);
+                        UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role,'recruiter_type' => $request['recruitment_type']],['recruiter_type' => $request['recruitment_type']]);
                     }
                 }
                 DB::commit();
