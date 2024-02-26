@@ -49,65 +49,70 @@ class InvitesContact extends BaseController
                 $referenceUser  = User::where('reference_code', $request->reference_code)->first();
 
                 if(isset($referenceUser) && !empty($referenceUser)) {
-                    //check the auth user current role
-                    if($role==3){                               // recruiter send the request to dater
 
-                        $daterId                        =       $user->id;
-                        $recruiterId                    =       $referenceUser->id;
-                    }elseif($role==2) {               // dater send the request to recruiter   
+                    #---------- CHECK USER AND INVITE USER COULD NOT BE SAME
 
-                        $daterId                        =       $referenceUser->id;
-                        $recruiterId                    =       $user->id;
-                      
-                    }
-                    //check if already recruiter or not
-                    $isAlreadyRecruiter                 =       Recruiter::where(['dater_id'=>$daterId,'recruiter_id'=>$recruiterId])->count();
+                    if($user->id== $referenceUser->id) {
 
-                    if($isAlreadyRecruiter>0){
-
-                        return $this->sendResponsewithoutData(trans('message.already_in_list'), 400);
+                        return $this->sendResponse([], trans('message.something_went_wrong'), 403);
 
                     }else{
 
-                        $addRecruiter                       =       new Recruiter();
-                        $addRecruiter->dater_id             =       $daterId;
-                        $addRecruiter->recruiter_id         =       $recruiterId;
-                        $addRecruiter->recruiter_type       =       1;
-                        $addRecruiter->save();
-                        $recruiter                          =       $addRecruiter->id;
-                        // send notification to dater 
-
-                        $referral                           =        new Referral();
-                        $referral->referrer_id              =        $referenceUser->id; // who made the refferal
-                        $referral->referred_id              =        $user->id;         // who join the refferal
-                        $referral->refered_on               =        Carbon::now();     // current utc date
-                        $referral->type                     =        2; //1 referrel,2 invite
-                        $referral->save();  
-
-                        // ADD TO TEAM MEMBER DATABASE
-
-                        $member                             =       User::where('id', $daterId)->first();
-                        $myTeam                             =       new MyTeam();
-                        $myTeam->recruiter_id               =       $recruiterId;
-                        $myTeam->member_id                  =       $daterId;
-                        $myTeam->team_name                  =       (isset($member) && !empty($member)) ? Str::plural($member->name) . " Team" : "Roster's user Team" ;
-                        $myTeam->team_type                  =       1;
-                        $myTeam->save();
-
-                        // send notification to recruiter for joining the team 
-
-                        $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $recruiterId)->first();
-                        $sender                             =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $daterId)->first();
-                        $notification_type                  =       trans('notification_message.new_member_added_in_team');
-                        $notification_message               =       trans('notification_message.new_match_found');
-                        $this->notification->sendNotification(2,$reciever,$sender,$notification_message,$notification_type);
-
-
-
-
-
-                        DB::commit();
-                        return $this->sendResponsewithoutData(trans('message.added_successfully'), 200);
+                        //check the auth user current role
+                        if($role==3){                               // recruiter send the request to dater
+    
+                            $daterId                        =       $user->id;
+                            $recruiterId                    =       $referenceUser->id;
+                        }elseif($role==2) {               // dater send the request to recruiter   
+    
+                            $daterId                        =       $referenceUser->id;
+                            $recruiterId                    =       $user->id;
+                          
+                        }
+                        //check if already recruiter or not
+                        $isAlreadyRecruiter                 =       Recruiter::where(['dater_id'=>$daterId,'recruiter_id'=>$recruiterId])->count();
+    
+                        if($isAlreadyRecruiter>0){
+    
+                            return $this->sendResponsewithoutData(trans('message.already_in_list'), 400);
+    
+                        }else{
+    
+                            $addRecruiter                       =       new Recruiter();
+                            $addRecruiter->dater_id             =       $daterId;
+                            $addRecruiter->recruiter_id         =       $recruiterId;
+                            $addRecruiter->recruiter_type       =       1;
+                            $addRecruiter->save();
+                            $recruiter                          =       $addRecruiter->id;
+                            // send notification to dater 
+    
+                            $referral                           =        new Referral();
+                            $referral->referrer_id              =        $referenceUser->id; // who made the refferal
+                            $referral->referred_id              =        $user->id;         // who join the refferal
+                            $referral->refered_on               =        Carbon::now();     // current utc date
+                            $referral->type                     =        2; //1 referrel,2 invite
+                            $referral->save();  
+    
+                            // ADD TO TEAM MEMBER DATABASE
+    
+                            $member                             =       User::where('id', $daterId)->first();
+                            $myTeam                             =       new MyTeam();
+                            $myTeam->recruiter_id               =       $recruiterId;
+                            $myTeam->member_id                  =       $daterId;
+                            $myTeam->team_name                  =       (isset($member) && !empty($member)) ? Str::plural($member->name) . " Team" : "Roster's user Team" ;
+                            $myTeam->team_type                  =       1;
+                            $myTeam->save();
+    
+                            // send notification to recruiter for joining the team 
+    
+                            $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $recruiterId)->first();
+                            $sender                             =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $daterId)->first();
+                            $notification_type                  =       trans('notification_message.new_member_added_in_team');
+                            $notification_message               =       trans('notification_message.new_match_found');
+                            $this->notification->sendNotification(2,$reciever,$sender,$notification_message,$notification_type);
+                            DB::commit();
+                            return $this->sendResponsewithoutData(trans('message.added_successfully'), 200);
+                        }
                     }
                 }
             }

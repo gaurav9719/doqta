@@ -35,8 +35,10 @@ class UserRegister extends FormRequest
             'device_type' => 'required|integer|between:1,2',
             'gender' => 'required|integer|between:1,2',
             'device_token' => 'required',
-            'zip_code' => 'required|min:3|max:6',
+            'zip_code' => 'required',
             'reference_code'=>'nullable|exists:users,reference_code',
+            'lat' => 'required|regex:/^[-]?(([0-8]?[0-9])\.(\d+))|(90(\.0+)?)$/',
+            'long' => 'required|regex:/^[-]?((((1[0-7][0-9])|([0-9]?[0-9]))\.(\d+))|180(\.0+)?)$/',
 
         ];
     }
@@ -51,6 +53,8 @@ class UserRegister extends FormRequest
             'device_type.between' => 'Invalid device type.',
             'phone_no.digits_between' => 'Invalid phone number.',
             'phone_no.unique' => 'There is already another account with this phone number',
+            'lat.regex' => 'Latitude value appears to be incorrect format.',
+            'long.regex' => 'Longitude value appears to be incorrect format.'
         ];
     }
 

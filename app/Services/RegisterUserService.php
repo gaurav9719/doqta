@@ -39,9 +39,7 @@ class RegisterUserService extends BaseController
     public function signUpUser($request){
 
         DB::beginTransaction();
-
         try {
-
             $user = new User();
             $user->name = $request->name;
             $user->email = $request->email;
@@ -56,8 +54,9 @@ class RegisterUserService extends BaseController
             $user->zipcode = $request->zip_code;
             $user->reference_code = generateReferCode();
             $user->gender   = $request->gender;
+            $user->lat = $request->lat;
+            $user->long = $request->long;
             $user->save();
-
             $userID = $user->id;
             UserDevice::where(["device_token" => $request->device_token])->delete();
             $UserDevice = new UserDevice();
@@ -113,7 +112,7 @@ class RegisterUserService extends BaseController
 
                             if(!Recruiter::where(['dater_id' => $dater, 'recruiter_id' => $userID])->exists()){    // not exist add to recruiter table
                              
-                                $member                       =   User::select('name')->where(['id',$dater])->first();
+                                $member                         =   User::select('name')->where(['id',$dater])->first();
                                 $addRecruiter                   =   new Recruiter();
                                 $addRecruiter->dater_id         =   $dater;
                                 $addRecruiter->recruiter_id     =   $recruiter;
