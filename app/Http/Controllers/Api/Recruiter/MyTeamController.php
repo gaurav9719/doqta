@@ -27,12 +27,33 @@ class MyTeamController extends BaseController
 
                     $query->select('id','name','user_name','profile_pic');
     
-                }])->whereHas('team',function ($query) {
+                },'team.portfolio','team.userPreferences'])->whereHas('team',function ($query) {
     
                     $query->where('is_active',1);
     
                 })->where(["recruiter_id"=>$authUser->id,'is_active'=>1])->get();
 
+                if(isset($myTeam[0]) && !empty($myTeam[0])){
+
+                    foreach ($myTeam as $team) {
+                        // Update image URL in portfolio
+                        $team->team->portfolio->each(function ($userImages) {
+
+                            if ($userImages->image) {
+
+                                $userImages->image = asset('storage/' . $userImages->image);
+
+                            }
+                        });
+
+                        $team->team->each(function ($teamProfile) {
+
+                            if ($teamProfile->profile_pic) {
+                                $teamProfile->profile_pic = asset('storage/' . $teamProfile->profile_pic);
+                            }
+                        });
+                    }
+                }
                 return $this->sendResponse($myTeam,trans('message.my_team'), 200);
 
             }else{
