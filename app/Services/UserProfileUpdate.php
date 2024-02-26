@@ -120,7 +120,8 @@ class UserProfileUpdate extends BaseController
                 return $this->sendResponsewithoutData(getErrorAsString($validator->errors()), 422);
             } else {
                 if ($request->recruitment_type != 2) {
-                    UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role],['recruiter_type' => $request['recruitment_type']]);
+
+                    UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role,'recruiter_type'=>$request['recruitment_type']],['recruiter_type' => $request['recruitment_type']]);
                 }
                 if($request->recruitment_type == 2) {      #-------- DATER  and invite ghost coach------------#
                         // $unitOfMeasurement = "Miles";
@@ -180,7 +181,7 @@ class UserProfileUpdate extends BaseController
                                         $this->notification->sendNotification(3,$reciever,$authUser,$notification_message,$notification_type);
                                     }
                                 }
-                                UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role],['recruiter_type' => $request['recruitment_type']]);
+                                UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role,'recruiter_type' => $request['recruitment_type']],['recruiter_type' => $request['recruitment_type']]);
     
                             }else{
                                 return $this->sendResponsewithoutData(trans('message.ghost_not_found'), 400);
