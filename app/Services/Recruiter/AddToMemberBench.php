@@ -17,6 +17,7 @@ use App\Models\PartnerMatch;
 use App\Models\Notification;
 use App\Services\NotificationService;
 use App\Models\RecruiterBench;
+use App\Models\Stat;
 /**
  * Class AddToMemberBench.
  */
@@ -36,6 +37,35 @@ class AddToMemberBench extends BaseController
     public function addToTeamBench($request) {
 
         try {
+
+            if(isset($request->action) && !empty($request->action)){
+                #------------- U P D A T E       U S E R  ------------#
+                DB::beginTransaction(); // Begin a database transaction
+                
+
+            }else{
+
+                return $this->getRecruiter($request);
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             // Validate incoming request data
             $validator = Validator::make($request->all(), [
                 'type' => 'required|integer|between:0,1',
@@ -133,4 +163,65 @@ class AddToMemberBench extends BaseController
         }
     }
     #-------------------- A D D         T O      B E N C H -------------------------#
+
+
+
+    #-----------------   G E T        R E C R U I T E R  -----------------#
+
+    public function getRecruiter($request){
+
+        $authUser           =      Auth::user();
+        $userId             =      Auth::id();
+        $distance           =      10;
+        if(isset($request->distance) && !empty($request->distance)) {
+        
+            $distance               =       $request->distance;
+        }
+        $limit                      =       10;
+
+        if(isset($request->limit) && !empty($request->limit)) {
+        
+            $limit                  =       $request->limit;
+        }
+        $randomUser                 =       User::select('id','name','user_name','email','dob','reference_code','current_role_id','lat','long','gender','profile_pic', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
+        ->whereHas('user_roles', function ($query) {
+            $query->where('role_id', 2);
+        })
+        ->where(['is_active' => 1])
+        ->where("id", "<>", $authUser->id)
+        ->whereNotExists(function ($subquery) use ($userId,$authUser) {
+
+            $subquery->select(DB::raw(1))
+                ->from('user_swipes')
+                ->whereRaw("swiping_user_id = '" . $userId . "' AND swiped_user_id = users.id AND role_id = '".$authUser->current_role_id."'");
+        })
+        ->with(['portfolio', 'user_states'])
+        ->having('distance', '<=', $distance)
+        ->first();
+        if ($randomUser) {
+            // Update image URL in portfolio
+            $randomUser->portfolio->each(function ($profile) {
+
+                if ($profile->image) {
+                    $profile->image = asset('storage/' . $profile->image);
+                }
+            });
+            $randomUser->user_states->each(function ($userStats) {
+                if ($userStats->id) {
+                    $stat                 =   Stat::where('id',$userStats->id)->first();
+                    $userStats->question  =  (isset($stat) && !empty($stat->question)?$stat->question:null);
+                    $userStats->min_value =  (isset($stat) && !empty($stat->min_value)?$stat->min_value:0);
+                    $userStats->max_value =  (isset($stat) && !empty($stat->max_value)?$stat->max_value:0);
+                }
+            });
+            // Calculate user's age
+            if(isset($randomUser->profile_pic) && !empty($randomUser->profile_pic)){
+
+                $randomUser->profile_pic = asset('storage/' . $randomUser->profile_pic);
+            }
+            $randomUser->age = Carbon::parse($randomUser->dob)->age;
+        }
+        return $this->sendResponse($randomUser, trans("message.random_user"), 200);
+    }
+    #------------------------------ E N D -------------------------------#
 }

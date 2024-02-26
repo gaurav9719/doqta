@@ -49,6 +49,7 @@ class LeaderBoard extends BaseController
                 ->orderByDesc('total_points_this_week')
                 ->get();
 
+                
 
 
 
