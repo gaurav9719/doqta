@@ -27,7 +27,7 @@ class MyTeamController extends BaseController
 
                     $query->select('id','name','user_name','profile_pic');
     
-                },'team.portfolio','team.userPreferences'])->whereHas('team',function ($query) {
+                },'team.portfolio','team.userPreferences','team.statistics'])->whereHas('team',function ($query) {
     
                     $query->where('is_active',1);
     

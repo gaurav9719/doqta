@@ -209,13 +209,15 @@ class UserProfileUpdate extends BaseController
             } else {
 
                 #------------------- C H E C K      I F     R O L E      I S    R E C R U I T E R  -------------#
-                if($authUser->current_role_id==3){
-
-                    return $this->sendResponsewithoutData(trans("message.invalidUser"), 403);
-
-                }
+                
                 // Validation passed, update user and user_role tables
                 if(isset($request->statistics) && !empty($request->statistics)){
+
+                    if($authUser->current_role_id==3){
+
+                        return $this->sendResponsewithoutData(trans("message.invalidUser"), 403);
+    
+                    }
 
                     $statistics = json_decode($request->statistics, true);
                     $stats = [];

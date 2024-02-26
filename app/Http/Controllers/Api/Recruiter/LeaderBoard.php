@@ -44,7 +44,7 @@ class LeaderBoard extends BaseController
                     "recruiter_id" => $authUser->id,
                     'is_active' => 1
                 ])
-                ->select(['*', DB::raw('(SELECT SUM(points) FROM point_histories WHERE user_id = my_teams.member_id AND created_at BETWEEN ? AND ?) AS total_points_this_week')])
+                ->select(['*', DB::raw('(SELECT SUM(points) FROM point_histories WHERE user_id = my_teams.member_id AND DATE(created_at) BETWEEN ? AND ?) AS total_points_this_week')])
                 ->setBindings([$weekStartDate, $weekEndDate])
                 ->orderByDesc('total_points_this_week')
                 ->get();
