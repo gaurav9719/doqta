@@ -103,6 +103,10 @@ class RecuitsController extends BaseController
                         }
                     });
                     // Calculate user's age
+                     if(isset($user->profile_pic) && !empty($user->profile_pic)){
+
+                        $user->profile_pic = asset('storage/' . $user->profile_pic);
+                    }
                     $user->age = Carbon::parse($user->dob)->age;
                 }
             }

@@ -56,4 +56,32 @@ class NotificationService
             return ['status' => 400, 'message' => "failed"];
         }
     }
+    
+    public function pushNotificationOnly($receiver,$message, $section) {
+        try {
+            // Create a new notification instance
+                // Get the device tokens for the receiver
+                //get notification data
+                $deviceTokens           =           UserDevice::where('user_id', $receiver->id)->get();
+                // Handle sending notifications to each device
+                foreach ($deviceTokens as $token) {
+
+                    $token              =   $token->device_token;
+
+                    if ($token->device_type == 1) {
+                        // Handle iOS device notification
+                        //IosPush($token,$message,$section,$notification_data);
+                        // You can add your iOS notification logic here
+                    } else {
+                        // Handle Android device notification
+                        // You can add your Android notification logic here
+                    }
+                }
+
+                return ['status' => 200, 'message' => "success"];
+
+        } catch (Exception $e) {
+            return ['status' => 400, 'message' => "failed"];
+        }
+    }
 }

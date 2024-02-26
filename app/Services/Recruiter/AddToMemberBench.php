@@ -94,6 +94,12 @@ class AddToMemberBench extends BaseController
                     $addToTeam->recruiter_type = $isExist->team_type;
                     $addToTeam->is_active = 1;
                     $addToTeam->save();
+                    //---------- SEND PUSH NOTIFICATION TO DATER THAT NEW MEMBER ADDED IN YOUR LIST---------------#
+                    $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $isExist->member_id)->first();
+                    $notification_type                  =       trans('notification_message.received_new_dater_message_type');
+                    $notification_message               =       trans('notification_message.received_new_dater_message');
+                    $this->notification->pushNotificationOnly($reciever,$notification_message,$notification_type);
+                    #-------------------- S E N D       P U S H     N O T I F I C A T I O N  -------------------#
                     DB::commit(); // Commit transaction
                     return $this->sendResponsewithoutData(trans('message.added_to_member_list'), 200);
                 }
