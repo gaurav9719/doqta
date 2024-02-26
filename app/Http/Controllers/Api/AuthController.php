@@ -50,11 +50,10 @@ class AuthController extends BaseController
         try {
 
             return $this->signUpService->signIn($request);
-
+            
         } catch (Exception $e) {
 
             return $this->sendError($e->getMessage(), [], 400);
-
         }
     }
     #---------------------------********* E N D*********  --------------------------------#

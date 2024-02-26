@@ -79,5 +79,12 @@ class User extends Authenticatable
     }
 
 
+    public function SelectRecruitmentType(){
+        
+        return $this->hasMany(UserRecruitmentChoice::class,'user_id','id');
+    }
+
+
+
 }
 
