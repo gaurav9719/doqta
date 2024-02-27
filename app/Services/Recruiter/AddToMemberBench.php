@@ -18,6 +18,7 @@ use App\Models\Notification;
 use App\Services\NotificationService;
 use App\Models\RecruiterBench;
 use App\Models\Stat;
+use App\Models\UserSwipe;
 /**
  * Class AddToMemberBench.
  */
@@ -37,57 +38,40 @@ class AddToMemberBench extends BaseController
     public function addToTeamBench($request) {
 
         try {
-
-            if(isset($request->action) && !empty($request->action)){
-                #------------- U P D A T E       U S E R  ------------#
-                DB::beginTransaction(); // Begin a database transaction
+            
+            if ($request->isMethod('post')) {
                 
-
-            }else{
-
-                return $this->getRecruiter($request);
+                // if(isset($request->action) && !empty($request->action)){
+                  #------------- U P D A T E       U S E R  ------------#
+                    // Validate incoming request data
+                    $validator = Validator::make($request->all(), [
+                        'type' => 'required|integer|between:0,1',
+                        'user_id' => 'required|exists:users,id',
+                        'team_id' => 'required_if:type,==,1|integer|exists:my_teams,id'
+                    ],['team_id.required_if'=>"Team id required"]);
+                    if ($validator->fails()) {
+                        // If validation fails, return error response
+                        return $this->sendResponsewithoutData(validationErrorsToString($validator->errors()), 422);
+        
+                    } else {
+                        // If validation passes, proceed with the operation
+                        $authUser   = Auth::user();
+                        $type       = $request->type;
+                        if ($type == 1) {       // Adding to team member
+        
+                           return $this->addToMember($request,$authUser);
+        
+                        } elseif ($type == 0) { // Adding to bench
+                          
+                            return $this->addToBench($request,$authUser);
+                        }
+                    }
+                // }
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            // Validate incoming request data
-            $validator = Validator::make($request->all(), [
-                'type' => 'required|integer|between:0,1',
-                'user_id' => 'required|exists:users,id',
-                'team_id' => 'required_if:type,==,1|integer|exists:my_teams,id'
-            ],['team_id.required_if'=>"Team id required"]);
-            if ($validator->fails()) {
-                // If validation fails, return error response
-                return $this->sendResponsewithoutData(validationErrorsToString($validator->errors()), 422);
-
-            } else {
-                // If validation passes, proceed with the operation
-                $authUser   = Auth::user();
-                $type       = $request->type;
-                if ($type == 1) {       // Adding to team member
-
-                   return $this->addToMember($request,$authUser);
-
-                } elseif ($type == 0) { // Adding to bench
-                  
-                    return $this->addToBench($request,$authUser);
-                }
+            if ($request->isMethod('get')) {
+                
+                return $this->getRecruiter($request);
+                
             }
         } catch (Exception $e) {
             Log::error('Error caught: "addToTeamBench" ' . $e->getMessage());
@@ -98,7 +82,6 @@ class AddToMemberBench extends BaseController
 
     #------------------------ A D D        T O      M E M B E R  -------------------#
     public function addToMember($request,$authUser){
-        
         DB::beginTransaction();
         try {
             $isExist = MyTeam::where(['id' => $request->team_id, 'recruiter_id' => $authUser->id])->first();
@@ -111,7 +94,9 @@ class AddToMemberBench extends BaseController
                 }
                 // Check if the user is already added to the team
                 $alreadyAdded = MyTeamMember::where(['team_id' => $request->team_id, 'dater_id' => $request->user_id])->count();
+                
                 if ($alreadyAdded > 0) {
+                    
                     // User is already added to the team
                     return $this->sendResponsewithoutData(trans('message.already_exist_in_member_list'), 400);
 
@@ -124,6 +109,8 @@ class AddToMemberBench extends BaseController
                     $addToTeam->recruiter_type = $isExist->team_type;
                     $addToTeam->is_active = 1;
                     $addToTeam->save();
+                    //----------------  A D D       D A T A     T O     S W I P E        T A B L E ------------ //
+                    UserSwipe::updateOrCreate(['swiping_user_id'=>$authUser->id,'swiped_user_id','role_id'],[]);
                     //---------- SEND PUSH NOTIFICATION TO DATER THAT NEW MEMBER ADDED IN YOUR LIST---------------#
                     $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $isExist->member_id)->first();
                     $notification_type                  =       trans('notification_message.received_new_dater_message_type');
