@@ -297,22 +297,25 @@ class DaterPicksController extends BaseController
             $myPicker = MyTeamMember::where('member_id', $authUser->id)->where('is_active', 1);
 
                 if($type==1){
-                    $myPicker->where('recruiter_type', 1);
+
+                    $myPicker= $myPicker->where('recruiter_type', 1);
                     $message =trans("message.home_picks");
+
                 }else{
-                    $message =trans("message.away_picks");
-                    $myPicker->whereIn('recruiter_type', [2,3]);
+                    $message =  trans("message.away_picks");
+                    $myPicker=$myPicker->whereIn('recruiter_type', [2, 3]);
+                    
                 }
-                $myPicker->with(['member' => function ($query) {
+                $myPicker = $myPicker->with(['member' => function ($query) {
                     $query->select('id', 'name', 'email', 'dob', 'country_code', 'phone_no', 'gender', 'profile_pic');
                 }, 'member.portfolio'])
                 ->whereDoesntHave('user_swipes', function ($subquery) use ($authUser) {
                     $subquery->where('swiping_user_id', $authUser->id)
                         ->whereColumn('swiped_user_id', 'my_team_members.dater_id')
                         ->where('role_id', $authUser->current_role_id);
-                })
-                ->first();
-    
+                })->first();
+
+               
             if ($myPicker) {
                 $myPicker->age = Carbon::parse($myPicker->member->dob)->age;
     
