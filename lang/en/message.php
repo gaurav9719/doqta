@@ -36,10 +36,11 @@ return [
     "already_exist_in_member_list"=>"This user is already exist in this member list",
     "added_to_member_list"=>"Successfully added to team",
     "added_to_bench"=>"Successfully added to bench",
-    "same_user"=>"Team member and member both are some",
+    "same_user"=>"Team member and member both are same",
     "message_thread"=>"Message threads",
     "chat_history"=>"Chat history",
-    "unable_to_send_message"=>"Unable to send the message"
+    "unable_to_send_message"=>"Unable to send the message",
+    "leader_board"=>"Leader board"
 ];
 
 

@@ -162,12 +162,12 @@ class RecuitsController extends BaseController
 
             $authUser           =      Auth::user();
             $userId             =      Auth::id();
-
-            if($authUser->current_role_id==2){  // dater profile used to add user to roster
+            // dd($authUser->current_role_id);
+            if($authUser->current_role_id==2){              // dater profile used to add user to roster
           
                 return $this->addRosterBench->addToRosterBench($request);
     
-            }elseif ($authUser->current_role_id==3) { // recruiter profile dor add user to any team and bench
+            }elseif ($authUser->current_role_id==3) {       // recruiter profile dor add user to any team and bench
     
                 return $this->addMemberBench->addToTeamBench($request);
                 
@@ -175,86 +175,7 @@ class RecuitsController extends BaseController
     
                 return $this->sendResponsewithoutData(trans("message.invalidUser"), 403);
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if(isset($request->action) && !empty($request->action)){
-                #------------- U P D A T E       U S E R  ------------#
-                DB::beginTransaction(); // Begin a database transaction
-
-
-
-
-            }else{
-
-                #------------- G E T    A L L       U S E R  ------------#
-                $distance                   =       10;
-                if(isset($request->distance) && !empty($request->distance)) {
-                
-                    $distance               =       $request->distance;
-                }
-                $limit                      =       10;
-
-                if(isset($request->limit) && !empty($request->limit)) {
-                
-                    $limit                  =       $request->limit;
-                }
-
-                $randomUser                 =       User::select('id','name','user_name','email','dob','reference_code','current_role_id','lat','long','gender','profile_pic', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
-                ->whereHas('user_roles', function ($query) {
-                    $query->where('role_id', 2);
-                })
-                ->where(['is_active' => 1])
-                ->where("id", "<>", $authUser->id)
-                ->whereNotExists(function ($subquery) use ($userId,$authUser) {
-
-                    $subquery->select(DB::raw(1))
-                        ->from('user_swipes')
-                        ->whereRaw("swiping_user_id = '" . $userId . "' AND swiped_user_id = users.id AND role_id = '".$authUser->current_role_id."'");
-                })
-                ->with(['portfolio', 'user_states'])
-                ->having('distance', '<=', $distance)
-                ->first();
-            }
-
-            if ($randomUser) {
-                // Update image URL in portfolio
-                $randomUser->portfolio->each(function ($profile) {
-
-                    if ($profile->image) {
-                        $profile->image = asset('storage/' . $profile->image);
-                    }
-                });
-                $randomUser->user_states->each(function ($userStats) {
-                    if ($userStats->id) {
-                        $stat                 =   Stat::where('id',$userStats->id)->first();
-                        $userStats->question  =  (isset($stat) && !empty($stat->question)?$stat->question:null);
-                        $userStats->min_value =  (isset($stat) && !empty($stat->min_value)?$stat->min_value:0);
-                        $userStats->max_value =  (isset($stat) && !empty($stat->max_value)?$stat->max_value:0);
-                    }
-                });
-                // Calculate user's age
-                if(isset($randomUser->profile_pic) && !empty($randomUser->profile_pic)){
-
-                    $randomUser->profile_pic = asset('storage/' . $randomUser->profile_pic);
-                }
-                $randomUser->age = Carbon::parse($randomUser->dob)->age;
-            }
-            // Return response
-            return $this->sendResponse($randomUser, trans("message.random_user"), 200);
         } catch (Exception $e) {
-            DB::rollback();
             Log::error('Error caught: "recruits" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }

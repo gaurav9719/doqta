@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\InvitesContact;
 use App\Http\Controllers\Api\Recruiter\RecuitsController;
 use App\Http\Controllers\Api\Recruiter\AddToMember;
 use App\Http\Controllers\Api\AcceptBenchToUser;
+use App\Http\Controllers\Api\Recruiter\LeaderBoard;
 
 /*
 |--------------------------------------------------------------------------
@@ -115,6 +116,9 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(InvitesContact::
 Route::middleware(['with_fast_api_key','auth:api'])->controller(RecuitsController::class)->group(function () {
 
     Route::get('recruits','recruits');
+    Route::match(['get', 'post'],'recruitUser','recruitUser');
+
+    
 
 });
 
@@ -128,6 +132,13 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(AddToMember::cla
 Route::middleware(['with_fast_api_key','auth:api'])->controller(AcceptBenchToUser::class)->group(function () {
 
     Route::post('AddToAcceptBench','AddToAcceptBench');
+
+});
+
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(LeaderBoard::class)->group(function () {
+
+    Route::post('leaderBoard','leaderBoard');
 
 });
 
