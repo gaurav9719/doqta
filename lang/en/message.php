@@ -1,6 +1,4 @@
 <?php
-
-
 return [
     'register' => 'Registered successfully',
     'login' => 'login successfully',
@@ -40,7 +38,8 @@ return [
     "message_thread"=>"Message threads",
     "chat_history"=>"Chat history",
     "unable_to_send_message"=>"Unable to send the message",
-    "leader_board"=>"Leader board"
+    "leader_board"=>"Leader board",
+    
 ];
 
 

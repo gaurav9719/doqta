@@ -84,7 +84,13 @@ class User extends Authenticatable
         return $this->hasMany(UserRecruitmentChoice::class,'user_id','id');
     }
 
+    public function pointHistories(){
+        
+        return $this->hasMany(PointHistory::class,'user_id','id');
+    }
 
+
+    
 
 }
 

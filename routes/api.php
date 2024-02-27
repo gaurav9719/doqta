@@ -95,7 +95,8 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(MyTeamController
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(DaterPicksController::class)->group(function () {
 
-    Route::get('datersPicks','datersPicks');
+     Route::get('datersPick','datersPick');
+    //Route::get('datersPick','datersPick');
 
 });
 
