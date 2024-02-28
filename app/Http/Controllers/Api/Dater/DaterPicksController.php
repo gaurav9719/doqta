@@ -17,9 +17,25 @@ use App\Models\MyRoster;
 use carbon\Carbon;
 use App\Models\User;
 use App\Models\Stat;
+use App\Services\Dater\AddToRosterBench;
+use App\Services\GetUserService;
 class DaterPicksController extends BaseController
 {
     //
+
+    protected $user, $addToRosterBench, $authId, $getUser;
+    // protected $userProfile;
+    public function __construct(AddToRosterBench $addToRosterBench, GetUserService $getUser)
+    {
+        $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            $this->authId = Auth::id();
+            return $next($request);
+        });
+
+        $this->addToRosterBench = $addToRosterBench;
+        $this->getUser = $getUser;
+    }
 
     #-----------  G E T     H O M E / A W A Y / M Y  R O S T E R     P I C K S --------------#
 
@@ -166,46 +182,24 @@ class DaterPicksController extends BaseController
 
     public function datersPick(Request $request) {
         try {
-            
             $authUser   = Auth::user();
-            if ($request->isMethod('post')) {        #------------- U P D A T E       U S E R  ROSTER/BENCH  ------------#
-                $validator = Validator::make($request->all(), [
-                    'type' => 'required|integer|between:0,1',
-                    'user_id' => 'required|exists:users,id',
-                    'team_id' => 'required_if:type,==,1|array',
-                    'team_id.*' => 'required_if:type,==,1|integer|exists:my_teams,id',
-                ],['team_id.required_if'=>"Team id required",'team_id.*.exists'=>"invalid team id",'team_id.*.integer'=>"invalid team id"]);
 
-                if ($validator->fails()) {
-                    // If validation fails, return error response
-                    return $this->sendResponsewithoutData(validationErrorsToString($validator->errors()), 422);
-    
-                } else {
-                    // If validation passes, proceed with the operation
-                   
-                    $type       = $request->type;
-                    if ($type == 1) {       // Adding to team member
-    
-                        return $this->addToMember($request,$authUser);
-    
-                    } elseif ($type == 0) { // Adding to bench
-                        
-                        return $this->addToBench($request,$authUser);
-                    }
-                }
+            if ($request->isMethod('post')) {        #------------- U P D A T E       U S E R  ROSTER/BENCH  ------------#
+
+                return $this->addToRosterBench->addToRosterBench($request);
+
             }
+
             if ($request->isMethod('get')) {    #------------- G E T    D A T E R       P I C K S  ------------#
 
                 return $this->userPicks($request, $authUser);
 
             }
-            
         } catch (Exception $e) {
             
             Log::error('Error caught: "datersPicks" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }        
-
     }
     public function userPicks($request,$authUser){
 
@@ -232,66 +226,23 @@ class DaterPicksController extends BaseController
         }
     }
 
-    #------------  H O M E      P I C K S -------------#
-    // public function homePicks($request, $authUser){
-
-    //     try {
-
-    //         $myPicker           =   MyTeamMember::where('member_id', $authUser->id)
-
-    //         ->where('is_active', 1)->where('recruiter_type', 1)->with(['member' => function($query) {
-
-    //             $query->select('id', 'name', 'email', 'dob', 'country_code', 'phone_no', 'gender', 'profile_pic','dob');
-
-    //         },'member.portfolio'])->whereNotExists(function ($subquery) use ($authUser) {
-    //             $subquery->select(DB::raw(1))
-    //                 ->from('user_swipes')
-    //                 ->whereRaw("swiping_user_id = '" . $authUser->id . "' AND swiped_user_id = my_team_members.dater_id AND role_id = '".$authUser->current_role_id."'");
-    //         })->first();
-
-    //         if (isset($myPicker) && !empty($myPicker)) {
-    //             // Update image URL in portfolio
-    //             if(isset($myPicker->member) && !empty($myPicker->member)) {
-    //                 $myPicker->age = Carbon::parse($myPicker->member->dob)->age;
-
-    //                 $myPicker->member->portfolio->each(function ($profile) {
-
-    //                     if ($profile->image) {
-    //                         $profile->image = asset('storage/' . $profile->image);
-    //                     }
-    //                 });
-    
-    //                 $myPicker->member->user_states->each(function ($userStats) {
-    //                     if ($userStats->id) {
-    //                         $stat                = Stat::find($userStats->id);
-    //                         $userStats->question = $stat->question ?? null;
-    //                         $userStats->min_value = $stat->min_value ?? 0;
-    //                         $userStats->max_value = $stat->max_value ?? 0;
-    //                     }
-    //                 });
-    //                 // Calculate user's age
-    //                 if(isset($myPicker->profile_pic) && !empty($myPicker->profile_pic)){
-    
-    //                     $myPicker->profile_pic = asset('storage/' . $myPicker->profile_pic);
-    //                 }
-                    
-    //                 if(isset($myPicker->member->profile_pic) && !empty($myPicker->member->profile_pic)){
-
-    //                     $myPicker->member->profile_pic = asset('storage/' . $myPicker->member->profile_pic);
-    //                 }
-    //             }
-    //         }
-    //         return $this->sendResponse($myPicker, trans("message.home_picks"), 200);
-
-    //     } catch (Exception $e) {
-
-    //         Log::error('Error caught: "homePicks" ' . $e->getMessage());
-    //         return $this->sendError($e->getMessage(), [], 400);
-    //     }
-    // }
-    #-------------- ***** E N D ****** ----------------#
+   
 
     public function homePicks($request, $authUser,$type) {
+       
+        $randomUsers        =   $this->showRandomUser($request,$authUser,$type);
+
+        if(empty($randomUsers) || $randomUsers==null) {
+
+            $randomUsers        =   $this->showRandomUser($request,$authUser,$type,1);
+
+        }
+        $message                =   ($type==1)?trans("message.home_picks"):trans("message.away_picks");
+        return $this->sendResponse($randomUsers, $message, 200);
+    }
+
+    public function showRandomUser($request,$authUser,$type,$random_type=''){
+
         try {
 
             // dd($authUser->id);
@@ -309,17 +260,30 @@ class DaterPicksController extends BaseController
                 }
                 $myPicker = $myPicker->with(['member' => function ($query) {
                     $query->select('id', 'name', 'email', 'dob', 'country_code', 'phone_no', 'gender', 'profile_pic');
-                }, 'member.portfolio'])
-                ->whereDoesntHave('user_swipes', function ($subquery) use ($authUser) {
+                }, 'member.portfolio']);
+
+                if(empty($random_type) || $random_type== ''){
+                    $myPicker = $myPicker->whereDoesntHave('user_swipes', function ($subquery) use ($authUser) {
                     $subquery->where('swiping_user_id', $authUser->id)
                         ->whereColumn('swiped_user_id', 'my_team_members.dater_id')
                         ->where('role_id', $authUser->current_role_id);
-                })->first();
+                        // ->where('swipe_type',1); // show only bench record 
+                    });
+                }else{
 
-               
+                    $myPicker = $myPicker->whereHas('user_swipes', function ($subquery) use ($authUser) {
+                        $subquery->where('swiping_user_id', $authUser->id)
+                            ->whereColumn('swiped_user_id', 'my_team_members.dater_id')
+                            ->where('role_id', $authUser->current_role_id)
+                            ->where('swipe_type',0); // show only bench record 
+                        });
+                }
+                
+                $myPicker      =      $myPicker->inRandomOrder()->first();
+
             if ($myPicker) {
-                $myPicker->age = Carbon::parse($myPicker->member->dob)->age;
-    
+
+                $myPicker->age =     Carbon::parse($myPicker->member->dob)->age;
                 $myPicker->member->portfolio->each(function ($profile) {
                     if ($profile->image) {
                         $profile->image = asset('storage/' . $profile->image);
@@ -342,7 +306,7 @@ class DaterPicksController extends BaseController
                 }
             }
     
-            return $this->sendResponse($myPicker, $message, 200);
+           
     
         } catch (Exception $e) {
             Log::error('Error caught: "homePicks" ' . $e->getMessage());

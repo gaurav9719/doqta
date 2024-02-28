@@ -158,7 +158,16 @@ class AddToMemberBench extends BaseController
 
 
     #-----------------   G E T        R E C R U I T E R  -----------------#
-    public function getRecruiter($request){
+
+    public function getRecruiter($request ){
+        $randomUser = $this->getRandomUser($request);
+        if(!isset($randomUser->id) && empty($randomUser->id)){
+
+            $randomUser = $this->getRandomUser($request , 1);
+        }
+        return $this->sendResponse($randomUser, trans("message.random_user"), 200);
+    }
+    public function getRandomUser($request,$type=''){
 
         $authUser           =      Auth::user();
         $userId             =      Auth::id();
@@ -168,16 +177,19 @@ class AddToMemberBench extends BaseController
         $randomUser                 =       User::select('id','name','user_name','email','dob','reference_code','current_role_id','lat','long','gender','profile_pic', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
         ->whereHas('user_roles', function ($query) {
             $query->where('role_id', 2);
-        })
-        ->where(['is_active' => 1])
-        ->where("id", "<>", $authUser->id)
-        ->whereNotExists(function ($subquery) use ($userId,$authUser) {
-            $subquery->select(DB::raw(1))
-                ->from('user_swipes')
-                ->whereRaw("swiping_user_id = '" . $userId . "' AND swiped_user_id = users.id AND role_id = '".$authUser->current_role_id."'");
-        })
-        ->with(['portfolio', 'user_states'])
+        })->where(['is_active' => 1])->where("id", "<>", $authUser->id);
+
+        if(empty($type) || $type == "") {
+
+            $randomUser= $randomUser->whereNotExists(function ($subquery) use ($userId,$authUser) {
+                $subquery->select(DB::raw(1))
+                    ->from('user_swipes')
+                    ->whereRaw("swiping_user_id = '" . $userId . "' AND swiped_user_id = users.id AND role_id = '".$authUser->current_role_id."'");
+            });
+        }
+        $randomUser=$randomUser->with(['portfolio', 'user_states'])
         ->having('distance', '<=', $distance)
+        ->inRandomOrder()
         ->first();
         if ($randomUser) {
             // Update image URL in portfolio
@@ -202,7 +214,7 @@ class AddToMemberBench extends BaseController
             }
             $randomUser->age = Carbon::parse($randomUser->dob)->age;
         }
-        return $this->sendResponse($randomUser, trans("message.random_user"), 200);
+        return $randomUser;
     }
     #------------------------------ E N D -------------------------------#
 }
