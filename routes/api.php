@@ -95,7 +95,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(MyTeamController
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(DaterPicksController::class)->group(function () {
 
-     Route::get('datersPick','datersPick');
+     Route::match(['delete', 'post'],'datersPick','datersPick');
     //Route::get('datersPick','datersPick');
 
 });
@@ -139,7 +139,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(AcceptBenchToUse
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(LeaderBoard::class)->group(function () {
 
-    Route::post('leaderBoard','leaderBoard');
+    Route::get('leaderBoard','leaderBoard');
 
 });
 

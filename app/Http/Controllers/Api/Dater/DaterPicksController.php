@@ -294,6 +294,7 @@ class DaterPicksController extends BaseController
     public function homePicks($request, $authUser,$type) {
         try {
 
+            // dd($authUser->id);
             $myPicker = MyTeamMember::where('member_id', $authUser->id)->where('is_active', 1);
 
                 if($type==1){
