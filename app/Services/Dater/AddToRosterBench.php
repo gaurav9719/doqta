@@ -98,22 +98,23 @@ class AddToRosterBench extends BaseController
                     #----------  A D D   E N T R Y      T O     U S E R      S W I P E -------#
 
                     UserSwipe::updateOrCreate(['swiping_user_id'=>$authId,'swiped_user_id'=>$isExist->dater_id,'role_id'=>$authUser->current_role_id],['swipe_type'=>1,'is_active'=>1]);
+                    #--------------------- S W I P E        U S E R  ----------------------------#
+
                     //---------- SEND PUSH NOTIFICATION TO DATER THAT NEW MEMBER ADDED IN YOUR LIST---------------#
                     $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $isExist->member_id)->first();
                     $notification_type                  =       trans('notification_message.received_new_dater_message_type');
                     $notification_message               =       trans('notification_message.received_new_dater_message');
 
-                    #--------------------- S W I P E        U S E R  ----------------------------#
 
                     $mutualSwipe                        =       MyRoster::where('user_id', $isExist->dater_id)
                                                                 ->where('roster_id', $authId)
                                                                 ->where('is_active', 1)
                                                                 ->first();
                     if (isset($mutualSwipe) && !empty($mutualSwipe)) {
-                        
+
                         $matched            = new PartnerMatch();
-                        $matched->user1_id = $authId;
-                        $matched->user2_id = $isExist->dater_id;
+                        $matched->user1_id  = $authId;
+                        $matched->user2_id  = $isExist->dater_id;
                         $matched->matched_on= Carbon::now();
                         $matched->save();
 
@@ -170,6 +171,8 @@ class AddToRosterBench extends BaseController
                 $query->where(['user1_id' => $user_id, 'user2_id' => $request_user_id])
                     ->orWhere(['user2_id' => $request_user_id, 'user1_id' => $user_id]);
             })->update(['is_active' => 0]);
+
+            UserSwipe::updateOrCreate(['swiping_user_id'=>$user_id,'swiped_user_id'=>$request_user_id,'role_id'=>$authUser->current_role_id],['swipe_type'=>0,'is_active'=>1]);
 
             DB::commit();   // Commit transaction
             return $this->sendResponsewithoutData(trans('message.added_to_bench'), 200);

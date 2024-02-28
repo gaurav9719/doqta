@@ -20,6 +20,10 @@ class MyTeamMember extends Model
 
 
 
+    public function user_states(){
+
+        return $this->hasMany(UserStat::class,'user_id', 'roster_id');
+    }
 
     
 

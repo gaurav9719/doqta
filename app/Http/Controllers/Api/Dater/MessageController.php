@@ -203,10 +203,9 @@ class MessageController extends Controller
             $message                        =               "Your have recieved new message from  " . $myName;
             $sender                         =               User::find($myId);
             $status                         =               $this->notificationService->sendNotification($reciever, $sender, $message, $section);
-
-            $last_message                =              Chat::find($chat_message->id);
-            $last_message->time_ago      =              $last_message->updated_at->diffForHumans();
-            $last_message['profile']     =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
+            $last_message                   =              Chat::find($chat_message->id);
+            $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
+            $last_message['profile']        =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
             return $this->sendResponse($last_message, "Message send.", 200);
         } catch (Exception $e) {
 

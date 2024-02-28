@@ -16,4 +16,14 @@ class MyRoster extends Model
 
         return $this->belongsTo(User::class,'roster_id','id');
     }
+
+    public function member(){
+
+        return $this->belongsTo(User::class,'roster_id','id');
+    }
+
+    
+
+
+
 }

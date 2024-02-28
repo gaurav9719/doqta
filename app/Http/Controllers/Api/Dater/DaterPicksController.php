@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\Stat;
 use App\Services\Dater\AddToRosterBench;
 use App\Services\GetUserService;
+use App\Models\PartnerMatch;
 class DaterPicksController extends BaseController
 {
     //
@@ -45,7 +46,7 @@ class DaterPicksController extends BaseController
 
         try {
             
-            $validator      = Validator::make($request->all(), ['type'=>'required|integer|between:1,3'],['between'=>"Invalid type"]);
+            $validator      = Validator::make($request->all(), ['type'=>'required|integer|between:1,2'],['between'=>"Invalid type"]);
 
             if ($validator->fails()) {  
 
@@ -106,7 +107,6 @@ class DaterPicksController extends BaseController
     #--------------- GET HOME AND AWAY PICKS -----------------------#
     public function homeAwayPicks($request,$limit){
 
-
         $type = $request->type;
         $authUser = Auth::user();
     
@@ -148,18 +148,13 @@ class DaterPicksController extends BaseController
                     if(isset($recruited) && !empty($recruited)){
     
                         $recruitedBy.=$recruited->name;
-    
                     }
                 }
             }
             $picker->recruited_by = $recruitedBy;
-
-
-
             if ($picker->member) {
                 $picker->member->age = Carbon::parse($picker->member->dob)->age;
             }
-
         });
         // dd($myPicker);
         return $this->sendError($myPicker, [], 400);
@@ -167,15 +162,7 @@ class DaterPicksController extends BaseController
     #--------------- GET HOME AND AWAY PICKS -----------------------#
 
 
-    #-----------------------  M Y   R O S T E R  -----------------#
-    public function myRoster($request, $limit){
-
-        $authUser       =               Auth::user();  
-        $myRoster       =               MyRoster::where(['user_id'=>$authUser->id,'is_active'=> 1])->with(['roster'])->simplePaginate($limit);
-        
-        
-    }
-    #------------------------   E N D   --------------------------# 
+   
 
 
     #----------------- U S E R      P I C K S -------------------------#
@@ -187,16 +174,12 @@ class DaterPicksController extends BaseController
             if ($request->isMethod('post')) {        #------------- U P D A T E       U S E R  ROSTER/BENCH  ------------#
 
                 return $this->addToRosterBench->addToRosterBench($request);
-
             }
-
             if ($request->isMethod('get')) {    #------------- G E T    D A T E R       P I C K S  ------------#
 
                 return $this->userPicks($request, $authUser);
-
             }
-        } catch (Exception $e) {
-            
+        } catch (Exception $e) {  
             Log::error('Error caught: "datersPicks" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }        
@@ -204,14 +187,19 @@ class DaterPicksController extends BaseController
     public function userPicks($request,$authUser){
 
         $validator = Validator::make($request->all(), [
-            'pick_type' => 'required|integer|between:1,2'],['between'=>"Invalid picks type"]);
+            'pick_type' => 'required|integer|between:1,3'],['pick_type.between'=>"Invalid picks type"]);
 
         if ($validator->fails()) {
             // If validation fails, return error response
             return $this->sendResponsewithoutData(validationErrorsToString($validator->errors()), 422);
 
         } else {
+            $limit                  =   10;
 
+            if(isset($request->limit) && !empty($request->limit)){
+
+                $limit = $request->limit;
+            }
             if($request->pick_type == 1){           #--------- H O M E    P I C K S (INVITE FRIEND)
 
                 return $this->homePicks($request,$authUser,1);
@@ -220,13 +208,14 @@ class DaterPicksController extends BaseController
             elseif ($request->pick_type == 2) {     #--------------- A W A Y    P I C K S (GHOST COACH/ROSTER AI)
 
                 return $this->homePicks($request,$authUser,2);
-                
+            }
 
+            elseif ($request->pick_type == 3) { #------------------  G E T     M Y      R O S T E R -----------------#
+
+                return $this->myRoster($request,$limit);
             }
         }
     }
-
-   
 
     public function homePicks($request, $authUser,$type) {
        
@@ -304,13 +293,74 @@ class DaterPicksController extends BaseController
                 if ($myPicker->member && $myPicker->member->profile_pic) {
                     $myPicker->member->profile_pic = asset('storage/' . $myPicker->member->profile_pic);
                 }
+                return $myPicker;
             }
-    
-           
     
         } catch (Exception $e) {
             Log::error('Error caught: "homePicks" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+    #-------   MY        R O S T E R    ----------------#
+
+     #-----------------------  M Y   R O S T E R  -----------------#
+     public function myRoster($request, $limit) {
+        $authUser = Auth::user();  
+    
+        $myRoster = MyRoster::where(['user_id' => $authUser->id, 'is_active' => 1])
+            ->with(['member' => function($query) {
+                $query->select('id', 'name', 'email', 'dob', 'country_code', 'phone_no', 'gender', 'profile_pic');
+            }, 'member.portfolio', 'member.user_states'])
+            ->simplePaginate($limit);
+    
+        $myRoster->getCollection()->transform(function ($roster) use ($request) {
+            //check chat is enable or not
+            // Calculate age
+
+            if(isset($roster) && !empty($roster)) {
+                $user1Id = $roster->user_id;
+                $user2Id = $roster->roster_id;
+                $isMatch = PartnerMatch::where(function($query) use ($user1Id, $user2Id) {
+                    $query->whereIn('user1_id', [$user1Id, $user2Id])
+                        ->whereIn('user2_id', [$user1Id, $user2Id]);
+                })->exists();
+
+                $roster->chat_enable = ($isMatch) ? 1 : 0;
+                $roster->age = Carbon::parse($roster->member->dob)->age;
+        
+                // Update image URLs in portfolio
+                $roster->member->portfolio->each(function ($profile) {
+                    if ($profile->image) {
+                        $profile->image = asset('storage/' . $profile->image);
+                    }
+                });
+        
+                // Load user states and update related information
+                $roster->member->user_states->each(function ($userStats) {
+                    $stat = Stat::find($userStats->id);
+                    $userStats->question = $stat ? $stat->question : null;
+                    $userStats->min_value = $stat ? $stat->min_value : 0;
+                    $userStats->max_value = $stat ? $stat->max_value : 0;
+                });
+    
+                // Update profile picture URLs
+                if ($roster->profile_pic) {
+                    $roster->profile_pic = asset('storage/' . $roster->profile_pic);
+                }
+        
+                if ($roster->member && $roster->member->profile_pic) {
+                    $roster->member->profile_pic = asset('storage/' . $roster->member->profile_pic);
+                }
+    
+                return $roster;
+            }
+        });
+    
+        return $this->sendResponse($myRoster, 'Roster', 200);
+    }
+    #------------------------   E N D   --------------------------# 
+    #----------------- E N D  ------------------------#
+
+
 }
