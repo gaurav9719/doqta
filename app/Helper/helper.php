@@ -555,8 +555,6 @@ if (!function_exists('getAddressFromGoogle')) {
     if (!function_exists('message_media')) {
         function message_media($file, $type)
         {
-
-
             if ($type == 2) {
 
                 $folder             =           "chat/images";

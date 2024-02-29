@@ -18,21 +18,24 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\PartnerMatch;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Models\Message;
+use App\Http\Requests\SendMessage;
+use App\Services\NotificationService;
 class MessageController extends Controller
 {
+    protected $notification;
+    public function __construct(NotificationService $notification)
+    {
+        $this->notification         = $notification;
+    }
+
     #--------------  GET    MATCHING    THREAD  ---------------------#
-    public function getThread(Request $request){   
+    public function getThread(Request $request){
         try {
             $authUser       =   Auth::user();
             $limit          =   10;
             if(isset($request->limit) && !empty($request->limit)){
                 $limit      =   $request->limit;
             }
-            $messageThread  =   PartnerMatch::where(function($query) use ($request, $authUser){
-                $query->where(['user1_id'=>$authUser->id]);
-                $query->orWhere(['user2_id'=>$authUser->id]);
-            })->simplePaginate($limit);
-
             $threads = PartnerMatch::leftJoin('users as U', function ($join) use ($request, $authUser) {
 
                 $join->on(function ($query) use ($authUser) {
@@ -63,7 +66,29 @@ class MessageController extends Controller
             ->select('partner_matches.*', 'U.name', 'U.user_name', 'U.profile_pic', 'U.id as other_user_id')
             ->orderBy('partner_matches.updated_at', 'DESC') // Order by 'updated_at' column
             ->simplePaginate($limit);                       // Paginate the results
+
+            $threads->getCollection()->transform(function ($thread) use ($request) {
+
+                if(isset($thread) && !empty($thread)){
+
+                    if(empty($thread->profile_pic) && $thread->profile_pic == null){
+                        //check in portfolio 
+                        $profileExist               =   UserPortfolio::where('user_id', $thread->other_user_id)->whereNotNull('image')->first();
+                        if(empty($profileExist)){
+
+                            $thread->profile_pic    =   null;
+
+                        }else{
+
+                            $thread->profile_pic    =   $profileExist->image;
+                        }
+                    }
+                }
+                return $thread;           
+            });
+
             return $this->sendResponse($threads, trans("message.message_thread"), 200);
+
         } catch (Exception $e) {
             Log::error('Error caught: "getThread" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -117,99 +142,89 @@ class MessageController extends Controller
 
     #----------------------------------- S E N D    M E S S A G E ------------------------------------------#
 
-    public function sendMessage(Request $request)
+    public function sendMessage(SendMessage $request)
     {
         try {
 
             DB::beginTransaction();
-
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
             $message_type                   =               $request->message_type;
-            
             if($myId==$reciever){
                 
                 return response()->json(['status'=>422,'message'=>"You are not allowed to message yourself."],422);
            }
-            $message                        =               PartnerMatch::where(function ($query) use ($myId, $reciever) {
+            $matchExist                        =           PartnerMatch::where(function ($query) use ($myId, $reciever) {
 
                 $query->where(['sender_id' => $myId, 'receiver_id' => $reciever])
                     ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
             })->where('is_active',1)->first();
 
-            if (isset($message) && !empty($message)) {       // match is there
-
-                $message->sender_id            =          $myId;
-                $message->receiver_id          =          $reciever;
-                $message->message_type         =          $message_type;
-
-            } else {                                // no match or disable the chat
+            if (empty($matchExist) || $matchExist==null) {       // match is there
 
                 return $this->sendResponsewithoutData(trans('message.unable_to_send_message'), 422);
                
+            } else {                                // no match or disable the chat
+
+                $sendMesssage                       =          new  Message(); 
+                $sendMesssage->sender_id            =          $myId;
+                $sendMesssage->receiver_id          =          $reciever;
+                $sendMesssage->message_type         =          $message_type;
+                $sendMesssage->match_id             =          $matchExist->id;
+            
+                if (isset($request->message) && !empty($request->message)) { 
+
+                    $sendMesssage->message          =         $request->message;
+                }
+                if ($request->hasFile('media')) {
+                    
+                    $sendMesssage->media            =         message_media($request->media, $message_type);
+                }
+                if (isset($request->thumbnails) && !empty($request->thumbnails)) {
+
+                    $sendMesssage->media_thumbnail  =         message_media($request->thumbnails, 10);
+                }
+                $sendMesssage->save();
+                $messageId                          =         $sendMesssage->id;
+                $message                            =         Message::find($messageId);
+                // U P D A T E     M A T C H     T A B L E  
+
+                $matchExist->send_by                 =       $myId;
+                $matchExist->message                 =       $message->message;
+                $matchExist->media                   =       $message->media;
+                $matchExist->media_thumbnail         =       $message->media_thumbnail;
+                $matchExist->message_type            =       $message->message_type;
+                $matchExist->save();
+                DB::commit();
+                // SEND PUSH AND NOTIFICATION TO RECEIVER
+
+                $reciever                       =               User::find($reciever, ['id', 'device_token', 'device_type']);
+                $section                        =               trans('notificaion_message.send_new_message_type');
+                $myName                         =               Auth::user()->first_name;
+                $message                        =               trans('notificaion_message.send_new_message_type')." ". $myName;
+                $sender                         =               User::find($myId);
+                $status                         =               $this->notification->sendNotification(2,$reciever, $sender, $message, $section);
+                $last_message                   =              Message::find($sendMesssage->id);
+                $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
+                $user_profile                   =              User::find($reciever, ['id', 'name', 'user_name', 'profile_pic']);
+                if(empty($user_profile->profile_pic) && $user_profile->profile_pic == null){
+                    //check in portfolio 
+                    $profileExist               =   UserPortfolio::where('user_id', $user_profile->id)->whereNotNull('image')->first();
+                    if(empty($profileExist)){
+
+                        $user_profile['profile_pic']    =   null;
+
+                    }else{
+
+                        $user_profile['profile_pic']    =   $profileExist->image;
+                    }
+                }
+                $last_message['profile']        =              $user_profile;
+                return $this->sendResponse($last_message, "Message send.", 200);
             }
-
-            if (isset($request->message) && !empty($request->message)) { 
-
-                $message->message           =              $request->message;
-            }
-
-            if ($request->hasFile('media')) {
-                
-                $message->media             =             message_media($request->media, $message_type);
-
-            }
-
-            if (isset($request->thumbnails) && !empty($request->thumbnails)) {
-
-                $message->media_thumbnail   =             message_media($request->thumbnails, 10);
-
-            }
-
-            $message->save();
-
-            $threadId                       =               $message->id;
-            // SET IN THREAD TABLE
-            $threadData                     =               Chat_thread::find($threadId);
-            $chat_message                   =               new Chat();
-            $chat_message->thread_id        =               $threadId;
-            $chat_message->sender_id        =               $threadData->sender_id;
-            $chat_message->receiver_id      =               $threadData->receiver_id;
-            $chat_message->message          =               $threadData->message;
-            $chat_message->media            =               $threadData->media;
-            $chat_message->media_thumbnail  =               $threadData->media_thumbnail;
-            $chat_message->message_type     =               $threadData->message_type;
-            $chat_message->save();
-            DB::commit();
-            // SEND PUSH AND NOTIFICATION TO RECEIVER
-
-            $reciever                       =               User::find($reciever, ['id', 'device_token', 'device_type']);
-            $section                        =               6;
-            $myName                         =               Auth::user()->first_name;
-            $message                        =               "Your have recieved new message from  " . $myName;
-            $sender                         =               User::find($myId);
-            $status                         =               $this->notificationService->sendNotification($reciever, $sender, $message, $section);
-            $last_message                   =              Chat::find($chat_message->id);
-            $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
-            $last_message['profile']        =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
-            return $this->sendResponse($last_message, "Message send.", 200);
         } catch (Exception $e) {
-
             DB::rollback();
+            Log::error('Error caught: "sendMessage" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
     }

@@ -139,7 +139,7 @@ class DaterPicksController extends BaseController
                 $recruitedBy.="Roster AI Coach";
             }
             
-            if($picker->recruiter_type==1){
+            if($picker->recruiter_type==1 || $picker->recruiter_type==2){
 
                 $recruiter      =   MyTeam::select('recruiter_id')->where('id', $picker->team_id)->first();
                 if(isset($recruiter) && !empty($recruiter)){
@@ -256,7 +256,6 @@ class DaterPicksController extends BaseController
                     $subquery->where('swiping_user_id', $authUser->id)
                         ->whereColumn('swiped_user_id', 'my_team_members.dater_id')
                         ->where('role_id', $authUser->current_role_id);
-                        // ->where('swipe_type',1); // show only bench record 
                     });
                 }else{
 
@@ -293,6 +292,27 @@ class DaterPicksController extends BaseController
                 if ($myPicker->member && $myPicker->member->profile_pic) {
                     $myPicker->member->profile_pic = asset('storage/' . $myPicker->member->profile_pic);
                 }
+
+
+                    //add recruited by
+                    if (in_array($myPicker->recruiter_type, [2, 3])) {
+                        $recruitedBy = $myPicker->recruiter_type == 2 ? "Ghost Coach" : "Roster AI Coach";
+                    }
+        
+                    if (in_array($myPicker->recruiter_type, [1, 2])) {
+                        $recruiter = MyTeam::select('recruiter_id')->where('id', $myPicker->team_id)->first();
+        
+                        if ($recruiter) {
+                            $recruited = User::select('name')->where('id', $recruiter->recruiter_id)->first();
+        
+                            if ($recruited) {
+                                $recruitedBy .= " " . $recruited->name;
+                            }
+                        }
+                    }
+        
+                    $myPicker->recruited_by = $recruitedBy ? "Recruited by " . $recruitedBy : '';
+        
                 return $myPicker;
             }
     
