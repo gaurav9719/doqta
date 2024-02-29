@@ -231,12 +231,8 @@ class DaterPicksController extends BaseController
     }
 
     public function showRandomUser($request,$authUser,$type,$random_type=''){
-
         try {
-
-            // dd($authUser->id);
             $myPicker = MyTeamMember::where('member_id', $authUser->id)->where('is_active', 1);
-
                 if($type==1){
 
                     $myPicker= $myPicker->where('recruiter_type', 1);
@@ -266,7 +262,6 @@ class DaterPicksController extends BaseController
                             ->where('swipe_type',0); // show only bench record 
                         });
                 }
-                
                 $myPicker      =      $myPicker->inRandomOrder()->first();
 
             if ($myPicker) {
@@ -292,8 +287,6 @@ class DaterPicksController extends BaseController
                 if ($myPicker->member && $myPicker->member->profile_pic) {
                     $myPicker->member->profile_pic = asset('storage/' . $myPicker->member->profile_pic);
                 }
-
-
                     //add recruited by
                     if (in_array($myPicker->recruiter_type, [2, 3])) {
                         $recruitedBy = $myPicker->recruiter_type == 2 ? "Ghost Coach" : "Roster AI Coach";
@@ -310,9 +303,7 @@ class DaterPicksController extends BaseController
                             }
                         }
                     }
-        
                     $myPicker->recruited_by = $recruitedBy ? "Recruited by " . $recruitedBy : '';
-        
                 return $myPicker;
             }
     
