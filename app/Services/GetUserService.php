@@ -9,8 +9,6 @@ use App\Models\UserStat;
  */
 class GetUserService
 {
-
-
     public function getAuthUser($userId){
 
         // $userDetail =   User::where($userId);
@@ -69,12 +67,17 @@ class GetUserService
             if(isset($userDetail) && !empty($userDetail)){
 
                 if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
-                    if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
+                   
+                    $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
                     
-                        $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
-                    }
+                }
+
+                if(isset($userDetail->qr_code) && !empty($userDetail->qr_code)){
+                  
+                    $userDetail->qr_code =   asset('storage/'.$userDetail->qr_code);
                 }
             }
+
             return $userDetail;
         }
     }

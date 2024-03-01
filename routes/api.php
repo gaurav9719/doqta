@@ -43,6 +43,12 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::post('signUp','signUp');
     Route::post('signIn','signIn');
     Route::post('logout','logout')->middleware('auth:api');
+    Route::get('qr','qr');
+    Route::get('matchQr','matchQr');
+
+    
+
+    
     
 });
 

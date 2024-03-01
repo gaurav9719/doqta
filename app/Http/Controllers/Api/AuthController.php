@@ -16,6 +16,8 @@ use App\Services\RegisterUserService;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Crypt;
+
 
 
 class AuthController extends BaseController
@@ -76,4 +78,27 @@ class AuthController extends BaseController
         }
     }
     #--------------------------**********    E N D    ********* --------------------------#
+
+    public function qr(Request $request){
+
+        return colorFullQr(1);
+    }
+
+    public function matchQr(Request $request){
+
+        $rq     =       "https://rosterapp/match?u=eyJpdiI6IkEvSVlyZXRzMmQ3QUJvMVhVc1kyOXc9PSIsInZhbHVlIjoibGxhNzk5eUNyZTg1aFdDVE9sQzN5Zz09IiwibWFjIjoiZDYzNzdjOTUxNmQxNDA1YTBjY2FiNzUyZGM1M2NhMTQzZmI2OWFhMDNmNmQzZGY5MzAwYmJkOWZiNGNiYTY2YyIsInRhZyI6IiJ9";
+        $urlParts = parse_url($rq);
+        parse_str($urlParts['query'], $queryParams);
+        if(isset($queryParams['u']) && !empty($queryParams['u'])){
+            $decryptedIdWithExtra = Crypt::decrypt($queryParams['u']);
+            $originalId = substr($decryptedIdWithExtra, 4);
+            dd($originalId);
+
+        }else{
+
+            dd("invalid");
+
+        }
+       
+    }
 }

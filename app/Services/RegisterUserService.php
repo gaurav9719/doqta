@@ -133,6 +133,20 @@ class RegisterUserService extends BaseController
                     }
                 }
             }
+            #------------- G E N E R A T E      Q R      C O D E  -----------------#
+            $qrCode             =   colorFullQr($userID);
+          
+            if($qrCode!=400){
+                
+                $qruser = User::find($userID);
+                if ($qruser) {
+                    $qruser->qr_code = $qrCode;
+                    $qruser->save();
+                } 
+            }
+
+
+
             #------------- A D D    U S E R     P I C T U R E  ------------------#
             $position       =       1;
             for ($i = 0; $i < 5; $i++) {
@@ -157,9 +171,6 @@ class RegisterUserService extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
-
-
     #-------------********** L O G I N ********* ----------------#
 
     public function signIn(Request $request){

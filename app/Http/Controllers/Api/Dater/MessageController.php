@@ -20,6 +20,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use App\Models\Message;
 use App\Http\Requests\SendMessage;
 use App\Services\NotificationService;
+use App\Models\MyTeamMember;
+use App\Models\UserBlockList;
 class MessageController extends Controller
 {
     protected $notification;
@@ -63,7 +65,7 @@ class MessageController extends Controller
                 $query->where('partner_matches.is_sender_trash', '!=', $authUser->id);
                 $query->orWhere('partner_matches.is_reciver_trash', '!=', $authUser->id);
             })
-            ->select('partner_matches.*', 'U.name', 'U.user_name', 'U.profile_pic', 'U.id as other_user_id')
+            ->select('partner_matches.*', 'U.name', 'U.user_name', 'U.profile_pic', 'U.id as other_user_id','U.qr_code')
             ->orderBy('partner_matches.updated_at', 'DESC') // Order by 'updated_at' column
             ->simplePaginate($limit);                       // Paginate the results
 
@@ -75,20 +77,18 @@ class MessageController extends Controller
                         //check in portfolio 
                         $profileExist               =   UserPortfolio::where('user_id', $thread->other_user_id)->whereNotNull('image')->first();
                         if(empty($profileExist)){
-
                             $thread->profile_pic    =   null;
-
                         }else{
-
                             $thread->profile_pic    =   $profileExist->image;
                         }
+                    }
+                    if(empty($thread->qr_code) && $thread->qr_code == null){  
+                        $thread->qr_code =   asset('storage/'.$thread->qr_code);
                     }
                 }
                 return $thread;           
             });
-
             return $this->sendResponse($threads, trans("message.message_thread"), 200);
-
         } catch (Exception $e) {
             Log::error('Error caught: "getThread" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -232,6 +232,110 @@ class MessageController extends Controller
     #-------------------------------------******* E N D *******---------------------------------------------#
 
 
+    #---------------------  U N M A T C H E D       ----------------------------------------#
+    public function unmatchUser(Request $request)
+    {
+        try {
+            
+            DB::beginTransaction();
+            $validator                          =               Validator::make($request->all(), ['user_id' => 'required|exists:users,id']);
+            $limit                              =               20;
+            if ($validator->fails()) {
+
+                return $this->sendResponsewithoutData(getErrorAsString($validator->errors()), 422);
+
+            } else {
+                //check record is exist or not
+                $authId =   Auth::id();
+                $userid =   $request->user_id;
+                $isMatchExist = PartnerMatch::where(function($query) use ($authId, $userid) {
+                    $query->where('user1_id', $authId)
+                          ->where('user2_id', $userid);
+                })->orWhere(function($query) use ($authId, $userid) {
+                    $query->where('user1_id', $userid)
+                          ->where('user2_id', $authId);
+                })->first();
+
+                if(isset($isMatchExist) && !empty($isMatchExist)){
+
+                    $isMatchExist->delete();
+                    MyTeamMember::where(function($query) use ($authId, $userid) {
+                            $query->where('member_id', $authId)
+                                  ->where('dater_id', $userid);
+                        })->orWhere(function($query) use ($authId, $userid) {
+                            $query->where('member_id', $userid)
+                                  ->where('dater_id', $authId);
+                        })->delete();
+                        DB::commit();
+
+                }else{
+
+                    return $this->sendResponse([], trans('message.something_went_wrong'), 403);
+                }
+           }
+        } catch (Exception $e) {
+            
+            DB::rollback();
+            Log::error('Error caught: "unmatchUser" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
+
+    #------------ B L O C K    U S E R  --------------------#
+
+    public function blockUser(Request $request)
+    {
+        try {
+            
+            DB::beginTransaction();
+            $validator                          =               Validator::make($request->all(), ['user_id' => 'required|exists:users,id']);
+            $limit                              =               20;
+            if ($validator->fails()) {
+
+                return $this->sendResponsewithoutData(getErrorAsString($validator->errors()), 422);
+
+            } else {
+                //check record is exist or not
+                $authId =   Auth::id();
+                $userid =   $request->user_id;
+                $isMatchExist = PartnerMatch::where(function($query) use ($authId, $userid) {
+                    $query->where('user1_id', $authId)
+                          ->where('user2_id', $userid);
+                })->orWhere(function($query) use ($authId, $userid) {
+                    $query->where('user1_id', $userid)
+                          ->where('user2_id', $authId);
+                })->first();
+
+                if(isset($isMatchExist) && !empty($isMatchExist)){
+
+                    $isMatchExist->delete();
+                    MyTeamMember::where(function($query) use ($authId, $userid) {
+                            $query->where('member_id', $authId)
+                                  ->where('dater_id', $userid);
+                        })->orWhere(function($query) use ($authId, $userid) {
+                            $query->where('member_id', $userid)
+                                  ->where('dater_id', $authId);
+                        })->delete();
+
+                        // ADD TO BLOCK TABLE 
+                        UserBlockList::updateOrCreate(
+                            ['user_id' => $authId, 'blocked_user_id' => $userid],
+                            ['created_at' => now()] // If you want to update the timestamp
+                        );
+                        DB::commit();
+
+                }else{
+
+                    return $this->sendResponse([], trans('message.something_went_wrong'), 403);
+                }
+           }
+        } catch (Exception $e) {
+            
+            DB::rollback();
+            Log::error('Error caught: "unmatchUser" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
 
 
 

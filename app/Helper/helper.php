@@ -9,7 +9,22 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use App\Models\UserRole;
-
+use Illuminate\Support\Str;
+use BaconQrCode\Renderer\Image\Png;
+use BaconQrCode\Writer;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Renderer\Color\Rgb;
+use BaconQrCode\Renderer\Eye\SquareEye;
+use BaconQrCode\Renderer\Module\SquareModule;
+use BaconQrCode\Renderer\RendererStyle\EyeFill;
+use BaconQrCode\Renderer\RendererStyle\Fill;
+use BaconQrCode\Renderer\RendererStyle\Gradient;
+use BaconQrCode\Renderer\RendererStyle\GradientType;
+use PHPUnit\Framework\TestCase;
+use Spatie\Snapshots\MatchesSnapshots;
+use BaconQrCode\Renderer\RendererStyle\Gradient\HorizontalGradient;
 function getErrorAsStringsasa($messagearr)
 {
     $message = '';
@@ -160,9 +175,9 @@ function randomCode($length = 9, $add_dashes = false, $available_sets = 'param')
 if (!function_exists('upload_file')) {
     function upload_file($file, $folder = "")
     {
-        $currentYear = date('Y');
-        $currentMonth = date('m');
-        $d = date('d');
+        $currentYear    = date('Y');
+        $currentMonth   = date('m');
+        // $d              = date('d');
         // Create the directory path
         $directory = "uploads/{$currentYear}/{$currentMonth}";
 
@@ -175,12 +190,67 @@ if (!function_exists('upload_file')) {
 }
 
 if (!function_exists('qr_code_generator')) {
-    function qr_code_generator($qr_code)
+    // function qr_code_generator($qr_code)
+    // {
+    //     $image              =        QrCode::format('png')->generate("https://rosterapp/match?u=" . $qr_code);
+    //     $output_file        =       'qr_code-' . time() . '.png';
+    //     $url                =       Storage::disk('public')->put($output_file, $image);     //storage/app/public/img/qr-code/img-1557309130.png
+    //     $currentYear        =       date('Y');
+    //     $currentMonth       =       date('m');
+    //     // Create the directory path
+    //     $directory = "uploads/qr/{$currentYear}/{$currentMonth}";
+    //     // Check if the directory exists, if not, create it
+    //     if (!Storage::disk('public')->exists($directory)) {
+    //         Storage::disk('public')->makeDirectory($directory); // Recursive create directory
+    //     }
+    //     return Storage::disk('public')->put($directory, $image);
+    //   //  return $output_file;
+    // }
+
+    function qr_code_generator($userid)
     {
-        $image              =       \QrCode::format('png')->generate('BossApp-' . $qr_code);
-        $output_file        =       '/qr_codes/qr_code-' . time() . '.png';
-        $url                =       Storage::disk('public')->put($output_file, $image); //storage/app/public/img/qr-code/img-1557309130.png
-        return $output_file;
+        // Generate the QR code image
+        $random     =   rand(1111,9999);
+        $encryptdQr =   Crypt::encrypt($random.$userid);
+        // $qr_image   =   QrCode::format('png')->size(300)->generate("https://rosterapp/match?u=" .$encryptdQr);
+
+            // $qr_image =QrCode::format('svg')->size(399)->color(40,40,40)->generate('Make me a QrCode!');
+
+            // $qr_image =QrCode::format('png')->generate("rosterapp/match?u=" ."dsdsdsd");
+
+            // $qr_image   = QrCode::format('png')
+            //     ->size(250)
+            //     ->backgroundColor(255, 255, 255) // White background
+            //     ->color(0, 0, 0) // Black foreground
+            //     ->generate("https://rosterapp/match?u=" .$encryptdQr);
+            
+        $from = [0, 204, 204];
+        $to = [0, 230, 230];
+        $qr_image=QrCode::size(200)
+        ->eye('circle')
+        ->style('round')
+        ->gradient($from[0], $from[1], $from[2], $to[0], $to[1], $to[2], 'diagonal')
+        ->margin(1)
+        // ->style('dot')
+        // ->eyeColor(0, 19,137,131, 19,137,131)
+        // ->eyeColor(1, 19,137,131, 19,137,131)
+        // ->eyeColor(2, 19,137,131, 19,137,131)
+        
+        ->generate("https://rosterapp/match?u=" .$encryptdQr) ;
+
+      
+
+
+
+        // Define the directory path
+        $currentYear = date('Y');
+        $currentMonth = date('m');
+        $directory = "uploads/qr/{$currentYear}/{$currentMonth}";
+        // Store the QR code image directly into the storage disk
+        $filename = $directory . '/' . Str::uuid() . '.svg';
+        Storage::disk('public')->put($filename, $qr_image);
+        // Return the path to the stored QR code image
+        return $filename;
     }
 }
 if (!function_exists('getUtcToLocalTimeStamp')) {
@@ -655,3 +725,126 @@ if (!function_exists('')) {
         );
     }
 }
+
+//  function generateQRCode($data)
+//     {
+        
+//         // Create a QR code writer
+//         // $renderer = new png();
+//         // $renderer->setHeight(300);
+//         // $renderer->setWidth(300);
+//         // $writer = new Writer($renderer);
+
+//         // // Generate QR code from the data
+//         // $qrCode = $writer->writeString($data);
+
+//         // // Save QR code image to storage
+//         // $filename = 'qr_code.png';
+//         // Storage::disk('public')->put($filename, $qrCode);
+
+//         // // Return the path to the stored QR code image
+//         // return Storage::url($filename);
+//         $renderer = new Png();
+// $renderer->setHeight(300);
+// $renderer->setWidth(300);
+// $writer = new Writer($renderer);
+
+// // Generate QR code from the data
+// $qrCode = $writer->writeString($data);
+
+// // Save QR code image to storage
+// $filename = 'qr_code.png';
+// Storage::disk('public')->put($filename, $qrCode);
+
+// // Return the path to the stored QR code image
+// return Storage::url($filename);
+//     }
+ function generateQRCode($userid)
+{
+
+    $random     =   rand(1111,9999);
+    $encryptdQr =   Crypt::encrypt($random.$userid);
+    $currentYear = date('Y');
+    $currentMonth = date('m');
+    $directory = "uploads/qr/{$currentYear}/{$currentMonth}";
+    // Create QR code renderer
+    $renderer = new ImageRenderer(
+        new RendererStyle(400),
+        new ImagickImageBackEnd()
+    );
+
+    // Create QR code writer
+    $writer = new Writer($renderer);
+
+    $filename = $directory . '/' . Str::uuid() . '.png';
+    // Generate QR code image and save it to the storage directory
+    $filePath = storage_path('app/public/'.$filename);
+
+    // Storage::disk('public')->put($filename, $qr_image);
+
+    $writer->writeFile("https://rosterapp/match?u=" .$encryptdQr, $filePath);
+
+    // Return the path to the generated QR code image
+    return $filename;
+
+
+
+  
+
+
+    // Store the QR code image directly into the storage disk
+    
+   // Storage::disk('public')->put($filename, $qr_image);
+    // Return the path to the stored QR code image
+   // return $filename;
+
+
+
+   
+
+
+}
+
+ 
+
+    function colorFullQr($userid)
+    {
+        try{
+
+            $random         =   rand(1111,9999);
+            $encryptdQr     =   $random.$userid;
+            $currentYear    = date('Y');
+            $currentMonth   = date('m');
+            $directory      = "uploads/qr/{$currentYear}/{$currentMonth}";
+            $eye            = SquareEye::instance();
+            $squareModule   = SquareModule::instance();
+            $eyeFill        = new EyeFill(new Rgb(43, 22, 11), new Rgb(28, 150, 138));
+            // Define the starting and ending colors for the gradient
+            // $startColor = new Rgb(82, 190, 169); // RGB(82, 190, 169)
+            $startColor     = new Rgb(43, 22, 11); // Pink: RGB(255, 192, 203)
+            $endColor       = new Rgb(28, 150, 138); // RGB(28, 150, 138)
+            // Create a gradient transitioning between the provided colors
+            $gradient       = new Gradient($startColor, $endColor, GradientType::HORIZONTAL());
+            $renderer       = new ImageRenderer(
+                new RendererStyle(
+                    300,
+                    2,
+                    $squareModule,
+                    $eye,
+                    Fill::withForegroundGradient(new Rgb(255, 255, 255), $gradient, $eyeFill, $eyeFill, $eyeFill)
+                ),
+                new ImagickImageBackEnd()
+            );
+            // Mocking the HTTP request with Laravel's Http facade
+            $writer     = new Writer($renderer);
+            $filename   = $directory . '/' . Str::uuid() . '.png';
+            // Generate QR code image and save it to the storage directory
+            $filePath   = storage_path('app/public/'.$filename);
+            // Storage::disk('public')->put($filename, $filePath);
+            $writer->writeFile("https://rosterapp/match?u=" .$encryptdQr, $filePath);
+
+            return $filename;
+        }catch(Exception $e){
+            return 400;
+        }
+    }

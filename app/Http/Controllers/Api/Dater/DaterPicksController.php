@@ -21,6 +21,7 @@ use App\Services\Dater\AddToRosterBench;
 use App\Services\GetUserService;
 use App\Models\PartnerMatch;
 use App\Models\UserRole;
+use App\Models\UserPortfolio;
 class DaterPicksController extends BaseController
 {
     //
@@ -374,7 +375,7 @@ class DaterPicksController extends BaseController
     #------------------------   E N D   --------------------------# 
     
     
-    public function getRosterThread(Request $request){
+    public function getRosterThread($request,$limit){
         try {
             $authUser       =   Auth::user();
             $limit          =   10;
@@ -419,6 +420,7 @@ class DaterPicksController extends BaseController
                     if(empty($thread->profile_pic) && $thread->profile_pic == null){
                         //check in portfolio 
                         $profileExist               =   UserPortfolio::where('user_id', $thread->other_user_id)->whereNotNull('image')->first();
+                       
                         if(empty($profileExist)){
 
                             $thread->profile_pic    =   null;
@@ -429,7 +431,6 @@ class DaterPicksController extends BaseController
                         }
                     }
                     $points=UserRole::select('points')->where(['user_id'=>$thread->other_user_id,'role_id'=>2])->first();
-                    
                     $thread->points=($points)?$points->points:0;
                 }
                 return $thread;           

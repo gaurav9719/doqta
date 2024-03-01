@@ -39,6 +39,7 @@ return [
     "chat_history"=>"Chat history",
     "unable_to_send_message"=>"Unable to send the message",
     "leader_board"=>"Leader board",
+    "invalid_qr"=>"Invalid QR code"
     
 ];
 
