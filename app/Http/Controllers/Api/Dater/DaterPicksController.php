@@ -20,6 +20,7 @@ use App\Models\Stat;
 use App\Services\Dater\AddToRosterBench;
 use App\Services\GetUserService;
 use App\Models\PartnerMatch;
+use App\Models\UserRole;
 class DaterPicksController extends BaseController
 {
     //
@@ -212,7 +213,7 @@ class DaterPicksController extends BaseController
 
             elseif ($request->pick_type == 3) { #------------------  G E T     M Y      R O S T E R -----------------#
 
-                return $this->myRoster($request,$limit);
+                return $this->getRosterThread($request,$limit);
             }
         }
     }
@@ -371,7 +372,76 @@ class DaterPicksController extends BaseController
         return $this->sendResponse($myRoster, 'Roster', 200);
     }
     #------------------------   E N D   --------------------------# 
-    #----------------- E N D  ------------------------#
+    
+    
+    public function getRosterThread(Request $request){
+        try {
+            $authUser       =   Auth::user();
+            $limit          =   10;
+            if(isset($request->limit) && !empty($request->limit)){
+                $limit      =   $request->limit;
+            }
+            $threads = PartnerMatch::leftJoin('users as U', function ($join) use ($request, $authUser) {
+
+                $join->on(function ($query) use ($authUser) {
+                    // Join condition when user1_id matches myId
+                    $query->where('partner_matches.user1_id', '=', $authUser->id)
+                        ->where('partner_matches.user2_id', '=', DB::raw('U.id'));
+                })->orWhere(function ($query) use ($authUser) {
+                    // Join condition when user2_id matches myId
+                    $query->where('partner_matches.user2_id', '=', $authUser->id)
+                        ->where('partner_matches.user1_id', '=', DB::raw('U.id'));
+                });
+            })
+            ->when(!empty($request->search), function ($query) use ($request) {
+                // Filtering based on the first_name column of the 'users' table
+                return $query->where('U.name', 'LIKE', '%' . $request['search'] . '%');
+            })
+            ->where(function ($query) use ($authUser) {
+                // Filter the threads where I am the sender or receiver
+                $query->where('partner_matches.user1_id', '=', $authUser->id);
+                $query->orWhere('partner_matches.user2_id', '=', $authUser->id);
+            })
+            ->where('partner_matches.is_active','=',1)
+
+            ->where(function ($query) use ($authUser) {
+                $query->where('partner_matches.is_sender_trash', '!=', $authUser->id);
+                $query->orWhere('partner_matches.is_reciver_trash', '!=', $authUser->id);
+            })
+            ->select('partner_matches.*', 'U.name', 'U.user_name', 'U.profile_pic', 'U.id as other_user_id')
+            ->orderBy('partner_matches.updated_at', 'DESC') // Order by 'updated_at' column
+            ->simplePaginate($limit);                       // Paginate the results
+
+            $threads->getCollection()->transform(function ($thread) use ($request) {
+
+                if(isset($thread) && !empty($thread)){
+
+                    if(empty($thread->profile_pic) && $thread->profile_pic == null){
+                        //check in portfolio 
+                        $profileExist               =   UserPortfolio::where('user_id', $thread->other_user_id)->whereNotNull('image')->first();
+                        if(empty($profileExist)){
+
+                            $thread->profile_pic    =   null;
+
+                        }else{
+
+                            $thread->profile_pic    =   $profileExist->image;
+                        }
+                    }
+                    $points=UserRole::select('points')->where(['user_id'=>$thread->other_user_id,'role_id'=>2])->first();
+                    
+                    $thread->points=($points)?$points->points:0;
+                }
+                return $thread;           
+            });
+
+            return $this->sendResponse($threads, trans("message.message_thread"), 200);
+
+        } catch (Exception $e) {
+            Log::error('Error caught: "getThread" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
 
 
 }
