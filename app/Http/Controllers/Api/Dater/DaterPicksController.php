@@ -22,6 +22,8 @@ use App\Services\GetUserService;
 use App\Models\PartnerMatch;
 use App\Models\UserRole;
 use App\Models\UserPortfolio;
+use App\Models\UserPreference;
+
 class DaterPicksController extends BaseController
 {
     //
@@ -443,6 +445,79 @@ class DaterPicksController extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+
+    #--------------------- FIND THE PICKS FOR ROSTER AI USERS ---------------------------#
+    // public function rosterAi(Request $request){
+
+    //     try {
+
+    //         $authUser                              =   Auth::user();
+    //         $userId                                =   $authUser->id;
+    //         $userPreference                        =   UserPreference::where('user_id',$userId)->first();
+    //         $team_name                             =    ($authUser->name)? $authUser->name."'s team":"Roster user teams";
+
+    //         $team = MyTeam::updateOrCreate(
+    //             ['recruiter_id' => $authUser->id, 'member_id' => $request['user_id'],'team_type'=>3],
+    //             ['is_active' => 1,'team_name'=>$team_name]
+    //         );
+
+    //         $Teamid = $team->id;
+
+    //         if(isset($userPreference) && !empty($userPreference)){
+
+    //             $aiUsers                        =   User::select('id', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))->whereHas('user_roles', function ($query) {
+
+    //                 $query->where('role_id', 2)->where('recruiter_type',3);
+    //             })
+    //             ->where(['is_active' => 1])
+    //             ->where("id", "<>", $userId)
+    //             //-------------- Check if not in bench TABLE -----------//
+    //             ->whereNotExists(function ($subquery) use($userId) {    #--- check in recruiter_requests table if ghost coach is already receive the
+    //                 $subquery->select(DB::raw(1))
+    //                     ->from('my_team_members')
+    //                     ->whereRaw("member_id ='".$userId."' AND dater_id=id");
+    //             })
+        
+    //             ->whereNotExists(function ($subquery) use($userId) {    #--- check in recruiter_requests table if ghost coach is already receive the
+    //                 $subquery->select(DB::raw(1))
+    //                     ->from('user_block_lists')
+    //                     ->whereRaw("(user_block_lists = id AND blocked_user_id = '".$userId."') OR (user_block_lists ='".$userId."' AND blocked_user_id = id)");
+    //                 })
+    //             ->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age)->year);
+    //             //---------------------  E N D  -------------------------//
+    //             $aiUsers->having('distance', '<=', $userPreference->distance);
+
+    //             if($userPreference->gender!=0){
+
+    //                 $aiUsers->where('gender',$userPreference->gender);
+    //             }
+    //             $ghostUsers             =   $aiUsers->limit(50)->get();
+
+    //             if(isset($ghostUsers[0]) && !empty($ghostUsers[0])){
+
+    //                 foreach ($aiUsers as $AIUser) {
+
+    //                     $isExist    =   MyTeamMember::where(['member_id'=>$userId,'dater_id'=>$AIUser->id])->exists();
+    //                     if(!$isExist){
+
+    //                         $newTeamMember                  =    new MyTeam();
+    //                         $newTeamMember->team_id         =    $Teamid;
+    //                         $newTeamMember->member_id       =    $userId;
+    //                         $newTeamMember->dater_id        =    $AIUser->id;
+    //                         $newTeamMember->recruiter_type  =    3;
+    //                         $newTeamMember->is_active       =   1;
+    //                         $newTeamMember->save();
+    //                     }
+    //                 }
+    //             }
+    //         }
+          
+    //     } catch (Exception $e) {
+            
+    //         Log::error('Error caught: "rosterAi" ' . $e->getMessage());
+    //     }
+    // }
 
 
 }

@@ -56,6 +56,8 @@ Route::middleware(['auth:api','with_fast_api_key'])->controller(UserController::
     // Route::put('updateUserPreferences','updateUserPreferences');
     Route::post('update_profile','update_profile');
     Route::post('switchUser','switchUser');
+    Route::get('checkAiFInder','checkAiFInder');
+    
 
     
     

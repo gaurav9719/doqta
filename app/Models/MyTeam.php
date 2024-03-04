@@ -9,7 +9,7 @@ class MyTeam extends Model
 {
     use HasFactory;
 
-    protected $fillable = [ ];
+    protected $fillable = [ 'recruiter_id','member_id','team_name','is_active','team_type'];
     public function team(){
         
         return $this->belongsTo(User::class,'member_id','id');

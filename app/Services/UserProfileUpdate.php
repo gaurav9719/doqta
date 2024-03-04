@@ -26,6 +26,7 @@ use App\Models\RecruiterRequest;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use App\Services\RosterAiTrigger;
 
 /**
  * Class UserProfileUpdate.
@@ -33,13 +34,14 @@ use Illuminate\Support\Facades\Storage;
 class UserProfileUpdate extends BaseController
 {
 
-    protected $user, $authId,$notification;
+    protected $user, $authId,$notification,$rosterAi;
 
 
-    public function __construct(GetUserService $user,NotificationService $notification)
+    public function __construct(GetUserService $user,NotificationService $notification,RosterAiTrigger $rosterAi)
     {
         $this->user                 = $user;
         $this->notification         = $notification;
+        $this->rosterAi             = $rosterAi;
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
             $this->authId = Auth::id();
@@ -122,16 +124,19 @@ class UserProfileUpdate extends BaseController
                 if ($request->recruitment_type != 2) {
 
                     UserRecruitmentChoice::updateOrCreate(['user_id' => $userId, 'role_id' => $role,'recruiter_type'=>$request['recruitment_type']],['recruiter_type' => $request['recruitment_type']]);
+
+                    if($request->recruitment_type==3){  // select the Roster Ai finder
+                       
+                       $this->rosterAi->RosterAiFinder($authUser,$userId);
+                    }
                 }
                 if($request->recruitment_type == 2) {      #-------- DATER  and invite ghost coach------------#
                         // $unitOfMeasurement = "Miles";
                         // $unitOfMeasurement = ($unitOfMeasurement == 'kilometers') ? 6371 : 3959; // Conversion factor binding
                     if($role == 2){
-
                         $distance           =   50; // 50 miles
                         $limit              =   2;
                         $isSelected                                 =      UserRecruitmentChoice::where(['user_id' => $userId,'role_id' => 2,'recruiter_type'=>2])->count();
-                
                         if($isSelected==0){
     
                             $ghostUsers                            =      User::select('id', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))->whereHas('user_roles', function ($query) {
