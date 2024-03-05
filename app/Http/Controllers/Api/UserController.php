@@ -112,7 +112,7 @@ class UserController extends BaseController
             );
             
             $teamId         = $team->id;
-            DB::enableQueryLog();
+            // DB::enableQueryLog();
             if ($userPreference) {
                 // Extracted and optimized AI users query
                     $aiUsers = User::select('id', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
@@ -141,7 +141,7 @@ class UserController extends BaseController
                 
                 // Retrieve AI users and limit to 50
                 $ghostUsers = $aiUsers->limit(50)->get();
-                    dd(DB::getQueryLog());
+                   
                 if ($ghostUsers->isNotEmpty()) {
                     foreach ($ghostUsers as $AIUser) {
                         $isExist = MyTeamMember::where(['member_id' => $userId, 'dater_id' => $AIUser->id])->exists();
