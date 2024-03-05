@@ -16,7 +16,7 @@ use App\Http\Controllers\Api\Recruiter\RecuitsController;
 use App\Http\Controllers\Api\Recruiter\AddToMember;
 use App\Http\Controllers\Api\AcceptBenchToUser;
 use App\Http\Controllers\Api\Recruiter\LeaderBoard;
-
+use App\Http\Controllers\Api\Dater\MessageController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -57,11 +57,6 @@ Route::middleware(['auth:api','with_fast_api_key'])->controller(UserController::
     Route::post('update_profile','update_profile');
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
-    
-
-    
-    
-   
 
 });
 
@@ -88,7 +83,6 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(Notifications::c
 
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(GhostRequestController::class)->group(function () {
-
     Route::get('ghostCoachRequest','ghostCoachRequest');
     Route::put('acceptRejectGhostReq','acceptRejectGhostReq');
 
@@ -98,14 +92,11 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(MyTeamController
 
     Route::get('myTeam','myTeam');
   
-
 });
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(DaterPicksController::class)->group(function () {
-
-     Route::match(['get', 'post'],'datersPick','datersPick');
+    Route::match(['get', 'post'],'datersPick','datersPick');
     //Route::get('datersPick','datersPick');
-
 });
 
 
@@ -150,6 +141,15 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(LeaderBoard::cla
     Route::get('leaderBoard','leaderBoard');
 
 });
+
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(MessageController::class)->group(function () {
+
+    Route::get('chatHistory','chatHistory');
+    Route::get('chatHistory','chatHistory');
+
+});
+
 
 
 

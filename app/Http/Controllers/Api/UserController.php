@@ -171,7 +171,7 @@ class UserController extends BaseController
         }catch(Exception $e){
 
             Log::error('Error caught: "rosterAi" ' . $e->getMessage());
-            dd($e->getMessage());
+            // dd($e->getMessage());
         }
     }
 

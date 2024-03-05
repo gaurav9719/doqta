@@ -41,7 +41,6 @@ class RegisterUserService extends BaseController
     }  
 
     public function signUpUser($request){
-
         DB::beginTransaction();
         try {
             $user = new User();
@@ -103,19 +102,14 @@ class RegisterUserService extends BaseController
 
                         if($pointHistory->save()){
                             // ADD TO RECRUITER TABLE
-                            if($role == 2){     //  join as dater
-
+                            if($role == 2){         //  join as dater
                                 $dater      =   $referrerId['id'];
                                 $recruiter  =   $userID;
-
-                            }elseif ($role==3) { // join as recruiter
-
+                            }elseif ($role==3) {    // join as recruiter
                                 $dater      =   $userID;
                                 $recruiter  =   $referrerId['id'];
                             }
-
                             if(!Recruiter::where(['dater_id' => $dater, 'recruiter_id' => $userID])->exists()){    // not exist add to recruiter table
-                             
                                 $member                         =   User::select('name')->where(['id',$dater])->first();
                                 $addRecruiter                   =   new Recruiter();
                                 $addRecruiter->dater_id         =   $dater;
@@ -139,18 +133,13 @@ class RegisterUserService extends BaseController
             }
             #------------- G E N E R A T E      Q R      C O D E  -----------------#
             $qrCode             =   colorFullQr($userID);
-          
             if($qrCode!=400){
-                
                 $qruser = User::find($userID);
                 if ($qruser) {
                     $qruser->qr_code = $qrCode;
                     $qruser->save();
                 } 
             }
-
-
-
             #------------- A D D    U S E R     P I C T U R E  ------------------#
             $position       =       1;
             for ($i = 0; $i < 5; $i++) {
@@ -163,13 +152,10 @@ class RegisterUserService extends BaseController
                 $position++;
             }
             #------------- A D D    U S E R     P I C T U R E  ------------------#
-
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
             return $this->sendResponse($userData, trans("message.register"), 200);
-
-        } catch (Exception $e) {
-            
+        } catch (Exception $e) { 
             DB::rollback();
             Log::error('Error caught: "signUpUser" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -248,7 +234,6 @@ class RegisterUserService extends BaseController
                 // Invalid email or password
                 return $this->sendError("Invalid email or password!", [], 400);
             }
-
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "signIn" ' . $e->getMessage());

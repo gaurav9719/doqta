@@ -33,6 +33,7 @@ class MessageController extends Controller
     #--------------  GET    MATCHING    THREAD  ---------------------#
     public function getThread(Request $request){
         try {
+
             $authUser       =   Auth::user();
             $limit          =   10;
             if(isset($request->limit) && !empty($request->limit)){
@@ -50,6 +51,7 @@ class MessageController extends Controller
                         ->where('partner_matches.user1_id', '=', DB::raw('U.id'));
                 });
             })
+            
             ->when(!empty($request->search), function ($query) use ($request) {
                 // Filtering based on the first_name column of the 'users' table
                 return $query->where('U.name', 'LIKE', '%' . $request['search'] . '%');

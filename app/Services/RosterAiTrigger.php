@@ -34,7 +34,6 @@ use Illuminate\Support\Facades\Queue;
 class RosterAiTrigger
 {
     function RosterAiFinder($authUser, $requestUserId){
-
         try {
             // Dispatch the RosterAiJob
         //   DB::enableQueryLog();

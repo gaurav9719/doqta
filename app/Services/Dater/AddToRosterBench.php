@@ -84,7 +84,6 @@ class AddToRosterBench extends BaseController
                 $roster         =   MyRoster::where('user_id', $authId)->where('roster_id', $isExist->dater_id)
                                     ->where('is_active', 1)
                                     ->exists();
-
                 if (!$roster) {
                     $recruiter                 = MyTeam::where(['id' => $isExist->team_id, 'member_id' => $authId])->first();
                     $addToRoster               = new MyRoster();
@@ -93,19 +92,14 @@ class AddToRosterBench extends BaseController
                     $addToRoster->recruiter_id = (isset($recruiter) && !empty($recruiter)) ? $recruiter->recruiter_id : null;
                     $addToRoster->my_team_member_id = $isExist->id;
                     $addToRoster->save();
-
-
                     #----------  A D D   E N T R Y      T O     U S E R      S W I P E -------#
-
                     UserSwipe::updateOrCreate(['swiping_user_id'=>$authId,'swiped_user_id'=>$isExist->dater_id,'role_id'=>$authUser->current_role_id],['swipe_type'=>1,'is_active'=>1]);
                     #--------------------- S W I P E        U S E R  ----------------------------#
 
                     //---------- SEND PUSH NOTIFICATION TO DATER THAT NEW MEMBER ADDED IN YOUR LIST---------------#
                     $reciever                           =       User::select('id','current_role_id', 'device_token', 'device_type')->where("id", $isExist->member_id)->first();
-                    $notification_type                  =       trans('notification_message.received_new_dater_message_type');
-                    $notification_message               =       trans('notification_message.received_new_dater_message');
-
-
+                    ///$notification_type                  =       trans('notification_message.received_new_dater_message_type');
+                    //$notification_message               =       trans('notification_message.received_new_dater_message');
                     $mutualSwipe                        =       MyRoster::where('user_id', $isExist->dater_id)
                                                                 ->where('roster_id', $authId)
                                                                 ->where('is_active', 1)
@@ -117,7 +111,6 @@ class AddToRosterBench extends BaseController
                         $matched->user2_id  = $isExist->dater_id;
                         $matched->matched_on= Carbon::now();
                         $matched->save();
-
                         #------- send notification to both user when mutual  match found --------#
                         $notification_type = trans('notification_message.new_match_found_type');
                         $notification_message = trans('notification_message.new_match_found');
@@ -125,7 +118,6 @@ class AddToRosterBench extends BaseController
                         $this->notification->sendNotification(2, $reciever, $authUser, $notification_message, $notification_type);
                         $this->notification->sendNotification(2, $authUser, $reciever, $notification_message, $notification_type);
                         #------- send notification to both user when mutual  match found --------#
-
                         MyTeamMember::whereIn('id', [$mutualSwipe->my_team_member_id, $isExist->id])->update(['request_status' => 3]);
                         MyRoster::whereIn('id', [$addToRoster->id, $mutualSwipe->id])->update(['match_id' => $matched->id]);
                     } else {
