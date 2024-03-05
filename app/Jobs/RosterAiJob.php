@@ -58,7 +58,7 @@ class RosterAiJob implements ShouldQueue
     {
         try{
 
-            DB::enableQueryLog();
+           // DB::enableQueryLog();
             $userId         = $this->authUser->id;
             $userPreference = UserPreference::where('user_id', $userId)->first();
             $teamName       = ($this->authUser->name) ? $this->authUser->name . "'s team" : "Roster user teams";
@@ -86,14 +86,16 @@ class RosterAiJob implements ShouldQueue
                         $subquery->select(DB::raw(1))
                             ->from('user_block_lists')
                             ->whereRaw("(user_id = id AND blocked_user_id = '".$userId."') OR (user_id ='".$userId."' AND blocked_user_id = id)");
-                    })->whereYear('dob', '>=', Carbon::now()->subYears($userPreference->age)->year)->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age + 2)->year)->having('distance', '<=', $userPreference->distance);
+                    })->whereYear('dob', '>=', Carbon::now()->subYears($userPreference->age+2)->year)->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age )->year)->having('distance', '<=', $userPreference->distance);
                     // ->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age)->year);
                    
                 if ($userPreference->gender != 0) {
+                    
                     $aiUsers->where('gender', $userPreference->gender);
                 }
                 // Retrieve AI users and limit to 50
                 $ghostUsers = $aiUsers->limit(50)->get();
+                //dd(DB::getQueryLog());
                 if ($ghostUsers->isNotEmpty()) {
 
                     foreach ($ghostUsers as $AIUser) {
