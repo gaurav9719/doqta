@@ -23,6 +23,7 @@ use App\Models\UserPortfolio;
 use App\Models\Recruiter;
 use App\Models\MyTeam;
 use Illuminate\Support\Str;
+use App\Services\RosterAiTrigger;
 
 /**
  * Class RegisterUserService.
@@ -30,11 +31,14 @@ use Illuminate\Support\Str;
 class RegisterUserService extends BaseController
 {
     protected $getUser;
+    protected $user, $authId,$notification,$rosterAi;
 
-    public function __construct(GetUserService $user)
+
+    public function __construct(GetUserService $user,RosterAiTrigger $rosterAi)
     {
-        $this->getUser = $user;
-    }
+        $this->getUser  =  $user;
+        $this->rosterAi = $rosterAi;
+    }  
 
     public function signUpUser($request){
 
@@ -228,8 +232,9 @@ class RegisterUserService extends BaseController
 
                         // Commit the transaction
                         DB::commit();
+                        // add queue 
+                        $this->rosterAi->RosterAiFinder(Auth::user(),$userId);
                         $loginUser   =   $this->getUser->getAuthUser($userId);
-                      
                         //dd($loginUser);
                         // Return a success response with user details
                         return response()->json(['status' => 200, 'message' => (trans('message.login')), 'data' => $loginUser]);
@@ -244,18 +249,11 @@ class RegisterUserService extends BaseController
                 return $this->sendError("Invalid email or password!", [], 400);
             }
 
-
         } catch (Exception $e) {
-
             DB::rollback();
             Log::error('Error caught: "signIn" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
-           
         }
     }
     #-------------************* E N D ********** ----------------#
-
-
-    
-
 }

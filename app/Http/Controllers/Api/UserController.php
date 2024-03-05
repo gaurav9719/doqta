@@ -111,17 +111,19 @@ class UserController extends BaseController
                 ['is_active' => 1, 'team_name' => $teamName]
             );
             
-           
             $teamId         = $team->id;
-            // dd($userPreference);
+            DB::enableQueryLog();
             if ($userPreference) {
                 // Extracted and optimized AI users query
-                $aiUsers = User::select('id', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
+                    $aiUsers = User::select('id', DB::raw("round(3959 * acos(cos(radians('" . $authUser->lat . "'))* cos(radians(`lat`))* cos(radians(`long`)- radians('" . $authUser->long . "'))+ sin(radians('" . $authUser->lat . "'))* sin(radians(`lat`))),2) AS distance"))
                     ->whereHas('SelectRecruitmentType', function ($query) {
 
                         $query->where('role_id', 2)->where('recruiter_type', 3);
                     })
+
+
                     ->where(['is_active' => 1])
+
                     ->where("id", "<>", $userId)
                     ->whereNotExists(function ($subquery) use ($userId) {    
                         $subquery->select(DB::raw(1))
@@ -133,17 +135,19 @@ class UserController extends BaseController
                             ->from('user_block_lists')
                             ->whereRaw("(user_id = id AND blocked_user_id = '".$userId."') OR (user_id ='".$userId."' AND blocked_user_id = id)");
                     })
-                    ->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age)->year)->having('distance', '<=', $userPreference->distance);
-                if ($userPreference->gender != 0) {
-                    $aiUsers= $aiUsers->where('gender', $userPreference->gender);
-                }
+                    ->whereYear('dob', '>=', Carbon::now()->subYears($userPreference->age + 1)->year)->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age - 1)->year)->having('distance', '<=', $userPreference->distance);                if ($userPreference->gender != 0) {
+                        $aiUsers= $aiUsers->where('gender', $userPreference->gender);
+                    }
+                
                 // Retrieve AI users and limit to 50
                 $ghostUsers = $aiUsers->limit(50)->get();
-                // dd($ghostUsers);
+                    dd(DB::getQueryLog());
                 if ($ghostUsers->isNotEmpty()) {
                     foreach ($ghostUsers as $AIUser) {
                         $isExist = MyTeamMember::where(['member_id' => $userId, 'dater_id' => $AIUser->id])->exists();
+
                         if (!$isExist) {
+
                             $newTeamMember = new MyTeamMember();
                             $newTeamMember->team_id = $teamId;
                             $newTeamMember->member_id = $userId;
@@ -164,11 +168,11 @@ class UserController extends BaseController
                     $jobStatus->update(['is_running' => false]);
                 }
             }
-    }catch(Exception $e){
+        }catch(Exception $e){
 
-        Log::error('Error caught: "rosterAi" ' . $e->getMessage());
-        dd($e->getMessage());
-    }
+            Log::error('Error caught: "rosterAi" ' . $e->getMessage());
+            dd($e->getMessage());
+        }
     }
 
 

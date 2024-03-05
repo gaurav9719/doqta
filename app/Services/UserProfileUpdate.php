@@ -78,6 +78,7 @@ class UserProfileUpdate extends BaseController
             } else {
 
                 $userId = Auth::id();
+                $authUser = Auth::user();
 
                 if (Auth::user()->current_role_id == 2) { //2 means dater
 
@@ -86,7 +87,9 @@ class UserProfileUpdate extends BaseController
                         ['distance' => $request->distance, 'age' => $request->age_preference, 'gender' => $request->gender_preference, 'ghost_coach' => $request->ghost_coach]
                     );
                     DB::commit();
+                    //add preference to user table
                     $userData = $this->user->getUser($userId);
+                    $this->rosterAi->RosterAiFinder($authUser,$userId);
                     return $this->sendResponse($userData, trans("message.updatePrefences"), 200);
                 } else {
 

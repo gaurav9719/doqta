@@ -33,7 +33,7 @@ use romanzipp\QueueMonitor\Traits\IsMonitored; // Import the IsMonitored trait
 class RosterAiJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels,IsMonitored;
-
+    public $tries = 3;
     /**
      * Create a new job instance.
      */
@@ -44,6 +44,7 @@ class RosterAiJob implements ShouldQueue
  
      public function __construct($authUser, $requestUserId,$jobId)
     {
+        
         //
         $this->authUser = $authUser;
         $this->requestUserId = $requestUserId;
@@ -56,6 +57,8 @@ class RosterAiJob implements ShouldQueue
     public function handle(): void
     {
         try{
+
+            DB::enableQueryLog();
             $userId         = $this->authUser->id;
             $userPreference = UserPreference::where('user_id', $userId)->first();
             $teamName       = ($this->authUser->name) ? $this->authUser->name . "'s team" : "Roster user teams";
@@ -83,9 +86,9 @@ class RosterAiJob implements ShouldQueue
                         $subquery->select(DB::raw(1))
                             ->from('user_block_lists')
                             ->whereRaw("(user_id = id AND blocked_user_id = '".$userId."') OR (user_id ='".$userId."' AND blocked_user_id = id)");
-                    })
-                    ->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age)->year);
-                $aiUsers->having('distance', '<=', $userPreference->distance);
+                    })->whereYear('dob', '>=', Carbon::now()->subYears($userPreference->age)->year)->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age + 2)->year)->having('distance', '<=', $userPreference->distance);
+                    // ->whereYear('dob', '<=', Carbon::now()->subYears($userPreference->age)->year);
+                   
                 if ($userPreference->gender != 0) {
                     $aiUsers->where('gender', $userPreference->gender);
                 }
@@ -106,41 +109,19 @@ class RosterAiJob implements ShouldQueue
                         }
                     }
                 }
-                
-                DB::table('job_statuses')->where('job_id', 1)->update(array('is_running' => 0));  
-                Log::debug(DB::getQueryLog());
+                DB::table('job_statuses')->where('job_id', $this->jobId)->update(array('is_running' => 0));  
 
             }else{
 
-                $jobStatus = Job_status::where('job_id', 1)->first();
+                $jobStatus = Job_status::where('job_id', $this->jobId)->first();
                 if ($jobStatus) {
                     $jobStatus->update(['is_running' => false]);
                 }
             }
-    }catch(Exception $e){
+        }catch(Exception $e){
 
-        Log::error('Error caught: "rosterAi" ' . $e->getMessage());
-        dd($e->getMessage());
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       
+            Log::error('Error caught: "rosterAi" ' . $e->getMessage());
+            dd($e->getMessage());
+        }
     }
 }

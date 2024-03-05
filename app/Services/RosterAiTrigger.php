@@ -43,7 +43,7 @@ class RosterAiTrigger
             if (!$existingJobStatus) {
                 $jobId = uniqid(); // Generate a unique job ID
                 // Dispatch the new queue job
-                Job_status::create(['user_id' =>$requestUserId,'job_id' =>1,'is_running' => true]);
+                Job_status::create(['user_id' =>$requestUserId,'job_id' =>$jobId,'is_running' => true]);
                 RosterAiJob::dispatch($authUser, $requestUserId,$jobId);
 
                 // $userQueueJob = new RosterAiJob($authUser, $requestUserId ,$jobId);
@@ -60,4 +60,10 @@ class RosterAiTrigger
            
         }
     }
+
+    
+
+
+
+
 }
