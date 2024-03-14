@@ -93,12 +93,20 @@ class AuthController extends BaseController
             $decryptedIdWithExtra = Crypt::decrypt($queryParams['u']);
             $originalId = substr($decryptedIdWithExtra, 4);
             dd($originalId);
-
         }else{
-
             dd("invalid");
-
         }
-       
     }
+
+
+    public function verifyEmail(Request $request){
+
+
+    }
+
+
+
+
+
+
 }

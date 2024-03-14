@@ -24,61 +24,22 @@ class GetUserService
     }
 
     public function getUser($userId){
-        $user       = User::select('current_role_id')->where('id',$userId)->first();
-
-        if(isset($user) && !empty($user)){
-            $userDetail = User::where('id', $userId)
-            ->with('portfolio')
-            ->with(['SelectRecruitmentType' => function ($query) use ($user) {
-                $query->where('role_id', $user->current_role_id);
-            }]);
-            if($user->current_role_id==2){  // dater
-
-                $userDetail  = $userDetail->with(['userPreferences','user_states',]);
-
-            }elseif ($user->current_role_id==3) {  
+        $userDetail = User::where('id', $userId)->first();
         
+        if(isset($userDetail) && !empty($userDetail)){
 
-            }
-            $userDetail =   $userDetail->first();
-            if(isset($userDetail->portfolio[0]) && !empty($userDetail->portfolio[0])){
-               foreach ($userDetail->portfolio as $key=> $profile) {
-              
-                    if(isset($profile->image) && !empty($profile->image)){
-                        $userDetail->portfolio[$key]['image']= asset('storage/'.$profile->image);
-                    }
-               }
-            }
-            //dd($userDetail);
-            if( $user->current_role_id=="2" && isset($userDetail->user_states[0]) ){
-                //$user_stat =   $userDetail->user_states;
-                foreach ($userDetail->user_states as $key => $statistic) {
-                    $stat   =   Stat::where('id',$statistic->stat_id)->first();
-
-                    if(isset($stat) && !empty($stat)){
-
-                        $userDetail->user_states[$key]['question'] = $stat->question;
-                        $userDetail->user_states[$key]['min_value'] = $stat->min_value;
-                        $userDetail->user_states[$key]['max_value'] = $stat->max_value;
-                    }
-                }
+            if(isset($userDetail->profile) && !empty($userDetail->profile)){
+                
+                $userDetail->profile =   asset('storage/'.$userDetail->profile);
+                
             }
 
-            if(isset($userDetail) && !empty($userDetail)){
-
-                if(isset($userDetail->profile_pic) && !empty($userDetail->profile_pic)){
-                   
-                    $userDetail->profile_pic =   asset('storage/'.$userDetail->profile_pic);
-                    
-                }
-
-                if(isset($userDetail->qr_code) && !empty($userDetail->qr_code)){
-                  
-                    $userDetail->qr_code =   asset('storage/'.$userDetail->qr_code);
-                }
+            if(isset($userDetail->cover) && !empty($userDetail->cover)){
+                
+                $userDetail->cover =   asset('storage/'.$userDetail->cover);
             }
-
-            return $userDetail;
         }
+        return $userDetail;
     }
+    
 }

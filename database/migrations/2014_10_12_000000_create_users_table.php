@@ -13,19 +13,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+            $table->id()->index();
+            $table->string('social_id')->nullable()->index();
             $table->string('name')->nullable();
-            $table->string('user_name')->nullable();
-            $table->string('email')->unique();
+            $table->string('user_name')->nullable()->index();
+            $table->string('email')->unique()->index();
             $table->string('password')->nullable();
             $table->date('dob')->nullable();
-            $table->string('reference_code')->nullable();
-            $table->tinyInteger("register_role_type")->default(1);
-            $table->tinyInteger("current_role_id")->default(1);
-            $table->tinyInteger("recruit_type_asdater")->default(0)->comment('1:invite friend,2ghost coach,3:roserAI');
-            $table->tinyInteger("recruit_type_asrecruiter")->default(0)->comment('1:invite friend,2ghost coach,3:roserAI');
             $table->integer('country_code')->nullable();
-            $table->string('phone_no',20)->nullable();
+            $table->string('phone_no',20)->nullable()->index();
             $table->integer('country_id')->default(0);
             $table->integer('state_id')->default(0);
             $table->integer('city_id')->default(0);
@@ -36,7 +32,10 @@ return new class extends Migration
             $table->tinyInteger('login_type')->default(0)->comment('0:normal,1:gmail,2:apple,3:facebook');
             $table->tinyInteger('device_type')->default(0)->comment('1:ios,2:andriod');
             $table->string('device_token')->nullable();
-            $table->string('profile_pic')->nullable();
+            $table->string('profile')->nullable();
+            $table->string('cover')->nullable();
+            $table->string('bio')->nullable();
+            $table->tinyInteger('mute_notification')->default(1)->comment('0:muted,1:active');
             $table->string('otp')->nullable();
             $table->dateTime('otp_expiry_time')->nullable();
             $table->timestamp('email_verified_at')->nullable();
@@ -47,24 +46,12 @@ return new class extends Migration
 
         DB::table('users')->insert([
             [
-                'name' => 'Roster Admin',
-                'email' => 'admin@hosterapp.com',
-                'password' => Hash::make('Roster@2024@(+)'),
-                'register_role_type'=>1,
-                'current_role_id'=>1,
+                'name' => 'Doqta',
+                'email' => 'doqta@app.com',
+                'password' => Hash::make('Doqta@2024@(+)'),
                 'created_at' => now(),
                 'updated_at' => now()
             ],
-
-            [
-                'name' => 'AI User',
-                'email' => 'ai@example.com',
-                'password' => Hash::make('Roster_ai@2024#$'),
-                'register_role_type'=>4,
-                'current_role_id'=>4,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]
         ]);
     }
 

@@ -24,39 +24,33 @@ use App\Models\Recruiter;
 use App\Models\MyTeam;
 use Illuminate\Support\Str;
 use App\Services\RosterAiTrigger;
-
+use App\Services\VerifyEmail;
 /**
  * Class RegisterUserService.
  */
 class RegisterUserService extends BaseController
 {
     protected $getUser;
-    protected $user, $authId,$notification,$rosterAi;
+    protected $user, $authId,$notification,$rosterAi,$verify_email;
 
 
-    public function __construct(GetUserService $user,RosterAiTrigger $rosterAi)
+    public function __construct(GetUserService $user,RosterAiTrigger $rosterAi ,VerifyEmail $verify_email)
     {
         $this->getUser  =  $user;
         $this->rosterAi = $rosterAi;
+        $this->verify_email = $verify_email;
     }  
 
     public function signUpUser($request){
         DB::beginTransaction();
         try {
+            
             $user = new User();
-            $user->name = $request->name;
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
-            $user->country_code = $request->country_code;
-            $user->phone_no = $request->phone_no;
             $user->dob = $request->dob;
-            $user->register_role_type = $request->user_role;
-            $user->current_role_id = $request->user_role;
             $user->device_type = $request->device_type;
             $user->device_token = $request->device_token;
-            $user->zipcode = $request->zip_code;
-            $user->reference_code = generateReferCode();
-            $user->gender   = $request->gender;
             $user->lat = $request->lat;
             $user->long = $request->long;
             $user->save();
@@ -67,91 +61,10 @@ class RegisterUserService extends BaseController
             $UserDevice->device_type = $request->device_type;
             $UserDevice->device_token = $request->device_token;
             $UserDevice->save();
-            #------ ADD CURRENT ROLE IN USER ROLE TABLE------#
-            $userRole          = new UserRole();
-            $userRole->user_id = $userID;
-            $userRole->role_id = $request->user_role;
-            $userRole->save();
-            #------ ADD CURRENT ROLE IN USER ROLE TABLE------#
+            #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
+            $this->verify_email->sendVerificationEmail($userID);
+            #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
 
-            if(isset($request->reference_code) && !empty($request->reference_code)) {   // Add user to referece table and point in his account
-
-                $referrerId                 =   User::select('id')->where(['reference_code'=>$request->reference_code])->first(); // check reference code user
-                
-                if(isset($referrerId) && !empty($referrerId)) {
-
-                    $reference                  =   new  Referral();
-                    $reference->referrer_id     =   $referrerId['id'];
-                    $reference->referred_id     =   $userID;
-                    $reference->refered_on      =   carbon::now();
-
-                    if($reference->save()){
-                        // give point to referred user
-                        $role                       =       ($request->user_role == '2')?3:2; 
-                        $point_id                   =       ($request->user_role == '2')?1:6; //6 invite recruiter//1 invite dater
-
-                        $pointSystem                =       PointSystemModel::find($point_id)->first();
-                        $point                      =       ($pointSystem)?$pointSystem->point:1;
-
-                        $pointHistory               =       new PointHistory();
-                        $pointHistory->role_id      =       $role;
-                        $pointHistory->user_id      =       $referrerId['id'];
-                        $pointHistory->reference_user_id =  $userID;
-                        $pointHistory->point_id     =       $point_id;
-                        $pointHistory->points       =       $point;
-
-                        if($pointHistory->save()){
-                            // ADD TO RECRUITER TABLE
-                            if($role == 2){         //  join as dater
-                                $dater      =   $referrerId['id'];
-                                $recruiter  =   $userID;
-                            }elseif ($role==3) {    // join as recruiter
-                                $dater      =   $userID;
-                                $recruiter  =   $referrerId['id'];
-                            }
-                            if(!Recruiter::where(['dater_id' => $dater, 'recruiter_id' => $userID])->exists()){    // not exist add to recruiter table
-                                $member                         =   User::select('name')->where(['id',$dater])->first();
-                                $addRecruiter                   =   new Recruiter();
-                                $addRecruiter->dater_id         =   $dater;
-                                $addRecruiter->recruiter_id     =   $recruiter;
-                                $addRecruiter->recruiter_type   =   1;
-                                $addRecruiter->status           =   1;
-                                $addRecruiter->save();
-                                // add to team 
-                                $myTeam                           =   new MyTeam();
-                                $myTeam->recruiter_id             =   $recruiter;
-                                $myTeam->member_id                =   $dater;
-                                $myTeam->team_name                =   (isset($member) && !empty($member)) ? Str::plural($member->name) . " Team" : "Roster's user Team" ;;
-                                $myTeam->team_type                =   1;
-                                $myTeam->is_active                =   1;
-                                $myTeam->save();
-                            }
-                            incrementByPoint($referrerId['id'],$role,$point);
-                        }
-                    }
-                }
-            }
-            #------------- G E N E R A T E      Q R      C O D E  -----------------#
-            $qrCode             =   colorFullQr($userID);
-            if($qrCode!=400){
-                $qruser = User::find($userID);
-                if ($qruser) {
-                    $qruser->qr_code = $qrCode;
-                    $qruser->save();
-                } 
-            }
-            #------------- A D D    U S E R     P I C T U R E  ------------------#
-            $position       =       1;
-            for ($i = 0; $i < 5; $i++) {
-                UserPortfolio::create([
-                    'user_id' => $userID,
-                    'image' => null,
-                    'position' => $position,
-                    // Add more fields as needed with null values
-                ]);
-                $position++;
-            }
-            #------------- A D D    U S E R     P I C T U R E  ------------------#
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
             return $this->sendResponse($userData, trans("message.register"), 200);
