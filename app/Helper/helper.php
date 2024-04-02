@@ -24,6 +24,7 @@ use BaconQrCode\Renderer\RendererStyle\Gradient;
 use BaconQrCode\Renderer\RendererStyle\GradientType;
 use PHPUnit\Framework\TestCase;
 use Spatie\Snapshots\MatchesSnapshots;
+use App\Models\Group;
 use BaconQrCode\Renderer\RendererStyle\Gradient\HorizontalGradient;
 function getErrorAsStringsasa($messagearr)
 {
@@ -179,13 +180,17 @@ if (!function_exists('upload_file')) {
         $currentMonth   = date('m');
         // $d              = date('d');
         // Create the directory path
-        $directory = "uploads/{$currentYear}/{$currentMonth}";
-
+        $directory = "uploads/{$folder}/{$currentYear}/{$currentMonth}";
         // Check if the directory exists, if not, create it
         if (!Storage::disk('public')->exists($directory)) {
-            Storage::disk('public')->makeDirectory($directory); // Recursive create directory
+            Storage::disk('public')->makeDirectory($directory,0755, true); // Recursive create directory
         }
-        return Storage::disk('public')->put($directory, $file);
+        // return Storage::disk('public')->put($directory, $file);
+        $filePath = Storage::disk('public')->putFile($directory, $file);
+
+        Storage::disk('public')->setVisibility($filePath, 'public');
+        return $filePath;
+
     }
 }
 
@@ -713,7 +718,7 @@ if (!function_exists('generateReferCode')) {
     }
 }
 
-if (!function_exists('')) {
+if (!function_exists('incrementByPoint')) {
     function incrementByPoint($userId, $role, $point)
     {
         //    $affectedRows = UserRole::firstOrCreate(['user_id' => $userId, 'role_id' => $role])
@@ -848,3 +853,43 @@ if (!function_exists('')) {
             return 400;
         }
     }
+
+
+
+    if (!function_exists('removeSpecialCharsAndFormat')) {
+
+    function removeSpecialCharsAndFormat($inputString) {
+        // Remove all special characters from the string
+        $cleanedString = preg_replace('/[^a-zA-Z0-9 ]/', '', $inputString);
+        
+        // Capitalize the first letter of each word
+        $cleanedString = ucwords($cleanedString);
+    
+        // Remove trailing spaces from the right side of the string
+        $cleanedString = rtrim($cleanedString);
+    
+        return $cleanedString;
+    }
+
+
+    if (!function_exists('incrementMember')) {
+        function incrementMember($userId, $id,$point)
+        {
+            return Group::updateOrCreate(
+                ['created_by' => $userId, 'id' => $id],
+                ['member_count' => DB::raw('member_count + ' . $point)]
+            );
+        }
+    }
+
+    if(!function_exists('filer_text')){
+        function filter_text($text){
+
+            $text = rtrim($text);
+            // Remove special characters
+            $text = preg_replace('/[^A-Za-z0-9\s]/', '', $text);
+            return  strip_tags($text);
+        }
+    }
+    
+}

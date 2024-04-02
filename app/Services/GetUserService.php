@@ -10,9 +10,9 @@ use App\Models\UserStat;
 class GetUserService
 {
     public function getAuthUser($userId){
-
         // $userDetail =   User::where($userId);
         $userDetail =   $this->getUser($userId);
+        
 
         if(isset($userDetail) && !empty($userDetail)){
             // Create a Passport token for the user
@@ -24,8 +24,9 @@ class GetUserService
     }
 
     public function getUser($userId){
-        $userDetail = User::where('id', $userId)->first();
-        
+
+        $userDetail = User::where('id', $userId)->with('User_interest.interest','user_documents.document',)->first();
+
         if(isset($userDetail) && !empty($userDetail)){
 
             if(isset($userDetail->profile) && !empty($userDetail->profile)){

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        
     ];
 
     /**
@@ -52,14 +53,14 @@ class User extends Authenticatable
     }
 
 
-    public function user_states(){
+    public function User_interest(){
 
-        return $this->hasMany(UserStat::class,'user_id', 'id');
+        return $this->hasMany(UsersInterest::class,'user_id', 'id');
     }
 
-    public function user_s(){
+    public function user_documents(){
 
-        return $this->hasMany(UserStat::class,'user_id', 'id');
+        return $this->hasMany(UserDocuments::class,'user_id', 'id');
     }
     public function user_roles(){
         

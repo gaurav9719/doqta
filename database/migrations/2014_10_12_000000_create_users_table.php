@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('social_id')->nullable()->index();
             $table->string('name')->nullable();
             $table->string('user_name')->nullable()->index();
-            $table->string('email')->unique()->index();
+            $table->string('email')->nullable()->unique()->index();
             $table->string('password')->nullable();
             $table->date('dob')->nullable();
             $table->integer('country_code')->nullable();

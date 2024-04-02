@@ -4,6 +4,44 @@ return [
     'login' => 'login successfully',
     'invalidCredentials' => 'Invalid email or password!', // login api
     'invalidUser'=>"Invalid request user", // when recruiter try to access dater api
+    'sent_email_verification_code'=>"Verification code send to your email!",
+    'otp_verified'=>"OTP verified",
+    'invalid_otp'=>"Invalid OTP!",
+    'otp_expired'=>"OTP expired, please try again!",
+    'email_verified'=>"your email verified successfully",
+    "account_not_active"=>"Your account is not active", // login
+    "account_deleted"=>"Your account is deleted", // login
+    "Please_verify_account"=>"Your account is not verified, Please verify it", // login
+    "step_already_completed"=>"This step is already done", // login
+    "complete_previous_step"=>"Please complete previous step", // login
+    "bring_you_here"=>"What brings you here?", // login
+    "identity_document_list"=>"Identity documents", // login
+    "medical_credentials_list"=>"Medical credentials", // login
+    "invalid_get_credentials"=>"Invalid", // login
+    "steps_completed"=>"completed successfully",
+    "invalid_specialty"=>"Invalid Specialty",
+    "already_verified_email"=>"Your email address is already verified",
+    "failed_to_send_email"=>"Failed to send email. Please try it again after sometime",
+    "something_went_wrong"=>"Something went wrong",
+    "invalid_email"=>"Invalid OTP!",
+    "otp_sent_on_your_email"=>"OTP sent on your email",
+    "changed_password"=>"Password changed successfully",
+    "password_not_updated"=>"Password not updated",
+    "password_changed"=>"Password changed successfully",
+    "incorrect_old_password"=>"Incorrect old password",
+    "community_added"=>"Community addedd successfully",
+    "community_deleted"=>"Community deleted successfully",
+    "community_updated"=>"Community updated successfully",
+
+
+
+
+
+
+
+
+
+
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",
     'pointSystem'=>"Point System",

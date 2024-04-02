@@ -200,7 +200,7 @@
 
             </tr>
             <tr class="email_body">
-                <td>Hello {{$data['first_name']}}, this is your email verification code in field:</td>
+                <td>Hello , this is your email verification code in field:</td>
 
             </tr>
             <tr class="email_body_year">

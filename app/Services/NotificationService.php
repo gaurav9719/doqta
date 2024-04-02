@@ -14,13 +14,12 @@ use Illuminate\Support\Facades\Log;
 class NotificationService
 {
 
-    public function sendNotification($role,$receiver, $sender, $message, $section) {
+    public function sendNotification($receiver, $sender, $message, $section) {
         DB::beginTransaction();
         try {
 
             // Create a new notification instance
             $notification                       = new Notification();
-            $notification->role_id              = $role;
             $notification->receiver_id          = $receiver->id;
             $notification->sender_id            = $sender->id;
             $notification->notification_type    = $section;
@@ -33,7 +32,7 @@ class NotificationService
                 // Handle sending notifications to each device
                 foreach ($deviceTokens as $token) {
                     
-                    $token              =   $token->device_token;
+                    // $devtoken              =   $token->device_token;
 
                     if ($token->device_type == 1) {
                         // Handle iOS device notification
@@ -49,9 +48,11 @@ class NotificationService
                 return ['status' => 200, 'message' => "success"];
             } else {
                 DB::rollback();
+                Log::error('Error caught: "notifications FAILED" ' );
                 return ['status' => 400, 'message' => "failed"];
             }
         } catch (Exception $e) {
+            Log::error('Error caught: "notifications" ' . $e->getMessage());
             DB::rollback();
             return ['status' => 400, 'message' => "failed"];
         }

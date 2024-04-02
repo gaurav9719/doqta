@@ -69,6 +69,7 @@ class SpecialtySeeder extends Seeder
             ['name' => 'Surgical Critical Care'],
             ['name' => 'Transplant Hepatology'],
             ['name' => 'Urology'],
+            ['name' => 'Others'],
         ];
         
 

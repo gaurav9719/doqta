@@ -8,15 +8,11 @@ use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\PointSystem;
 use App\Http\Controllers\Api\Notifications;
 use App\Http\Controllers\Api\Recruiter\GhostRequestController;
-use App\Http\Controllers\Api\Recruiter\MyTeamController;
-use App\Http\Controllers\Api\Dater\DaterPicksController;
 use App\Http\Controllers\Api\Dater\PortfolioController;
-use App\Http\Controllers\Api\InvitesContact;
-use App\Http\Controllers\Api\Recruiter\RecuitsController;
-use App\Http\Controllers\Api\Recruiter\AddToMember;
-use App\Http\Controllers\Api\AcceptBenchToUser;
-use App\Http\Controllers\Api\Recruiter\LeaderBoard;
-use App\Http\Controllers\Api\Dater\MessageController;
+use App\Http\Controllers\Api\SignStepsController;
+use App\Http\Controllers\Api\InputsOptions;
+use App\Http\Controllers\Api\CommunityController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -41,19 +37,49 @@ use App\Http\Controllers\Api\Dater\MessageController;
 
 Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->group(function () {
     Route::post('signUp','signUp');
+    Route::post('verifyEmail','verifyEmail')->middleware('auth:api');
     Route::post('signIn','signIn');
     Route::post('logout','logout')->middleware('auth:api');
     Route::get('qr','qr');
     Route::get('matchQr','matchQr');
+    Route::post('forgotPassword','forgotPassword');
+    Route::post('socialLogin','socialLogin');
+});
 
-    
+Route::middleware(['with_fast_api_key','auth:api'])->controller(SignStepsController::class)->group(function () {
+    Route::post('completeSignUpSteps','completeSignUpSteps');
 
     
     
 });
+Route::middleware(['with_fast_api_key'])->controller(InputsOptions::class)->group(function () {
+    Route::get('inputSelection','inputSelection');
+});
+
+
+
+
+
+Route::middleware(['with_fast_api_key', 'auth:api'])->group(function () {
+    Route::resource('community', CommunityController::class);
+});
+
+
+
+
+
+
+
+
+
+
 
 Route::middleware(['auth:api','with_fast_api_key'])->controller(UserController::class)->group(function () {
     // Route::put('updateUserPreferences','updateUserPreferences');
+    Route::post('changePassword','changePassword');
+    Route::post('update_profile','update_profile');
+    
+    
     Route::post('update_profile','update_profile');
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');

@@ -23,23 +23,30 @@ class LoginUser extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            //
-            'email' => 'required|email',
-            'password' => 'required|string',
-            // 'user_role' => 'required|integer|between:2,3',
-            'device_type' => 'required|integer|between:1,2',
-            'device_token' => 'required',
+
+        $rules = [
+            'email' => 'required|string', // Ensure param is present and is a string
         ];
+        if (strpos($this->email, '@') !== false) {
+            $rules['email'] = 'required|email'; // Validate email format
+        }
+
+        $rules = [
+            'password' => 'required|string',
+            'device_type' => 'required|integer|between:1,2',
+            'device_token' => 'required|min:10',
+        ];
+
+        return  $rules;
     }
 
     public function messages()
 
     {
         return [
-            'password.regex' => 'Password must contain at least one number and both uppercase and lowercase letters and special symbol.',
-            'user_role.between' => 'Invalid user role.',
+
             'device_type.between' => 'Invalid device type.',
+            'device_token.min' => 'Invalid device token.',
         ];
     }
 

@@ -36,8 +36,8 @@ class RegisterUserService extends BaseController
 
     public function __construct(GetUserService $user,RosterAiTrigger $rosterAi ,VerifyEmail $verify_email)
     {
-        $this->getUser  =  $user;
-        $this->rosterAi = $rosterAi;
+        $this->getUser      =  $user;
+        $this->rosterAi     = $rosterAi;
         $this->verify_email = $verify_email;
     }  
 
@@ -63,10 +63,10 @@ class RegisterUserService extends BaseController
             $UserDevice->save();
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             $this->verify_email->sendVerificationEmail($userID);
-            #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
-
+           #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
+            
             return $this->sendResponse($userData, trans("message.register"), 200);
         } catch (Exception $e) { 
             DB::rollback();
@@ -80,22 +80,24 @@ class RegisterUserService extends BaseController
 
         try {
 
-            $checkStatus = User::where(['email' => $request->email])->whereNotIn('register_role_type', [1,4])->first();
-            
-            if (isset($checkStatus) && !empty($checkStatus)) {
+            $checkStatus = User::where(['email' => $request->email])->orWhere(['user_name'=>$request->email])->first();
 
+            if (isset($checkStatus) && !empty($checkStatus)) {
                 // Check the user's status
                 if ($checkStatus['is_active'] == 0) {
                     // User is inactive
-                    return $this->sendError("Your account is not active!", [], 400);
+                    return $this->sendError(trans('message.account_not_active'), [], 403);
 
                 } elseif ($checkStatus['is_active'] == 2) {
                     // User account is deleted
-                    return $this->sendError("Your account is deleted!", [], 400);
+                    
+                    return $this->sendError(trans('message.account_deleted'), [], 422);
 
                 } elseif ($checkStatus['is_active'] == 1) {
+
                     // User account is active
-                    if (auth()->attempt(['email' => $request->email, 'password' => $request->password])) {
+                    
+                    if (auth()->attempt(['email' => $checkStatus->email, 'password' => $request->password])) {
                         // Authentication successful
                         $userId = Auth::id();
                         $user = User::find($userId);
@@ -112,40 +114,19 @@ class RegisterUserService extends BaseController
                         $UserDevice->device_type    =   $request->device_type;
                         $UserDevice->device_token   =   $request->device_token;
                         $UserDevice->save();
-                        #------- check if portfolio doesnot exist-----------#
-                        $position                   =       1;
-                        $isPortfolioExist           =       UserPortfolio::where('user_id',$userId)->count();
-                        if($isPortfolioExist==0) {
-                            for ($i = 0; $i < 5; $i++) {
-
-                                UserPortfolio::create([
-                                    'user_id' => $userId,
-                                    'image' => null,
-                                    'position' => $position,
-                                    // Add more fields as needed with null values
-                                ]);
-                                $position++;
-                            }
-                        }
-                        #------- check if portfolio doesnot exist-----------#
-
                         // Commit the transaction
                         DB::commit();
-                        // add queue 
-                        $this->rosterAi->RosterAiFinder(Auth::user(),$userId);
                         $loginUser   =   $this->getUser->getAuthUser($userId);
-                        //dd($loginUser);
-                        // Return a success response with user details
                         return response()->json(['status' => 200, 'message' => (trans('message.login')), 'data' => $loginUser]);
                         
                     } else {
                         // Invalid email or password
-                        return $this->sendError("Invalid email or password!", [], 400);
+                        return $this->sendError(trans('message.invalidCredentials'), [], 400);
                     }
                 }
             } else {
                 // Invalid email or password
-                return $this->sendError("Invalid email or password!", [], 400);
+                return $this->sendError(trans('message.invalidCredentials'), [], 400);
             }
         } catch (Exception $e) {
             DB::rollback();
