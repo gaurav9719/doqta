@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->unsignedBigInteger('medicial_credential')->nullable();
             $table->unsignedBigInteger('specialty')->nullable()->index();
+            $table->unsignedBigInteger('medicial_degree_type')->nullable()->index();
             $table->foreign('medicial_degree_type')->references('id')->on('medical_credentials')->onDelete('set null');
             $table->foreign('specialty')->references('id')->on('specialties')->onDelete('set null');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
