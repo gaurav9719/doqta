@@ -13,22 +13,29 @@ use App\Http\Controllers\Api\BaseController;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-
+use App\Models\GroupMemberRequest;
 use Exception;
+use App\Models\User;
+use App\Services\NotificationService;
+
 
 class CommunityController extends BaseController
 {
-    /**
-     * Display a listing of the resource.
-     */
+   
+    protected $notification;
+    public function __construct(NotificationService $notification)
+    {
+        $this->notification         = $notification;
+    }
+
     public function index(Request $request)
     {
         try {
-            DB::enableQueryLog();
             // Get the authenticated user's ID
             $authId = Auth::id();
             // Query to fetch communities where the user is a member and communities are active
             $communitiesQuery = GroupMember::where('user_id', $authId)
+            
                 ->whereHas('communities', function($query) {
                     $query->where('is_active', 1);
                 });
@@ -43,15 +50,36 @@ class CommunityController extends BaseController
             // Get the communities
             $communities = $communitiesQuery->with('communities')->simplePaginate(10);
             // Return the communities
-            $communities->each(function ($community) {
+            $communities->each(function ($community) use($authId) {
 
                 if(isset($community->communities) && !empty($community->communities) ){
 
                     $community->communities->cover_photo     =   asset('storage/'.$community->communities->cover_photo);
                 }
+
+                //check i am the member of the community or not
+
+                $isExist                        =   GroupMember::where(['group_id'=>$community->id,'is_active'=>1,'user_id'=>$authId])->exists();
+                if($isExist){
+
+                    $community->is_joined       =   1;
+                }else{
+
+                    $request                    =   GroupMemberRequest::where(['group_id'=>$community->id,'is_active'=>1,'user_id'=>$authId])->first();
+                    if(isset($request) && !empty($request)){
+                        if($request->status="pending"){
+                            $community->is_joined       =   2; // pending request
+                        }elseif ($request->status="rejected") {
+                            $community->is_joined       =   3; // rejected
+                        }
+                    }else{
+
+                        $community->is_joined       =   0; // not join the group
+                    }
+                }
             });
             
-            return $this->sendResponse($communities, trans("message.community_added"), 200);
+            return $this->sendResponse($communities, trans("message.communities"), 200);
     
         } catch (Exception $e) {
             // Handle exceptions
@@ -100,18 +128,14 @@ class CommunityController extends BaseController
             }
             DB::commit();
             $community                  =       Group::find($addCommunity->id);
-            $community->cover_photo     =   asset('storage/'.$community->cover_photo);
-
-            
+            $community->cover_photo     =   asset('storage/'.$community->cover_photo);            
             return $this->sendResponse($community, trans("message.community_added"), 200);
-
 
         } catch (Exception $e) {
            
             DB::rollback();
             Log::error('Error caught: "community_added" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
-
         }
     }
 
@@ -233,5 +257,206 @@ class CommunityController extends BaseController
         }
     }
     #------------***************** D E L E T E      C O M M U N I T Y  ***************----------------#
+
+
+
+    #------------************** J O I N         C O M M U N I T Y ************----------------#
+    public function joinCoummnity(Request $request){
+
+        DB::beginTransaction();
+
+        try {
+
+            $authId                     =   Auth::id();
+            $validator                  =   Validator::make( $request->all(),['community_id' => 'required|integer|exists:groups,id']);
+    
+            if ($validator->fails()) {
+
+                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+            }else{
+
+                $alreadyMember          =   GroupMember ::where(['group_id'=>$request->community_id,'user_id'=>$authId])->exists();
+
+                if($alreadyMember){
+
+                    return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
+
+                }else{
+                                 //check group type is public or private
+
+                    $group                          =   Group::find($request->community_id);
+
+                    if($group->visibility==1){          ##--------- PUBLIC COMMUNITIES ------------#
+
+                        $addGroupMember             =   new GroupMember();
+                        $addGroupMember->group_id   =   $request->community_id;
+                        $addGroupMember->user_id    =   $authId;
+                        $addGroupMember->role       =   "member";
+
+                        if($addGroupMember->save()){
+                            // increment in group member
+                            incrementMember($authId,$request->community_id,1);
+                            $reciever                           =       User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
+                            $sender                             =       User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
+                            $notification_type                  =       trans('notification_message.new_memeber_join_group_type');
+                            $notification_message               =       trans('notification_message.new_memeber_join_group_message');
+                            $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
+                            DB::commit();
+                            return $this->sendResponsewithoutData(trans('message.community_joined_successfully'), 200);
+                        }
+
+                    }else{                              ##--------- PRVATE COMMUNITIES ------------#
+
+
+                        $checkRequest                           =   GroupMemberRequest::where(['user_id'=>$authId,'group_id'=>$request->community_id]);
+
+                        if($checkRequest){
+
+                            return $this->sendError(trans('message.something_went_wrong'), [], 403);
+
+                        }else{
+
+                            $groupRequest                       =       new GroupMemberRequest();
+                            $groupRequest->user_id              =       $authId;
+                            $groupRequest->group_id             =       $request->community_id;
+                            $groupRequest->save();
+                            $group                              =       Group::find($request->community_id);
+                            $reciever                           =       User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
+                            $sender                             =       User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
+                            $notification_type                  =       trans('notification_message.new_memeber_group_request_type');
+                            $notification_message               =       trans('notification_message.new_memeber_group_request_type_message');
+                            $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
+
+                            DB::commit();
+
+                            return $this->sendResponsewithoutData(trans('message.request_send_successfuly'), 200);
+
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception $e) {
+            
+            DB::rollback();
+            Log::error('Error caught: "joinCoummnity" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------************** J O I N         C O M M U N I T Y ************----------------#
+
+
+    #---------------------- C O M M U N I T Y        R E Q U E S T  ---------------------------#
+    public function communityRequest(Request $request){
+
+        try {
+
+            $limit          =   10;
+            if(isset($request->limit) && !empty($request->limit)){
+
+                $limit      =   $request->limit;
+            }
+            $authId         =   Auth::id();
+            $requests       = GroupMemberRequest::select('id', 'user_id', 'group_id', 'status')
+            ->whereHas('myGroup', function ($query) use ($authId) {
+                $query->where('created_by', $authId);
+            })
+            ->with(['myGroup' => function ($selected) {
+    
+                $selected->select('id', 'name', 'description', 'cover_photo', 'visibility', 'member_count');
+            }, 'requested_user' => function ($query) {
+                $query->select('id', 'name', 'profile');
+            }])
+            ->simplePaginate($limit);
+    
+            $requests->each(function ($groupRequest) {
+    
+                if(isset($groupRequest->myGroup) && !empty($groupRequest->myGroup)){
+    
+                    $groupRequest->myGroup->cover_photo    =   asset('storage/'.$groupRequest->myGroup->cover_photo);
+                }
+    
+                if(isset($groupRequest->requested_user) && !empty($groupRequest->requested_user)){
+    
+                    if(isset($groupRequest->requested_user->profile) && !empty($groupRequest->requested_user->profile)){
+    
+                        $groupRequest->requested_user->profile    =   asset('storage/'.$groupRequest->myGroup->profile);
+                    }
+                }
+            });
+            return $this->sendResponse($requests, trans("message.community_request"), 200);
+
+        } catch (Exception $e) {
+    
+            DB::rollback();
+            Log::error('Error caught: "communityRequest" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #---------------------- C O M M U N I T Y        R E Q U E S T  ---------------------------#
+
+
+    #-----------------****** A C C E P T         C O M M U N I T Y     R E Q E U E S T ******* ----------------#
+
+    public function acceptRejectCommunityRequest(Request $request){
+
+        DB::beginTransaction();
+        try {
+            
+            $authId                     =   Auth::id();
+            $validator                  =   Validator::make( $request->all(),['action' => 'required|integer|between:0,1','request_id' => 'required|integer|exists:group_member_requests,id']);
+    
+            if ($validator->fails()) {
+    
+                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+    
+            }else{
+    
+                $requestId              =   GroupMemberRequest::select('group_id')->where('id',$request->request_id)->first();
+            
+                // $hasOwner               =   Group::where(['id'=>$request->community_id,'created_by'=>$authId])->exists();
+                $hasOwner               =   GroupMember::where(['group_id'=>$requestId->group_id,'user_id'=>$authId,'role'=>'admin'])->exists();
+                if($hasOwner){
+    
+                    if($request->action==0){
+    
+                        $requestId->status      =   "rejected";
+                        $requestId->save();
+                        DB::commit();
+    
+                    }elseif ($request->action==1) {
+                       
+                        $addMember              =   new  GroupMember();
+                        $addMember->group_id    =   $requestId->group_id;
+                        $addMember->user_id     =   $authId;
+                        $addMember->role        =   "member";   
+                        $addMember->save();
+                        $requestId->delete();
+                        DB::commit();
+                    }
+                    
+                    return $this->sendResponsewithoutData(trans('message.request_accepted'), 200);
+
+                }else{  // permission denied becaue your not owner
+    
+                    return $this->sendError(trans('message.something_went_wrong'), [], 403);
+                }
+            }
+        } catch (Exception $e) {
+            
+            DB::rollback();
+            Log::error('Error caught: "acceptRejectCommunityRequest" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+       
+
+
+    }
+    #-----------------****** A C C E P T         C O M M U N I T Y     R E Q E U E S T ******* ----------------#
+
+
+
+
+
 
 }

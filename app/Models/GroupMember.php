@@ -13,4 +13,12 @@ class GroupMember extends Model
         
         return $this->belongsTo(Group::class, 'group_id','id');
     }
+
+
+public function communities_post(){
+        
+    return $this->belongsTo(Post::class, 'group_id','group_id');
+}
+
+
 }

@@ -33,6 +33,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'laravel_through_key'
     ];
 
     /**
@@ -45,6 +46,19 @@ class User extends Authenticatable
     ];
 
 
+
+    public function posts()
+    {
+        return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id');
+    }
+    // return $this->hasManyThrough(
+    //     Post::class,       // Related model that you want to access
+    //     GroupMember::class, // Intermediate model
+    //     'user_id',          // Foreign key on the intermediate model (GroupMember) that references the local model (User)
+    //     'group_id',         // Foreign key on the related model (Post) that references the intermediate model (GroupMember)
+    //     'id',               // Local key on the local model (User) used for the relationship
+    //     'group_id'          // Local key on the intermediate model (GroupMember) used for the relationship
+    // );
 
     public function userPreferences(){
 

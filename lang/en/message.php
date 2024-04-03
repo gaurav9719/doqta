@@ -32,6 +32,15 @@ return [
     "community_added"=>"Community addedd successfully",
     "community_deleted"=>"Community deleted successfully",
     "community_updated"=>"Community updated successfully",
+    "already_group_member"=>"You are already group member",
+    "request_send_successfuly"=>"Request send successfully",
+    "community_joined_successfully"=>"Community joined successfully",
+    "communities"=>"Communities",
+    "community_request"=>"Community request",
+    "request_accepted"=>"Request accepted successfully",
+    "not_group_member"=>"You are not group member",
+    "add_posted_successfully"=>"Post added successfully",
+
 
 
 

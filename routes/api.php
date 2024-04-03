@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Dater\PortfolioController;
 use App\Http\Controllers\Api\SignStepsController;
 use App\Http\Controllers\Api\InputsOptions;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\CommunityPost;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,13 +47,13 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::post('socialLogin','socialLogin');
 });
 
-Route::middleware(['with_fast_api_key','auth:api'])->controller(SignStepsController::class)->group(function () {
+Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(SignStepsController::class)->group(function () {
     Route::post('completeSignUpSteps','completeSignUpSteps');
 
     
     
 });
-Route::middleware(['with_fast_api_key'])->controller(InputsOptions::class)->group(function () {
+Route::middleware(['with_fast_api_key','is_verified_email'])->controller(InputsOptions::class)->group(function () {
     Route::get('inputSelection','inputSelection');
 });
 
@@ -60,8 +61,22 @@ Route::middleware(['with_fast_api_key'])->controller(InputsOptions::class)->grou
 
 
 
-Route::middleware(['with_fast_api_key', 'auth:api'])->group(function () {
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
+    Route::get('communityRequest', [CommunityController::class,'communityRequest']);
     Route::resource('community', CommunityController::class);
+
+});
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
+    Route::get('communityRequest', [CommunityController::class,'communityRequest']);
+    Route::resource('community', CommunityController::class);
+
+});
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+
+    Route::resource('communityPost', CommunityPost::class);
+
 });
 
 
@@ -74,7 +89,9 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function () {
 
 
 
-Route::middleware(['auth:api','with_fast_api_key'])->controller(UserController::class)->group(function () {
+
+
+Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->controller(UserController::class)->group(function () {
     // Route::put('updateUserPreferences','updateUserPreferences');
     Route::post('changePassword','changePassword');
     Route::post('update_profile','update_profile');
@@ -101,7 +118,7 @@ route::middleware(['with_fast_api_key','auth:api'])->controller(PointSystem::cla
 });
 
 
-Route::middleware(['with_fast_api_key','auth:api'])->controller(Notifications::class)->group(function () {
+Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(Notifications::class)->group(function () {
 
     Route::get('notifications','notifications');
 

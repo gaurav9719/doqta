@@ -13,13 +13,13 @@ class AddPostRequest extends FormRequest
     public function rules()
     {
         return [
-            'user_id' => 'required|integer|exists:users,id',
             'title' => 'required|string|min:10|max:200',
             'content' => 'required|string|min:10',
             'media_url' => 'nullable|string|min:10',
             'post_type' => 'required|in:normal,community',
             'post_category' => 'required|integer|between:1,3',
             'community_id' => 'nullable|integer|exists:groups,id',
+            'link' => 'nullable|url',
         ];
     }
     
@@ -35,6 +35,7 @@ class AddPostRequest extends FormRequest
             'user_id.exists' => 'The selected user ID is invalid.',
             'post_type.in' => 'The post type must be either "normal" or "community".',
             'post_category.between' => 'The post category must be between :min and :max.',
+            'community_id.integer'=>"Invalid community id"
         ];
     }
 

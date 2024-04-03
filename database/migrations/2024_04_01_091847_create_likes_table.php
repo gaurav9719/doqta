@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('likes', function (Blueprint $table) {
+
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->unsignedBigInteger('post_id')->nullable()->index();
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->foreign('comment_id')->references('id')->on('comments')->onDelete('cascade');
             $table->boolean('is_active')->default(1)->comment('0:inactive,1:active');
             $table->timestamps();
+            
         });
     }
 
