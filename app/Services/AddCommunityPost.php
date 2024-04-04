@@ -18,6 +18,7 @@ use Carbon\Carbon;
 class AddCommunityPost extends BaseController
 {
 
+    #*********-------     A D D        P O S T     ---------------********#
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
@@ -45,7 +46,7 @@ class AddCommunityPost extends BaseController
             $post->post_category     =       $request->post_category;
             $post->save();
             DB::commit();
-            return $this->getPost($post->id);
+            return $this->getPost($post->id,trans("message.add_posted_successfully"));
         } catch (Exception $e) {
 
             DB::rollback();
@@ -53,6 +54,73 @@ class AddCommunityPost extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+    #*******----------- A D D          P O S T  --------------***********#
+
+
+
+    ##### ********* ------   E D I T      P O S T  ------ ******** ########
+
+    public function editPost($request, $authId,$postId)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            $editPost                    =     Post::find($postId);
+
+            $editPost->user_id           =      $authId;
+
+            if (isset($request->title) && !empty($request->title)) {
+
+                $editPost->title     =      $request->title;
+            }
+
+            if (isset($request->content) && !empty($request->content)) {
+
+                $editPost->content     =      $request->content;
+            }
+            
+            if (isset($request->media_url) && !empty($request->media_url)) {
+
+                $editPost->media_url     =      $request->media_url;
+            }
+
+            if (isset($request->group_id) && !empty($request->group_id)) {
+
+                $editPost->group_id      =      $request->group_id;
+            }
+
+            if (isset($request->link) && !empty($request->link)) {
+
+                $editPost->link         =      $request->link;
+            }
+
+            $editPost->post_type        =       $request->post_type;
+            $editPost->post_category    =       $request->post_category;
+            $editPost->save();
+            DB::commit();
+            return $this->getPost($postId,trans('message.update_post_successfully'));
+
+        } catch (Exception $e) {
+
+            DB::rollback();
+            Log::error('Error caught: "addPost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+
+    ##### ********* -------   E D I T      P O S T  ------ ******** ########
+
+
+    
+
+
+
+
+
+
+
+
 
 
     #-------------  G E T   P O S T    B Y      I D  ------------------#
@@ -95,7 +163,7 @@ class AddCommunityPost extends BaseController
     //     }
     // }
 
-    public function getPost($id)
+    public function getPost($id,$message)
     {
         try {
             $post = Post::with('group_post:name,description,cover_photo,member_count', 'post_user:id,name,profile')
@@ -118,7 +186,9 @@ class AddCommunityPost extends BaseController
 
             $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
 
-            return $this->sendResponse($post, trans("message.add_posted_successfully"), 200);
+            return $this->sendResponse($post, $message, 200);
+
+
             
         } catch (Exception $e) {
 

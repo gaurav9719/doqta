@@ -77,6 +77,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 
     Route::resource('communityPost', CommunityPost::class);
 
+
 });
 
 

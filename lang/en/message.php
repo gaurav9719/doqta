@@ -40,9 +40,18 @@ return [
     "request_accepted"=>"Request accepted successfully",
     "not_group_member"=>"You are not group member",
     "add_posted_successfully"=>"Post added successfully",
+    "invalid_post"=>"Invalid Post",
+    "update_post_successfully"=>"Update post successfully",
+    "no_post_found"=>"No post found",
+    "post_id_required"=>"Post id required",
+    "post_deleted_successfully"=>"Post deleted successfully",
+    "update_successfully"=>"Post updated successfully",
+    "reposted"=>"Reposted successfully",
+    "hide_post_successfully"=>"Post hide successfully",
+    "saved_post_successfully"=>"Post saved successfully",
 
 
-
+    
 
 
 

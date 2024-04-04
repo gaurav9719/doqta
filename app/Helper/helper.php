@@ -891,5 +891,31 @@ if (!function_exists('incrementByPoint')) {
             return  strip_tags($text);
         }
     }
+
+
+
+   
+    
+    if (!function_exists('increment')) {
+        function increment($tableName, $conditions, $field, $incrementBy)
+        {
+            return DB::table($tableName)
+                ->updateOrInsert(
+                    $conditions,
+                    [$field => DB::raw("$field + $incrementBy")]
+                );
+        }
+    }
+
+    if (!function_exists('decrement')) {
+        function decrement($tableName, $conditions, $field, $incrementBy)
+        {
+            return DB::table($tableName)
+                ->updateOrInsert(
+                    $conditions,
+                    [$field => DB::raw("$field - $incrementBy")]
+                );
+        }
+    }
     
 }
