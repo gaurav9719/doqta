@@ -49,6 +49,9 @@ return [
     "reposted"=>"Reposted successfully",
     "hide_post_successfully"=>"Post hide successfully",
     "saved_post_successfully"=>"Post saved successfully",
+    "repost_removed_successfully"=>"Repost removed successfully",
+    "report_to_post_successfully"=>"Report submitted successfully",
+    "home_screen_post"=>"Home screen post",
 
 
     

@@ -32,48 +32,58 @@ class GetCommunityService extends BaseController
 
 
     #------********  G E T      C O M M U N I T Y       P O S T   *********------------#
-    public function homeScreen($request,$authId)
+    public function homeScreen($request, $authId)
     {
         try {
-           
+
             $limit              =       10;
 
-            if(isset($request->limit) && !empty($request->limit)){
+            if (isset($request->limit) && !empty($request->limit)) {
                 $limit          =       $request->limit;
             }
 
             $user               =       User::findOrFail($authId);
-            $posts              =       $user->posts()->latest()->simplePaginate($limit);
-        
-            return $this->sendResponse($posts, trans("message.add_posted_successfully"), 200);
+            // $posts              =       $user->posts()->latest()->simplePaginate($limit);
+            // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
+            $homeScreenPosts = $user->posts()
+            ->where('posts.is_active', 1)
+            ->whereNotExists(function ($query) use ($user) {
+                $query->select(DB::raw(1))
+                    ->from('report_posts')
+                    ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                    ->where('report_posts.user_id', '=', $user->id); // Check if the current user has reported the post
+            })->with(['parent_post' => function ($query) {
+                $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                    ->where('is_active', 1)
+                    ->with(['post_user' => function ($query) {
+                        $query->select('id', 'name', 'profile');
+                    }]);
+            }])
+            ->latest()
+            ->simplePaginate($limit);
+
+                $homeScreenPosts->each(function ($homeScreenPost) {
 
 
+                    if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-            // $post = Post::with('group_post:name,description,cover_photo,member_count', 'post_user:id,name,profile')->simplePaginate($limit);
+                        $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
+                    }
 
-            // if (!$post) {
+                    if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
+                        $homeScreenPost->parent_post->post_user->profile = asset('storage/'.$$homeScreenPost->parent_post->post_user->profile);         
+                    }
+                    $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
 
-            //     return $this->sendError('Post not found.', [], 404);
-            // }
-
-            // if ($post->media_url) {
-
-            //     $post->media_url = asset('storage/' . $post->media_url);
-            // }
-
-            // if ($post->post_user && $post->post_user->profile) {
-
-            //     $post->post_user->profile = asset('storage/' . $post->post_user->profile);
-            // }
-
-            // $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
-
-            // return $this->sendResponse($post, trans("message.add_posted_successfully"), 200);
+                });
             
+
+            return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200);
+
         } catch (Exception $e) {
 
             Log::error('Error caught: "getPost" ' . $e->getMessage());
-            return $this->sendError('Error occurred while fetching post.', [], 500);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #------********  G E T      C O M M U N I T Y       P O S T   *********------------#

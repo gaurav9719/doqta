@@ -25,6 +25,7 @@ use App\Http\Requests\EditCommunityPost;
 use App\Models\PostLike;
 use App\Models\HiddenPost;
 use App\Models\SavedPost;
+use App\Models\ReportPost;
 use Illuminate\Validation\ValidationException;
 
 class CommunityPost extends BaseController
@@ -44,7 +45,7 @@ class CommunityPost extends BaseController
     {
         $limit                  =       10;
         $authId                 =       Auth::id();
-
+        // dd($authId);
         if (isset($request->limit) && !empty($request->limit)) {
 
             $limit              =       $request->limit;
@@ -157,7 +158,7 @@ class CommunityPost extends BaseController
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "get community" ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred.'], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #-------------------    D E L E T E          P O S T  ------------------------#
@@ -179,7 +180,7 @@ class CommunityPost extends BaseController
 
                 $auth               =   Auth::user();
                 $authId             =   Auth::id();
-                $isExist        =   Post::where(['id' => $request->post_id, 'is_active' => 1])->exists();
+                $isExist            =   Post::where(['id' => $request->post_id, 'is_active' => 1])->exists();
 
                 if (!$isExist) {
 
@@ -197,7 +198,7 @@ class CommunityPost extends BaseController
                         DB::commit();
                     } else {
 
-                        $newPost            = new Post();
+                        $newPost            = new PostLike();
                         $newPost->post_id   = $request->post_id;
                         $newPost->user_id   = $authId;
                         $newPost->save();
@@ -212,7 +213,7 @@ class CommunityPost extends BaseController
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "like post" ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred.'], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #--------------------- L I K E      P O S T  ------------------------------#
@@ -223,6 +224,7 @@ class CommunityPost extends BaseController
     {
         DB::beginTransaction();
         try {
+            
             $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id']);
             if($validation->fails()){
 
@@ -240,38 +242,62 @@ class CommunityPost extends BaseController
 
                 } else {
 
-                    $post       =   Post::where(['parent_id' => $request->post_id, 'user_id' => $authId])->first();
+                    if(isset($isExist->parent_id) && !empty($isExist->parent_id)){
 
-                    if ($post) {
+                        $parent_id     =   $isExist->parent_id;
+                    }else{
+                        
+                        $parent_id     =   $isExist->id;
+                    }
+                 
+                    $post       =   Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
+                    //dd(DB::getQueryLog());
+                    
+                    if (isset($post) && !empty($post)) {
                         // Record exists, delete it
                         $post->delete();
-                        $action =   0;
+                        $action                 =   0;
                         decrement('posts', ['id' => $request->post_id], 'repost_count', 1); //decrement post
                         DB::commit();
-
+                        $repost               =   null;
                     } else {
-
+                   
                         $rePost                =   new Post();
-                        $rePost->parent_id     =   $isExist->post_id;
+                        $rePost->parent_id     =   $parent_id;
                         $rePost->user_id       =   $authId;
                         $rePost->title         =   $isExist->title;
                         $rePost->media_url     =   $isExist->media_url;
                         $rePost->link          =   $isExist->link;
                         $rePost->post_type     =   $isExist->post_type;
                         $rePost->group_id      =   $isExist->group_id;
+
+
                         $rePost->save();
+                        $repostId              =   $rePost->id;   
                         $action =   1;
                         //increment the like by one
-                        increment('posts', ['id' => $request->post_id], 'repost_count', 1); 
+                        increment('posts', ['id' => $parent_id], 'repost_count', 1);
                         DB::commit();
+                        $repost = Post::where('id', $repostId)
+                        ->with(['parent_post' => function ($query) {
+                            $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                                ->where('is_active', 1)
+                                ->with(['post_user' => function ($query) {
+                                    $query->select('id', 'name', 'profile');
+                                }]);
+                        }])->first();
+
+                        if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
+                            $repost->parent_post->post_user->profile = asset('storage/'.$repost->parent_post->post_user->profile);         
+                        }
                     }
-                    return $this->sendResponse($action, trans('message.reposted'), 200);
+                    return $this->sendResponse($repost, ($action==0)?trans('message.repost_removed_successfully'):trans('message.reposted'), 200);
                 }
             }
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "like post" ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred.'], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #--------------------- ***************  E N D  ******************---------------#
@@ -294,32 +320,37 @@ class CommunityPost extends BaseController
 
             if ($validation->fails()) {
 
-                throw new ValidationException($validation);
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             }
 
-            $type = $request->type;
-            $authId = Auth::id();
-            $post = Post::find($request->post_id);
+            $type       =       $request->type;
+            $authId     =       Auth::id();
+            $post       =       Post::find($request->post_id);
 
             if (!$post || !$post->is_active) {
-                throw new Exception(trans('message.no_post_found'), 422);
-            }
 
+                return $this->sendResponsewithoutData(trans('message.no_post_found'), 422);
+
+            }
             switch ($type) {
+
                 case 0: // Hide the post
                     $message = trans('message.hide_post_successfully');
                     HiddenPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
                     break;
                 case 1: // Save the post
+
                     $message = trans('message.saved_post_successfully');
                     SavedPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
                     break;
                 default:
-                    throw new Exception('Invalid type', 422);
+                    return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
+
             }
 
             DB::commit();
-            return $this->sendResponse($type, $message, 200);
+            return $this->sendResponse(intVal($type), $message, 200);
         } catch (ValidationException $e) {
 
             DB::rollBack();
@@ -329,13 +360,61 @@ class CommunityPost extends BaseController
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "hideSavePost" ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], $e->getCode());
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #------------------------- *********  E N D   ******** ----------------------------#
 
     #--------------------********   R E P O R T     P O S T   ********------------------------#
-    
+    public function reportPost(Request $request){
+
+        DB::beginTransaction();
+
+        try {
+            $validation = Validator::make($request->all(), [
+                'post_id' => 'required|integer|exists:posts,id',
+            ], [
+                'post_id.*' => 'Invalid post',
+            ]);
+
+            if ($validation->fails()) {
+
+                throw new ValidationException($validation);
+            }
+
+            $authId             =   Auth::id();
+            $post               =   Post::find($request->post_id);
+
+            if (!$post || !$post->is_active) {
+
+                throw new Exception(trans('message.no_post_found'), 422);
+            }
+            $data       =   [];
+            if(isset($request->report_title) && !empty($request->report_title)){
+
+                $data   =   ['report_title'=>$request->report_title];
+            }
+
+            ReportPost::updateOrCreate(
+                ['user_id' => $authId, 'post_id' => $request->post_id],
+                [$data]
+            );
+            
+            DB::commit();
+            return $this->sendResponsewithoutData(trans('message.report_to_post_successfully'), 200);
+
+        } catch (ValidationException $e) {
+
+            DB::rollBack();
+            Log::error('Error caught: "reportPost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "reportPost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
     #--------------------********  R E P O R T      P O S T  *********------------------------#
 
 

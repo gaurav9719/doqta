@@ -13,8 +13,8 @@ class EditCommunityPost extends FormRequest
      */
     public function rules()
     {
-
         return [
+
             'title' => 'required|string|min:10|max:200',
             'content' => 'required|string|min:10',
             'media_url' => 'nullable|string|min:10',
@@ -22,6 +22,7 @@ class EditCommunityPost extends FormRequest
             'post_category' => 'required|integer|between:1,3',
             // 'community_id' => 'required|integer|exists:groups,id',
             'link' => 'nullable|url',
+            
         ];
     }
 

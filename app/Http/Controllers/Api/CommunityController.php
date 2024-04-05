@@ -213,7 +213,7 @@ class CommunityController extends BaseController
 
             DB::rollback();
             Log::error('Error caught: "delete community" ' . $e->getMessage());
-            return $this->sendError($e, [], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
 
