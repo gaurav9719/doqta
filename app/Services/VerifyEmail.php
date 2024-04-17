@@ -40,7 +40,7 @@ class VerifyEmail extends BaseController
 
             if(isset($user) && !empty($user)){
 
-                $otp                        =          rand(1111, 9999);
+                $otp                        =          rand(111111, 999999);
                 $user->otp                  =          $otp;
                 $user->otp_expiry_time      =          Carbon::now()->addMinutes(10);
                 $user->save();
