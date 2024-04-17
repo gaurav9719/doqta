@@ -10,4 +10,9 @@ class UserParticipantCategory extends Model
     use HasFactory;
 
     protected $fillable=['id','user_id','participant_id','is_active'];
+    public function participant(){
+    
+        return $this->belongsTo(ParticipantCategory::class,'participant_id','id');
+    }
 }
+

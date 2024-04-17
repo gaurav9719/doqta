@@ -14,11 +14,13 @@ return new class extends Migration
         Schema::create('post_likes', function (Blueprint $table) {
             
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->unsignedBigInteger('post_id')->nullable()->index();
+            $table->unsignedBigInteger('comment_id')->nullable()->index();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
-            $table->unique(['user_id', 'post_id']);
+            $table->foreign('comment_id')->references('id')->on('comments')->onDelete('cascade');
+            $table->tinyInteger('reaction')->default(1)->comment('1:support,2:helpful,3:unhelpful');     // e.g., 'like', 'love', 'laugh'
+            $table->boolean('is_active')->default(1)->comment('0:inactive,1:active');
             $table->timestamps();
 
         });

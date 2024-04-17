@@ -65,7 +65,9 @@ class UserController extends BaseController
                     $message                          =       trans('notification_message.password_changed_successfully_message');
                     $status                           =       $this->notification_sent->sendNotification($sender,$sender, $message,$section);
                     DB::commit();
+                    
                     return $this->sendResponsewithoutData(trans('message.password_changed'), 200);
+
                 } else {
 
                     return $this->sendResponsewithoutData(trans('message.incorrect_old_password'), 422);
@@ -87,6 +89,94 @@ class UserController extends BaseController
         return $this->userProfile->edit_profile($request);
     }
     #---------*************--------E D I T     P R O F I L E---------*********** --------#
+
+
+    #-----------------************ G E T        P R O F I L E  *************---------------------#
+    public function getUserProfile(Request $request){
+
+        // $userProfile        =   User::where('is_active',1);
+
+        $authId             =   Auth::id();
+
+        if(isset($request->user_id) && !empty($request->user_id)){
+
+            $getUser        =   $request->user_id;
+
+        }else{
+
+            $getUser        =   $authId;
+        }
+
+
+        $userProfile        =   $this->getUser->getUser($getUser,$authId);
+
+        // if(isset($request->user_id) && !empty($request->user_id)){
+
+        //     $userProfile    =   $userProfile->where('id',$request->user_id);
+
+        // }else{
+
+        //     $userProfile    =   $userProfile->where('id',$authId);
+        // }
+        // $userProfile        =  $userProfile->withCount('userPost')->withCount('supporter')->with('userPost',function($query){
+
+        //     $query->take(10); // Limiting the number of user posts to 10
+
+        // })->first();
+
+
+        // if(isset($userProfile) && !empty($userProfile)){
+
+
+        //     if(isset($userProfile->profile) && !empty($userProfile->profile)){
+
+        //         $userProfile->profile       =   asset('storage/'.$userProfile->profile);
+        //     }
+
+        //     if(isset($userProfile->cover) && !empty($userProfile->cover)){
+
+        //         $userProfile->cover       =   asset('storage/'.$userProfile->cover);
+        //     }
+
+        //     // dd($userProfile['userPost']);
+        //     if(isset($userProfile['userPost']) && !empty($userProfile['userPost'])){
+
+        //         // $userProfile->user_post->each(function ($post) {
+
+        //         //     $post->media_url = optional($post->media_url)->assetUrl();
+
+        //         // });
+        //         // dd($userProfile['user_post']);
+
+        //         $userProfile->userPost->each(function($query){
+                
+        //             if(isset($query->media_url) && !empty($query->media_url)){
+    
+        //                 $query->media_url     =   asset('storage/'.$query->media_url);
+        //             }
+
+        //         });
+        //     }
+
+        //     // add post
+
+
+
+
+
+        // }
+
+
+
+
+
+
+        return $this->sendResponse($userProfile, trans("message.statistics"), 200);
+
+    }
+    #----------------------------*************** E N D ************* ----------------------------#
+
+
 
 
 }

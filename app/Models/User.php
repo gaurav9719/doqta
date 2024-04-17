@@ -33,7 +33,11 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'laravel_through_key'
+        'laravel_through_key',
+        'otp',
+        'otp_expiry_time',
+        'device_token',
+        'email_verified_at'
     ];
 
     /**
@@ -60,14 +64,34 @@ class User extends Authenticatable
     //     'group_id'          // Local key on the intermediate model (GroupMember) used for the relationship
     // );
 
-    public function userPreferences(){
 
-        return $this->hasOne(UserPreference::class, 'user_id', 'id');
-        
+    public function userPost()
+    {
+        return $this->hasMany(Post::class,'user_id','id');
+    }
+
+    public function supporter()
+    {
+        return $this->hasMany(UserFollower::class,'user_id','id');
+    }
+
+    public function supporting()
+    {
+        return $this->hasMany(UserFollower::class,'follower_user_id','id');
     }
 
 
-    public function User_interest(){
+    public function userParticipant(){
+
+        return $this->hasMany(UserParticipantCategory::class,'user_id','id');
+    }
+    public function user_activities(){
+
+        return $this->hasMany(ActivityLog::class,'user_id','id');
+    }
+    
+
+    public function user_interest(){
 
         return $this->hasMany(UsersInterest::class,'user_id', 'id');
     }
@@ -76,33 +100,16 @@ class User extends Authenticatable
 
         return $this->hasMany(UserDocuments::class,'user_id', 'id');
     }
-    public function user_roles(){
-        
-        return $this->hasMany(UserRole::class, 'user_id', 'id');
-    }
+   
 
     
-    public function statistics(){
-
-        return $this->hasMany(UserStat::class, 'user_id','id');
-    }
-
-
+  
     public function portfolio(){
         
         return $this->hasMany(UserPortfolio::class,'user_id','id');
     }
 
 
-    public function SelectRecruitmentType(){
-        
-        return $this->hasMany(UserRecruitmentChoice::class,'user_id','id');
-    }
-
-    public function pointHistories(){
-        
-        return $this->hasMany(PointHistory::class,'user_id','id');
-    }
 
 
     

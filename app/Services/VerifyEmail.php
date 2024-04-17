@@ -92,7 +92,7 @@ class VerifyEmail extends BaseController
             $user            =          User::where(['id'=>$request['user_id']])->first();
 
             if(isset($user) && !empty($user)){
-                $otp                        =          rand(1111, 9999);
+                $otp                        =          rand(100000, 999999);
                 $user->otp                  =          $otp;
                 $user->otp_expiry_time      =          Carbon::now()->addMinutes(10);
                 $user->save();

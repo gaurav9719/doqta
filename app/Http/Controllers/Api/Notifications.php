@@ -20,21 +20,34 @@ class Notifications extends BaseController
         try {
 
             $limit      =   10;
+
             if(isset($request->limit) && !empty($request->limit)){
+
                 $limit  =   $request->limit;
+
             }
-            $authUser   =   Auth::user();
-            $notifications = Notification::with(['sender' => function ($query) {
-                $query->select('id', 'name', 'profile_pic');
+            $authUser       =   Auth::user();
+           
+            $notifications  = Notification::with(['sender' => function ($query) {
+
+                $query->select('id', 'name', 'profile');
 
             }])
-            ->where(['receiver_id'=>$authUser->id,'role_id'=>$authUser->current_role_id])
+            ->where(['receiver_id'=>$authUser->id])
             ->orderByDesc('id')
             ->simplePaginate($limit);
+
+            $notifications->each(function ($notification) {
+
+                if (isset($notification->sender->profile) && !empty($notification->sender->profile)) {
+
+                    $notification->sender->profile = asset('storage/'.$notification->sender->profile);
+
+                }
+            });
             DB::commit();
             // $notification=  Notification::where(['receiver_id'=>$authUser->id])->simpplePaginate($limit);
             return $this->sendResponse($notifications, trans('message.notifications'), 200);
-
         } catch (Exception $e) {
 
             DB::rollback();

@@ -9,4 +9,16 @@ class Group extends Model
 {
     use HasFactory;
     protected $fillable=['id','name','description','cover_photo','created_by','visibility','approval_required','member_count','is_active'];
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    public function groupMember(){
+
+        return $this->hasMany(GroupMember::class, 'group_id','id');
+    }
+
+
 }

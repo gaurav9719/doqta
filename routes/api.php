@@ -13,7 +13,10 @@ use App\Http\Controllers\Api\SignStepsController;
 use App\Http\Controllers\Api\InputsOptions;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\CommunityPost;
-
+use App\Http\Controllers\Api\FeelingController;
+use App\Http\Controllers\Api\JournalEntries;
+use App\Http\Controllers\Api\Discover\DiscoverController;
+use App\Http\Controllers\Api\Chat\ChatController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -83,8 +86,45 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 });
 
 
+Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
+
+    
+    Route::get('feeling', [FeelingController::class,'feeling']);
+   
+    
+});
 
 
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+
+    // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
+    // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
+    // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    Route::patch('journal/addToFavorite', [JournalEntries::class,'addToFavorite']);
+    Route::resource('journal', JournalEntries::class);
+
+    
+});
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+    // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
+    // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
+    // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    // Route::patch('journal/addToFavorite', [DiscoverController::class,'addToFavorite']);
+    Route::resource('discover', DiscoverController::class);
+
+});
+
+
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+    // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
+    // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
+    // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    // Route::patch('journal/addToFavorite', [DiscoverController::class,'addToFavorite']);
+    Route::resource('chat', ChatController::class);
+
+});
 
 
 
@@ -99,10 +139,12 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     Route::post('changePassword','changePassword');
     Route::post('update_profile','update_profile');
     
+    Route::get('getUserProfile','getUserProfile');
     
     Route::post('update_profile','update_profile');
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
+
 
 });
 
@@ -189,7 +231,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(LeaderBoard::cla
 });
 
 
-Route::middleware(['with_fast_api_key','auth:api'])->controller(MessageController::class)->group(function () {
+Route::middleware(['with_fast_api_key','auth:api'])->controller(FeelingController::class)->group(function () {
 
     Route::get('chatHistory','chatHistory');
     Route::get('chatHistory','chatHistory');

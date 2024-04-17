@@ -858,17 +858,18 @@ if (!function_exists('incrementByPoint')) {
 
     if (!function_exists('removeSpecialCharsAndFormat')) {
 
-    function removeSpecialCharsAndFormat($inputString) {
-        // Remove all special characters from the string
-        $cleanedString = preg_replace('/[^a-zA-Z0-9 ]/', '', $inputString);
+        function removeSpecialCharsAndFormat($inputString) {
+            // Remove all special characters from the string
+            $cleanedString = preg_replace('/[^a-zA-Z0-9 ]/', '', $inputString);
+            
+            // Capitalize the first letter of each word
+            $cleanedString = ucwords($cleanedString);
         
-        // Capitalize the first letter of each word
-        $cleanedString = ucwords($cleanedString);
-    
-        // Remove trailing spaces from the right side of the string
-        $cleanedString = rtrim($cleanedString);
-    
-        return $cleanedString;
+            // Remove trailing spaces from the right side of the string
+            $cleanedString = rtrim($cleanedString);
+        
+            return $cleanedString;
+        }
     }
 
 
@@ -917,5 +918,45 @@ if (!function_exists('incrementByPoint')) {
                 );
         }
     }
+
+
+    if(!function_exists('shortNumber')){
+
+        function shortNumber($num) 
+        {
+            $units = ['', 'K', 'M', 'B', 'T'];
+            for ($i = 0; $num >= 1000; $i++) {
+                $num /= 1000;
+            }
+            return round($num, 1) . $units[$i];
+        }
+    }
+
+    if (!function_exists('format_number_in_k_notation')) {
+        function format_number_in_k_notation(int $number): string
+        {
+            $suffixByNumber = function () use ($number) {
+                
+                if ($number < 1000) {
+                    return sprintf('%d', $number);
+                }
     
-}
+                if ($number < 1000000) {
+                    return sprintf('%d%s', floor($number / 1000), 'K+');
+                }
+    
+                if ($number >= 1000000 && $number < 1000000000) {
+                    return sprintf('%d%s', floor($number / 1000000), 'M+');
+                }
+    
+                if ($number >= 1000000000 && $number < 1000000000000) {
+                    return sprintf('%d%s', floor($number / 1000000000), 'B+');
+                }
+    
+                return sprintf('%d%s', floor($number / 1000000000000), 'T+');
+            };
+    
+            return $suffixByNumber();
+        }
+    }
+    

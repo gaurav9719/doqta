@@ -358,9 +358,13 @@ class CommunityController extends BaseController
             }
             $authId         =   Auth::id();
             $requests       = GroupMemberRequest::select('id', 'user_id', 'group_id', 'status')
+            
             ->whereHas('myGroup', function ($query) use ($authId) {
+            
                 $query->where('created_by', $authId);
+            
             })
+
             ->with(['myGroup' => function ($selected) {
     
                 $selected->select('id', 'name', 'description', 'cover_photo', 'visibility', 'member_count');

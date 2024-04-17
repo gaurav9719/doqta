@@ -170,7 +170,7 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id']);
+            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id','reaction'=>'required|integer|between:1,3'],['reaction.*'=>"invalid reaction"]);
 
             if($validation->fails()){
 
@@ -189,18 +189,27 @@ class CommunityPost extends BaseController
                 } else {
 
                     $post       =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
-
                     if ($post) {
-                        // Record exists, delete it
-                        $post->delete();
-                        $action =   0;
-                        decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
-                        DB::commit();
+
+                        if($post['reaction']==$request->reaction){ // same reaction then delete
+                            // Record exists, delete it
+                            $post->delete();
+                            $action =   0;
+                            decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
+                            DB::commit();
+
+                        }else{
+
+                            $post->reaction   = $request->reaction;
+                            $post->save();
+                            $action =   1;
+                        }
                     } else {
 
                         $newPost            = new PostLike();
                         $newPost->post_id   = $request->post_id;
                         $newPost->user_id   = $authId;
+                        $newPost->reaction  = $request->reaction;
                         $newPost->save();
                         $action =   1;
                         //increment the like by one

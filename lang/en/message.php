@@ -52,7 +52,23 @@ return [
     "repost_removed_successfully"=>"Repost removed successfully",
     "report_to_post_successfully"=>"Report submitted successfully",
     "home_screen_post"=>"Home screen post",
+    "color"=>"Colors",
+    "feelings"=>"Feelings",
+    "journals"=>"journals",
+    "add_journals"=>"Add Journal successfully",
+    "journal_topic"=>"Journal Topic",
 
+    "updated_success_common"=>"Update successfully",
+    "dicover_post"=>"Discover post",
+    "dicover_community"=>"Discover communities",
+    "dicover_people"=>"Discover people",
+    "dicover_media"=>"Discover media",
+    "user.add_follow"=>"Follow successfully",
+    "user.unfollow"=>"Unfollow successfully",
+    "already_blocked"=>"User already blocked",
+    "user_blocked"=>"User blocked successfully",
+    "already_reported"=>"Report to user already submitted",
+    "user_reported"=>"Report to user successfully submitted",
 
     
 
