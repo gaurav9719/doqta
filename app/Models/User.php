@@ -90,6 +90,23 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class,'user_id','id');
     }
     
+    public function user_follow(){
+
+        return $this->belongsTo(UserFollower::class,'id','user_id');
+    }
+
+    public function following()
+    {
+        return $this->belongsToMany(User::class, 'user_followers', 'user_id', 'follower_user_id');
+    }
+
+
+    public function user_group(){
+
+        return $this->hasMany(GroupMember::class,'user_id','id');
+
+    }
+
 
     public function user_interest(){
 

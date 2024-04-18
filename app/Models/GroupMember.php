@@ -38,4 +38,9 @@ class GroupMember extends Model
         return $this->hasMany(Post::class,'id','post_id');
     }
 
+    public function group(){
+
+        $this->belongsTo(Group::class,'id','group_id');
+    }
+
 }
