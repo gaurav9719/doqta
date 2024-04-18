@@ -27,6 +27,13 @@ class ChatController extends BaseController
     /**
      * Display a listing of the resource.
      */
+
+    protected $notification;
+    public function __construct(NotificationService $notification)
+    {
+        $this->notification         = $notification;
+    }
+ 
     public function index(Request $request) #---------- G E T     T H E       I N B O X ----------#
     {
         try {
@@ -103,63 +110,74 @@ class ChatController extends BaseController
                     ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
             })->first();
 
-            if (isset($message) && !empty($message)) {
-
-                $message->sender_id            =          $myId;
-                $message->receiver_id          =          $reciever;
-
-            } else {
+            if (empty($message)) {
                 // create new thread
                 $message                       =               new Inbox();
                 $message->sender_id            =               $myId;
                 $message->receiver_id          =               $reciever;
             }
 
-            if (isset($request->message) && !empty($request->message)) {
-
-                $message->message           =              $request->message;
-            }
-
             if ($request->hasFile('media')) {
                 
-                $message->media             =             message_media($request->media, $message_type);
+                $media                          =             message_media($request->media, $message_type);
 
             }
 
             if (isset($request->thumbnails) && !empty($request->thumbnails)) {
 
-                $message->media_thumbnail   =             message_media($request->thumbnails, 10);
+                $media_thumbnail                =             message_media($request->thumbnails, 10);
 
             }
-
             $message->save();
+            $inboxId                            =               $message->id;
 
-            $threadId                       =               $message->id;
-            // SET IN THREAD TABLE
-            $threadData                     =               Chat_thread::find($threadId);
-            $chat_message                   =               new Chat();
-            $chat_message->thread_id        =               $threadId;
-            $chat_message->sender_id        =               $threadData->sender_id;
-            $chat_message->receiver_id      =               $threadData->receiver_id;
-            $chat_message->message          =               $threadData->message;
-            $chat_message->media            =               $threadData->media;
-            $chat_message->media_thumbnail  =               $threadData->media_thumbnail;
-            $chat_message->message_type     =               $threadData->message_type;
-            $chat_message->save();
+            #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
+            $sendMessage                        =                new Message();
+            $sendMessage->inbox_id              =                $inboxId;
+            $sendMessage->sender_id             =                $myId;
+            $sendMessage->message               =                $request->message;
+            if(isset($media) && !empty($media)){
+
+                $sendMessage->media             =                $media;
+            }
+            if(isset($media_thumbnail) && !empty($media_thumbnail)){
+
+                $sendMessage->media_thumbnail    =                $media_thumbnail;
+            }
+
+            if(isset($lat) && !empty($lat)){
+
+                $sendMessage->lat                =                $request->lat;
+            }
+
+            if(isset($long) && !empty($long)){
+
+                $sendMessage->long               =                $request->long;
+            }
+            $sendMessage->message_type           =                $request->message_type;
+            $sendMessage->save();
+            $lastMessageId                       =                $sendMessage->id;
+            Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
 
-            $reciever                       =               User::find($reciever, ['id', 'device_token', 'device_type']);
-            $section                        =               6;
+            $reciever                       =               User::find($reciever, ['id', 'name','profile']);
+            $section                        =               trans('notification_message.send_message_type');
             $myName                         =               Auth::user()->first_name;
-            $message                        =               "Your have recieved new message from  " . $myName;
+            $message                        =               trans('notification_message.send_message')." ".$myName;
             $sender                         =               User::find($myId);
-            $status                         =               $this->notificationService->sendNotification($reciever, $sender, $message, $section);
+            // $this->notification->pushNotificationOnly($reciever, $message,$section);
+            $sent_message                        =               $this->getLastMessage($lastMessageId,$myId);
+            return $this->sendResponse($sent_message, "Message send.", 200);
 
-            $last_message                =              Chat::find($chat_message->id);
-            $last_message->time_ago      =              $last_message->updated_at->diffForHumans();
-            $last_message['profile']     =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
-            return $this->sendResponse($last_message, "Message send.", 200);
+
+
+
+
+            // $last_message                   =              Message::find($chat_message->id);
+            // $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
+            // $last_message['profile']        =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
+            // return $this->sendResponse($last_message, "Message send.", 200);
         } catch (Exception $e) {
 
             DB::rollback();
@@ -311,4 +329,76 @@ class ChatController extends BaseController
     {
         //
     }
+
+
+    public function getLastMessage($message_id,$myId){
+
+        $result             =             Message::with(['sender'=>function($query){
+
+            $query->select('id','name','profile');
+
+        },'reply_to.sender'=>function($query){
+
+            $query->select('id','name','profile');
+
+        }])->where(function($query) use($myId){
+
+        $query->where('is_user1_trash', '!=', $myId)
+            ->orWhere('is_user2_trash', '!=', $myId);
+
+        })->where('id',$message_id)->first();
+
+
+        if(isset($result) && !empty($result)){
+       
+
+            $result->time_ago         =              $result->created_at->diffForHumans();
+
+            if(isset($result->sender) && !empty($result->sender)){
+
+                if(isset($result->sender->profile) && !empty($result->sender->profile)){
+
+                    $result->sender->profile        =   asset('storage/'.$result->sender->profile);
+
+                }
+            }
+
+            if(isset($result->media) && !empty($result->media)){
+
+                $result->media        =   asset('storage/'.$result->media);
+
+            }
+
+            if(isset($result->media_thumbnail) && !empty($result->media_thumbnail)){
+
+                $result->media_thumbnail        =   asset('storage/'.$result->media_thumbnail);
+
+            }
+
+            if(isset($result->reply_to) && !empty($result->reply_to)){
+
+                if(isset($result->reply_to->media) && !empty($result->reply_to->media)){
+
+                    $result->reply_to->media        =   asset('storage/'.$result->reply_to->media);
+
+                }
+
+                if(isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)){
+
+                    $result->reply_to->media_thumbnail        =   asset('storage/'.$result->reply_to->media_thumbnail);
+                }
+                
+                if(isset($result->reply_to->sender) && !empty($result->reply_to->sender)){
+
+                    if(isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)){
+
+                        $result->reply_to->sender->profile        =   asset('storage/'.$result->reply_to->sender->profile);
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+    
 }

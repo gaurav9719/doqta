@@ -69,6 +69,7 @@ return [
     "user_blocked"=>"User blocked successfully",
     "already_reported"=>"Report to user already submitted",
     "user_reported"=>"Report to user successfully submitted",
+    "add_comment"=>"Comment posted successfully",
 
     
 

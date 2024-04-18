@@ -66,6 +66,7 @@ class FollowFollowingController extends BaseController
 
                 //check if already follow or not 
                 $following  =   UserFollower::where(['follower_user_id'=>$authId,'user_id'=>$request->user_id])->exists();
+                
                 if($following){     //delete unfollow
 
                     UserFollower::where(['follower_user_id'=>$authId,'user_id'=>$request->user_id])->delete();

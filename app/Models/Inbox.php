@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class Inbox extends Model
 {
     use HasFactory;
+
+
+    protected $fillable     =   ['id','message_id','sender_id','receiver_id','is_user1_trash','is_user2_trash','is_active'];
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');

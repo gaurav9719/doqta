@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\Chat\ChatController;
 // });
 
 Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->group(function () {
+
     Route::post('signUp','signUp');
     Route::post('verifyEmail','verifyEmail')->middleware('auth:api');
     Route::post('signIn','signIn');
@@ -48,6 +49,7 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::get('matchQr','matchQr');
     Route::post('forgotPassword','forgotPassword');
     Route::post('socialLogin','socialLogin');
+    
 });
 
 Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(SignStepsController::class)->group(function () {

@@ -95,7 +95,7 @@ class SignStepsController extends BaseController
         try {
             $validator = Validator::make($request->all(), [
                 'user_name' =>'required|min:3|regex:/^[a-zA-Z0-9]+$/|unique:users,user_name,'.$auth->id,
-                'name' => ['required', 'string', 'regex:/^[a-zA-Z\s]+$/']],
+                'name' => ['nullable', 'string', 'regex:/^[a-zA-Z\s]+$/']],
             ['user_name.regex'=>"Use only letter and number",'user_name.min'=>'user name must be 3 character long']);
             // Add custom rule for no special characters
             $validator->addRules(['user_name' => new NoSpecialCharacters]);
@@ -105,11 +105,15 @@ class SignStepsController extends BaseController
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
     
             } else {
-                $userStep1             =   User::find($auth->id);
+                $userStep1                  =   User::find($auth->id);
                 // $userStep1              =   new User();
-                $userStep1->user_name   =   filter_text($request->user_name); 
-                $userStep1->name        =   filter_text($request->name);
-                $userStep1->complete_step=  1;
+                $userStep1->user_name       =   filter_text($request->user_name);
+
+                if(isset($request->name) && !empty($request->name)){
+
+                    $userStep1->name        =   filter_text($request->name);
+                }
+                $userStep1->complete_step   =  1;
                 $userStep1->save();   
                 DB::commit();
                 $userData   =   $this->getUser->getAuthUser($auth->id);

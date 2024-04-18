@@ -19,6 +19,8 @@ class GenderSeeder extends Seeder
             ['name' => 'Male'],
             ['name' => 'Female'],
             ['name' => 'Non-binary'],
+            ['name' => 'Prefer not to specify'],
+
             // Add more genders as needed
         ];
         foreach ($genders as $gender) {

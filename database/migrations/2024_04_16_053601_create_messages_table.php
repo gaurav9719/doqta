@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('lat')->nullable()->comment('message type 4 save latitude');
             $table->string('long')->nullable()->comment('message type 4 save lat longitude');
             $table->string('address')->nullable()->comment('message type 4 save lat address');
-            $table->integer('message_type')->default(1)->comment('1:text,2:audio,3:video,4:location,5:contact_share,6:document_share');
+            $table->integer('message_type')->default(1)->comment('1:text,2image: 3audio,4:video,5:location,6:contact_share,7:document_share');
             $table->bigInteger('replied_to_message_id')->default(0)->comment('it show the reply of message id');
             $table->tinyInteger('is_user1_trash')->default(0)->comment('0:not,1:delete');
             $table->tinyInteger('is_user2_trash')->default(0)->comment('0:not,1:delete');

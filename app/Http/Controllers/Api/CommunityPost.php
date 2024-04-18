@@ -26,7 +26,9 @@ use App\Models\PostLike;
 use App\Models\HiddenPost;
 use App\Models\SavedPost;
 use App\Models\ReportPost;
+use App\Models\ActivityLog;
 use Illuminate\Validation\ValidationException;
+use App\Models\Comment;
 
 class CommunityPost extends BaseController
 {
@@ -170,7 +172,7 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id','reaction'=>'required|integer|between:1,3'],['reaction.*'=>"invalid reaction"]);
+            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id','reaction'=>'required|integer|between:1,3','comment_id'=>'nullable|exists:comments,id'],['reaction.*'=>"invalid reaction"]);
 
             if($validation->fails()){
 
@@ -188,29 +190,68 @@ class CommunityPost extends BaseController
 
                 } else {
 
-                    $post       =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
-                    if ($post) {
-
-                        if($post['reaction']==$request->reaction){ // same reaction then delete
+                    $post           =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
+                    if($post) {
+                        if($post['reaction']== $request->reaction){      // same reaction then delete
                             // Record exists, delete it
                             $post->delete();
+                            $deleteCondition                    =   ['post_id'=>$request->post_id,'user_id'=>$authId,'action'=>1];
+                            if(isset($request->comment_id) && !empty($request->comment_id)){
+
+                                $deleteCondition['comment_id']  =    $request->comment_id;
+                            }
+                            ActivityLog::where($deleteCondition)->delete();
                             $action =   0;
                             decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
                             DB::commit();
-
                         }else{
-
                             $post->reaction   = $request->reaction;
                             $post->save();
                             $action =   1;
+                            DB::commit();
                         }
                     } else {
 
                         $newPost            = new PostLike();
                         $newPost->post_id   = $request->post_id;
                         $newPost->user_id   = $authId;
+
+                        if(isset($request->comment_id) && !empty($request->comment_id)){
+
+                            $newPost->comment_id   = $request->comment_id;
+
+                        }
                         $newPost->reaction  = $request->reaction;
                         $newPost->save();
+                        
+                        #----------- R E C O R D        A C T I V I T Y -------------#
+                        $group_post                       =    Post::select('group_id','user_id')->where(['id' => $request->post_id])->first();
+
+                        // $groupData                   =    Group::where('id', $group->group_id);
+                        $addActivityLog              =    new ActivityLog();
+                        $addActivityLog->user_id     =    $authId;
+                        $addActivityLog->post_id     =    $request->post_id;
+                        $addActivityLog->community_id=    $group_post->group_id;
+
+                        if(isset($request->comment_id) && !empty($request->comment_id)){
+
+                            $addActivityLog->comment_id=    $request->comment_id;
+                        }
+
+                        $addActivityLog->action      =    1; //like
+                        $addActivityLog->action_details =  "liked coummunity post";
+                        $addActivityLog->save();
+                        DB::commit();
+                        #----------- R E C O R D        A C T I V I T Y -------------#
+
+                        $reciever                           =       User::select('id', 'device_type')->where("id", $group_post->user_id)->first();
+                        $sender                             =       User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
+                        $notification_type                  =       trans('notification_message.post_liked_message_type');
+                        $notification_message               =       trans('notification_message.post_liked_message');
+                        
+                        $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
+
+                        #------------  S E N D           N O T I F I C A T I O N --------------#
                         $action =   1;
                         //increment the like by one
                         increment('posts', ['id' => $request->post_id], 'like_count', 1); 
@@ -392,6 +433,8 @@ class CommunityPost extends BaseController
             }
 
             $authId             =   Auth::id();
+            // $post       = Post::where('id', $request->post_id)->where('is_active', 1)->first();
+
             $post               =   Post::find($request->post_id);
 
             if (!$post || !$post->is_active) {
@@ -425,6 +468,79 @@ class CommunityPost extends BaseController
         }
     }
     #--------------------********  R E P O R T      P O S T  *********------------------------#
+
+
+
+    #----------------------- ############C O M M E N T     O N     P O S T############ ----------------------#
+    public function addComment(Request $request){
+
+        DB::beginTransaction();
+        try {
+            $validation = Validator::make($request->all(), [
+
+                'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4"
+            ], [
+                'post_id.*' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type"
+            ]);
+            if ($validation->fails()) {
+
+                throw new ValidationException($validation);
+            }
+            $authId             =   Auth::id();
+            $post               =   Post::find($request->post_id);
+            if (!$post || !$post->is_active) {
+
+                throw new Exception(trans('message.no_post_found'), 422);
+            }
+            $addComment                  =   new Comment();
+            $addComment->user_id         =   $authId;
+            $addComment->post_id         =   $request->post_id;
+            if(isset($request->parent_comment_id) && !empty($request->parent_comment_id)){
+
+                $addComment->parent_id   =   $request->parent_comment_id;
+            }
+            if(isset($request->comment_type) && !empty($request->comment_type)){
+
+                $addComment->comment_type   =   $request->comment_type;
+            }
+            $addComment->save();
+            $commentId                     =   $addComment->id;
+              #----------- R E C O R D        A C T I V I T Y -------------#
+            $group_post                  =    Post::select('group_id','user_id')->where(['id' => $request->post_id])->first();
+            // $groupData                =    Group::where('id', $group->group_id);
+            $addActivityLog              =    new ActivityLog();
+            $addActivityLog->user_id     =    $authId;
+            $addActivityLog->post_id     =    $request->post_id;
+            $addActivityLog->community_id=    $group_post->group_id;
+            $addActivityLog->comment_id  =    $commentId;
+            $addActivityLog->action      =    2; //comment
+            $addActivityLog->action_details =  "comment on coummunity post";
+            $addActivityLog->save();
+            DB::commit();
+            #-----------        R E C O R D        A C T I V I T Y  -------------#
+            $reciever                           =       User::select('id', 'device_type')->where("id", $group_post->user_id)->first();
+            $sender                             =       User::select('id','device_type')->where("id", $authId)->first();
+            $notification_type                  =       trans('notification_message.post_comment_message_type');
+            $notification_message               =       trans('notification_message.post_comment_message');
+            $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
+
+            #------------  S E N D           N O T I F I C A T I O N --------------#
+            DB::commit();
+            return $this->sendResponsewithoutData(trans('message.add_comment'), 200);
+
+        } catch (ValidationException $e) {
+
+            DB::rollBack();
+            Log::error('Error caught: "addComment" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "addComment" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------------------------------######### E N D ######## -------------------------------------------#
 
 
 }

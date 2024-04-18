@@ -646,7 +646,9 @@ if (!function_exists('getAddressFromGoogle')) {
 
                 $folder             =           "chat/raw";
             }
-            return Storage::disk('public')->put($folder, $file);
+
+            return upload_file($file, $folder);
+            // return Storage::disk('public')->put($folder, $file);
         }
     }
 }

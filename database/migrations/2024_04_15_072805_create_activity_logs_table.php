@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->unsignedBigInteger('post_id')->nullable()->index();
             $table->unsignedBigInteger('community_id')->nullable()->index();
-            $table->tinyInteger('action')->comment('1:post,2:like,3:comment')->default(0)->index(); // e.g., 'post', 'reaction', 'comment'
+            $table->tinyInteger('action')->comment('1:like,2:comment')->default(0)->index(); // e.g., 'post', 'reaction', 'comment'
             $table->text('action_details')->nullable();
             $table->string('ip_address')->nullable();
             $table->string('device_info')->nullable();
