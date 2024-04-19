@@ -77,13 +77,13 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
     
-    Route::post('communityPost/likePost', [CommunityPost::class,'likePost']);
-    Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
-    Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
-    Route::post('communityPost/report', [CommunityPost::class,'reportPost']);
+    Route::post('communityPosts/likePost', [CommunityPost::class,'likePost']);
+    Route::post('communityPosts/resharePost', [CommunityPost::class,'resharePost']);
+    Route::patch('communityPosts/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
 
     
-    Route::resource('communityPost', CommunityPost::class);
+    Route::resource('communityPosts', CommunityPost::class);
 
     
 });
