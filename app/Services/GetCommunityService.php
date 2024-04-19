@@ -48,14 +48,23 @@ class GetCommunityService extends BaseController
             // dd($user);
             // $posts              =       $user->posts()->latest()->simplePaginate($limit);
             // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
-            $homeScreenPosts = $user->posts()
-            ->where('posts.is_active', 1)
+            // $homeScreenPosts = $user->posts()
+
+            // ->where('posts.is_active', 1)
+
+
+            $homeScreenPosts = Post::whereIn('group_id', function($query) use ($user) {
+                $query->select('group_id')
+                      ->from('group_members')
+                      ->where('user_id', $user->id);
+            })
             ->whereNotExists(function ($query) use ($user) {
                 $query->select(DB::raw(1))
                     ->from('report_posts')
                     ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                     ->where('report_posts.user_id', '=', $user->id); // Check if the current user has reported the post
             })->with(['parent_post' => function ($query) {
+
                 $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
                     ->where('is_active', 1)
                     ->with(['post_user' => function ($query) {

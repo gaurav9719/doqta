@@ -55,6 +55,7 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id');
     }
+
     // return $this->hasManyThrough(
     //     Post::class,       // Related model that you want to access
     //     GroupMember::class, // Intermediate model
