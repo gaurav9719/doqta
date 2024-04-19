@@ -13,12 +13,12 @@ class InterestSeeder extends Seeder
     public function run(): void
     {
         $interests = [
-            ['name' => 'Hypertension', 'icon' => 'public/interest/icon-hypertension.png'],
-            ['name' => 'Obesity', 'icon' => 'public/interest/icon-obesity.png'],
-            ['name' => 'Diabetes', 'icon' => 'public/interest/icon-diabetes.png'],
-            ['name' => 'Depression', 'icon' => 'public/interest/icon-depression.png'],
-            ['name' => 'Anxiety', 'icon' => 'public/interest/icon-anxiety.png'],
-            ['name' => 'PTSD', 'icon' => 'public/interest/icon-ptsd.png'],
+            ['name' => 'Hypertension', 'icon' => 'interest/icon-hypertension.png'],
+            ['name' => 'Obesity', 'icon' => 'interest/icon-obesity.png'],
+            ['name' => 'Diabetes', 'icon' => 'interest/icon-diabetes.png'],
+            ['name' => 'Depression', 'icon' => 'interest/icon-depression.png'],
+            ['name' => 'Anxiety', 'icon' => 'interest/icon-anxiety.png'],
+            ['name' => 'PTSD', 'icon' => 'interest/icon-ptsd.png'],
         ];
 
         foreach ($interests as $interest) {

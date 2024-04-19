@@ -46,8 +46,6 @@ class InputsOptions extends BaseController
             }else{
 
                 $type               =   $request->type;
-
-
                 if($type==2){
 
                     $data['ethnicity']  =   Ethnicity::where('is_active',1)->get();
@@ -56,15 +54,39 @@ class InputsOptions extends BaseController
                     return $this->sendResponse($data, "step 2", 200);
                 }
 
-
                 elseif($type==3){
 
                     $category       =      ParticipantCategory::where('is_active',1)->get();
+
+                    if(isset($category) && !empty($category)){
+
+                        $category->each(function($query){
+
+                            if(isset($query->image) && !empty($query->image)){
+
+                                $query->image   = asset('storage/'.$query->image);   
+                            }
+                        });
+                    }
+
                     return $this->sendResponse($category, trans("message.bring_you_here"), 200);
 
                 }elseif ($type==4) {        //interest
                     
                     $interest       =       Interest::where('is_active',1)->get();
+                    if(isset($interest) && !empty($interest)){
+
+                        $interest->each(function($query){
+
+                            if(isset($query->icon) && !empty($query->icon)){
+
+                                $query->icon   = asset('storage/'.$query->icon);   
+                            }
+                        });
+                    }
+
+
+
                     return $this->sendResponse($interest, trans("message.bring_you_here"), 200);
 
                 }elseif ($type==6) {       // identity document
