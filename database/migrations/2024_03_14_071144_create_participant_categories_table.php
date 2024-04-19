@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable();
             $table->string('reason')->nullable();
+            $table->string('image')->nullable();
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });
