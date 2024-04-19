@@ -31,7 +31,7 @@ class verifyEmail extends FormRequest
     public function messages()
     {
         return [
-            'otp.digits' => 'Only 4 digits allowed',
+            'otp.digits' => 'Only 6 digits allowed',
             'otp.required_if' => 'Otp required.',
         ];
     }
