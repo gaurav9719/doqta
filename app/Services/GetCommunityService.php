@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Api\BaseController;
+use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Post;
 use Carbon\Carbon;
@@ -87,4 +88,68 @@ class GetCommunityService extends BaseController
         }
     }
     #------********  G E T      C O M M U N I T Y       P O S T   *********------------#
+
+
+    # -------------------- G E T        C O M M U N I T Y       B Y     I D -------------------#
+    // public function getCommunityById($communityId,$userid,$message){
+
+    //     try {
+            
+    //         $community          =   Group::with(['groupMember'=>function($query){
+
+    //             $query->limit(10);
+
+    //         }])->withCount(['groupMember' ])->where(['id'=>$communityId,'is_active'=>1])->first();
+
+    //         if(isset($community) && !empty($community)){
+
+               
+
+    //             if(isset($community->cover_photo) && !empty($community->cover_photo)){
+
+    //                 $community->cover_photo =   asset('storage/'.$community->cover_photo); 
+    //             }
+
+    //         }
+
+    //         return $this->sendResponse($community, $message, 200);
+
+    //     } catch (Exception $e) {
+
+    //         Log::error('Error caught: "getCommunityById" ' . $e->getMessage());
+    //         return $this->sendError($e->getMessage(), [], 400);
+           
+    //     }
+
+        
+
+
+    // }
+
+    public function getCommunityById($communityId, $userid, $message)
+{
+    try {
+        $community = Group::with(['groupMember' => function ($query) {
+            $query->limit(10);
+        }])
+        ->withCount(['groupMember'])
+        ->findOrFail($communityId);
+
+        if ($community->cover_photo) {
+            $community->cover_photo = asset('storage/' . $community->cover_photo);
+        }
+
+        return $this->sendResponse($community, $message, 200);
+    } catch (Exception $e) {
+        Log::error('Error caught: "getCommunityById" ' . $e->getMessage());
+        return $this->sendError($e->getMessage(), [], 400);
+    }
+}
+    # -------------------- G E T        C O M M U N I T Y       B Y     I D -------------------#
+
+
+
+
+
+
 }

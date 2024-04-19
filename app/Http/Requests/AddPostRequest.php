@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule; 
 class AddPostRequest extends FormRequest
 {
     /**
@@ -12,15 +13,27 @@ class AddPostRequest extends FormRequest
      */
     public function rules()
     {
+        // return [
+        //     'media' => 'nullable|file|mimes:jpeg,png,mp4,mpeg,mp4,wav|max:2048', 
+        //     'media_type' => 'required_if:media,!=,""|integer|between:1,3',
+
+        //     'title' => 'required|string|min:10|max:200',
+        //     'content' => 'required|string|min:10',
+        //     'post_type' => 'required|in:normal,community',
+        //     'post_category' => 'required|integer|between:1,3',
+        //     'community_id' => 'required|integer|exists:groups,id',
+        //     'link' => 'nullable|url',
+        // ];
         return [
-            'title' => 'required|string|min:10|max:200',
-            'content' => 'required|string|min:10',
-            'media_url' => 'nullable|string|min:10',
-            'post_type' => 'required|in:normal,community',
-            'post_category' => 'required|integer|between:1,3',
-            'community_id' => 'nullable|integer|exists:groups,id',
-            'link' => 'nullable|url',
+            'media' => ['nullable', 'file', 'mimes:jpeg,png,mp4,mpeg,wav', 'max:2048'],
+            'title' => ['required', 'string', 'min:10', 'max:200'],
+            'content' => ['required', 'string', 'min:10'],
+            'post_type' => ['required', 'in:normal,community'],
+            'post_category' => ['required', 'integer', 'between:1,3'],
+            'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
+            'link' => ['nullable', 'url'],
         ];
+    
     }
     
     public function messages()
@@ -29,7 +42,7 @@ class AddPostRequest extends FormRequest
             'title.min' => 'The title must be at least :min characters.',
             'title.max' => 'The title may not be greater than :max characters.',
             'content.min' => 'The content must be at least :min characters.',
-            'media_url.min' => 'The media URL must be at least :min characters.',
+            // 'media_url.min' => 'The media URL must be at least :min characters.',
             'user_id.required' => 'The user ID field is required.',
             'user_id.integer' => 'The user ID must be an integer.',
             'user_id.exists' => 'The selected user ID is invalid.',

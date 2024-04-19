@@ -72,8 +72,11 @@ class CommunityPost extends BaseController
         $authId             =   Auth::id();
         //check if you are the member of 
         if (isset($request->community_id) && !empty($request->community_id)) {
+
             $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
+            
             if (!$isExist) {
+                
                 return $this->sendError(trans("message.not_group_member"), [], 403);
             }
         }
@@ -475,7 +478,9 @@ class CommunityPost extends BaseController
     public function addComment(Request $request){
 
         DB::beginTransaction();
+
         try {
+
             $validation = Validator::make($request->all(), [
 
                 'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4"

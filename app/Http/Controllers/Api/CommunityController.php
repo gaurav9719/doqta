@@ -14,18 +14,21 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\GroupMemberRequest;
+use App\Models\Post;
 use Exception;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\GetCommunityService;
 
 
 class CommunityController extends BaseController
 {
    
-    protected $notification;
-    public function __construct(NotificationService $notification)
+    protected $notification,$get_community_service;
+    public function __construct(NotificationService $notification,GetCommunityService $get_community_service)
     {
-        $this->notification         = $notification;
+        $this->notification                  = $notification;
+        $this->get_community_service         = $get_community_service;
     }
 
     public function index(Request $request)
@@ -37,6 +40,7 @@ class CommunityController extends BaseController
             $communitiesQuery = GroupMember::where('user_id', $authId)
             
                 ->whereHas('communities', function($query) {
+
                     $query->where('is_active', 1);
                 });
             // Check if search term is provided and apply search filter
@@ -44,6 +48,7 @@ class CommunityController extends BaseController
 
                 $searchTerm = $request->input('search');
                 $communitiesQuery->whereHas('communities', function($query) use ($searchTerm) {
+
                     $query->where('name', 'LIKE', "%$searchTerm%");
                 });
             }
@@ -54,7 +59,11 @@ class CommunityController extends BaseController
 
                 if(isset($community->communities) && !empty($community->communities) ){
 
-                    $community->communities->cover_photo     =   asset('storage/'.$community->communities->cover_photo);
+                    if(isset($community->communities->cover_photo) && !empty($community->communities->cover_photo)){
+
+                        $community->communities->cover_photo     =   asset('storage/'.$community->communities->cover_photo);
+                    }
+                    
                 }
 
                 //check i am the member of the community or not
@@ -107,9 +116,24 @@ class CommunityController extends BaseController
 
             $authId                     =       Auth::id();
             $addCommunity               =       new Group();
-            $addCommunity->name         =       filter_text($request->name);
-            $addCommunity->description  =       filter_text($request->description);
-            $addCommunity->created_by   =       $authId;
+            //check name is already exist or not 
+            $communityName              =       filter_text($request->name);
+            
+            $isExist                    =       Group::where(['name'=>$communityName,'is_active'=>1])->exists();
+            if($isExist){
+
+                return $this->sendResponsewithoutData("The community name is already in use", 422);
+
+            }
+
+            $addCommunity->name                =       $communityName;
+            if(isset($request->description) && !empty($request->description)){
+
+                $addCommunity->description     =       filter_text($request->description);
+
+            }
+            $addCommunity->created_by           =       $authId;
+
             if ($request->hasFile('cover_photo')) {
                 $cover_photo                    =       $request->file('cover_photo');
                 $Uploaded                       =       upload_file($cover_photo, 'cover_photo');
@@ -123,13 +147,13 @@ class CommunityController extends BaseController
                 $groupMember->user_id   =       $authId;
                 $groupMember->role      =       'admin';
                 if($groupMember->save()){
+
                     incrementMember($authId,$addCommunity->id,1);
                 }
             }
             DB::commit();
-            $community                  =       Group::find($addCommunity->id);
-            $community->cover_photo     =   asset('storage/'.$community->cover_photo);            
-            return $this->sendResponse($community, trans("message.community_added"), 200);
+            $updatedCommunity         =       $this->get_community_service->getCommunityById($addCommunity->id,$authId,trans('message.community_added'));
+            return $updatedCommunity;
 
         } catch (Exception $e) {
            
@@ -169,15 +193,18 @@ class CommunityController extends BaseController
         DB::beginTransaction();
         try {
 
-            $authId         =   Auth::id();
-            $isExist        =   Group::where(['id'=>$id,'created_by'=>$authId,'is_active'=>1])->exists();
+            $authId                                     =   Auth::id();
+            $isExist                                    =   Group::where(['id'=>$id,'created_by'=>$authId,'is_active'=>1])->exists();
             if($isExist){ 
                                           //updated
-                $addCommunity =   [];
+                $addCommunity                           =   [];
+                                                            filter_text($request->name);
+
+                $isExist                                =   Group::where(['name'=>filter_text($request->name),'is_active'=>1])->where('id','<>','')->exists();
 
                 if(isset($request->name) && !empty($request->name)){
 
-                    $addCommunity['name']         =       filter_text($request->name);
+                    $addCommunity['name']               =       filter_text($request->name);
                 }
 
                 if(isset($request->description) && !empty($request->description)){
@@ -188,9 +215,9 @@ class CommunityController extends BaseController
              
                 if ($request->hasFile('cover_photo')) {
 
-                    $cover_photo                    =       $request->file('cover_photo');
-                    $Uploaded                       =       upload_file($cover_photo, 'cover_photo');
-                    $addCommunity['cover_photo']      =       $Uploaded;
+                    $cover_photo                        =       $request->file('cover_photo');
+                    $Uploaded                           =       upload_file($cover_photo, 'cover_photo');
+                    $addCommunity['cover_photo']        =       $Uploaded;
                 }
 
                 if(isset($request)  && !empty($request)){
@@ -200,9 +227,12 @@ class CommunityController extends BaseController
                     DB::commit();
                 }
 
-                $community                  =       Group::find($id);
-                $community->cover_photo     =   asset('storage/'.$community->cover_photo);
-                return $this->sendResponsewithoutData(trans('message.community_updated'), 200);
+                // $community                              =       Group::find($id);
+                // $community->cover_photo                 =   asset('storage/'.$community->cover_photo);
+
+                $updatedCommunity                       =       $this->get_community_service->getCommunityById($id,$authId,trans('message.edit_community_successfully'));
+
+                return $updatedCommunity;
 
             }else{      //invalid
 
@@ -216,6 +246,77 @@ class CommunityController extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+
+    #------------------ U P D A T E         P O S T  ------------------------_#
+    public function updateCommunity(EditCommunity $request)
+    {
+        //
+        DB::beginTransaction();
+        try {
+
+            $authId                                     =   Auth::id();
+            $isExist                                    =   Group::where(['id'=>$request->id,'created_by'=>$authId,'is_active'=>1])->exists();
+            if($isExist){ 
+                                          //updated
+                $addCommunity                           =   [];
+                $communityName                          =   filter_text($request->name);
+                $isExist                                =   Group::where(['name'=>$communityName,'is_active'=>1])->where('id','<>',$request->id)->exists();
+
+                if($isExist){
+
+                    return $this->sendResponsewithoutData("The community name is already in use", 422);
+
+                }
+                if(isset($request->name) && !empty($request->name)){
+
+                    $addCommunity['name']               =       $communityName;
+
+                }
+                if(isset($request->description) && !empty($request->description)){
+
+                    $addCommunity['description']         =       filter_text($request->description);
+                }
+
+                if ($request->hasFile('cover_photo')) {
+
+                    $cover_photo                        =       $request->file('cover_photo');
+                    $Uploaded                           =       upload_file($cover_photo, 'cover_photo');
+                    $addCommunity['cover_photo']        =       $Uploaded;
+                }
+
+                if(isset($request)  && !empty($request)){
+
+                    Group::updateOrCreate(['created_by' => $authId,'id'=>$request->id],$addCommunity);
+
+                    DB::commit();
+                }
+
+                // $community                              =       Group::find($id);
+                // $community->cover_photo                 =   asset('storage/'.$community->cover_photo);
+
+                $updatedCommunity                       =       $this->get_community_service->getCommunityById($request->id,$authId,trans('message.edit_community_successfully'));
+
+                return $updatedCommunity;
+
+            }else{      //invalid
+
+                return $this->sendError(trans('message.something_went_wrong'), [], 403);
+            }
+
+        } catch (Exception $e) {
+
+            DB::rollback();
+            Log::error('Error caught: "delete community" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------------ U P D A T E         P O S T  ------------------------#
+
+
+
+
+
 
     /**
      * Remove the specified resource from storage.
@@ -239,10 +340,13 @@ class CommunityController extends BaseController
             }else{
     
                 $isExist        =   Group::where(['id'=>$id,'created_by'=>$authId])->exists();
-    
+
                 if($isExist){ //deleted
-    
-                    $isExist        =   Group::where(['id'=>$id,'created_by'=>$authId])->update(['is_active'=>0]);
+
+                    $isExist    =   Group::where(['id'=>$id,'created_by'=>$authId])->update(['is_active'=>0]);
+
+                    Post::where(['group_id'=>$id])->update(['is_active'=>0]);
+
                     DB::commit();
                     return $this->sendResponsewithoutData(trans('message.community_deleted'), 200);
                 }else{      //invalid

@@ -29,9 +29,16 @@ class AddCommunityPost extends BaseController
             $post->user_id           =      $authId;
             $post->title             =      $request->title;
             $post->content           =      $request->content;
-            if (isset($request->media_url) && !empty($request->media_url)) {
 
-                $post->media_url     =      $request->media_url;
+            if ($request->hasFile('media')) {
+                //check media_type
+                if(empty($request->media_type)){
+
+                    return $this->sendError("media_type required", [], 400);
+                }
+                $post_image          =       $request->file('media');
+                $Uploaded            =       upload_file($post_image, 'post_images');
+                $post->media_url     =       $Uploaded;
             }
             if (isset($request->group_id) && !empty($request->group_id)) {
 
@@ -42,9 +49,14 @@ class AddCommunityPost extends BaseController
 
                 $post->link      =      $request->link;
             }
+
+            $post->group_id          =       $request->community_id;
             $post->post_type         =       $request->post_type;
             $post->post_category     =       $request->post_category;
             $post->save();
+            // add increment to group post
+            increment('groups', ['id' => $request->community_id], 'post_count', 1); 
+            // add increment to group post
             DB::commit();
             return $this->getPost($post->id,trans("message.add_posted_successfully"));
         } catch (Exception $e) {
@@ -166,7 +178,12 @@ class AddCommunityPost extends BaseController
     public function getPost($id,$message)
     {
         try {
-            $post = Post::with('group_post:name,description,cover_photo,member_count', 'post_user:id,name,profile')
+            $post = Post::with(['group'=>function($query){
+
+                $query->select('id','name','description','cover_photo','post_count');
+
+            }, 'post_user:id,name,profile'])
+
                         ->find($id);
 
             if (!$post) {
@@ -177,6 +194,15 @@ class AddCommunityPost extends BaseController
             if ($post->media_url) {
 
                 $post->media_url = asset('storage/' . $post->media_url);
+            }
+
+            if (isset($post->group) && !empty($post->group)) {
+
+                if(isset($post->group->cover_photo) && !empty($post->group->cover_photo)){
+
+                    $post->group->cover_photo = asset('storage/' . $post->group->cover_photo);
+
+                }
             }
 
             if ($post->post_user && $post->post_user->profile) {

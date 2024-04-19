@@ -70,6 +70,7 @@ return [
     "already_reported"=>"Report to user already submitted",
     "user_reported"=>"Report to user successfully submitted",
     "add_comment"=>"Comment posted successfully",
+    "edit_community_successfully"=>"Edit updated successfully",
 
     
 
