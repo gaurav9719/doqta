@@ -87,12 +87,13 @@ class InputsOptions extends BaseController
 
 
 
-                    return $this->sendResponse($interest, trans("message.bring_you_here"), 200);
+                    return $this->sendResponse($interest, trans("message.interest"), 200);
 
                 }elseif ($type==6) {       // identity document
                     
                     $documentType       =   DocumentTypes::where('is_active',1)->get();
                     return $this->sendResponse($documentType, trans("message.identity_document_list"), 200);
+                    
 
                 }elseif ($type==7) {        // medical conditions
 

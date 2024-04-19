@@ -71,6 +71,7 @@ return [
     "user_reported"=>"Report to user successfully submitted",
     "add_comment"=>"Comment posted successfully",
     "edit_community_successfully"=>"Edit updated successfully",
+    "interest"=>"Interests",
 
     
 
