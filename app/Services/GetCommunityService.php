@@ -40,10 +40,12 @@ class GetCommunityService extends BaseController
             $limit              =       10;
 
             if (isset($request->limit) && !empty($request->limit)) {
+
                 $limit          =       $request->limit;
             }
 
             $user               =       User::findOrFail($authId);
+            dd($user);
             // $posts              =       $user->posts()->latest()->simplePaginate($limit);
             // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
             $homeScreenPosts = $user->posts()
