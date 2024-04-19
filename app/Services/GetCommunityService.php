@@ -45,7 +45,7 @@ class GetCommunityService extends BaseController
             }
 
             $user               =       User::findOrFail($authId);
-            dd($user);
+            // dd($user);
             // $posts              =       $user->posts()->latest()->simplePaginate($limit);
             // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
             $homeScreenPosts = $user->with('posts')
