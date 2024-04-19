@@ -135,6 +135,7 @@ class AuthController extends BaseController
                 } elseif ($request->type == 3) {                // Reset password
 
                     return $this->forgotPassword->ResetPassword($request, $checkEmail);
+                    
                 } elseif ($request->type == 4) {
 
                     return $this->resendOtpToMail($checkEmail, $request);

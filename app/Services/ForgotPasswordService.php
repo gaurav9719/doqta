@@ -54,7 +54,7 @@ class ForgotPasswordService extends BaseController
             DB::beginTransaction();
 
             try {
-                $otp = rand(1111, 9999);
+                $otp = rand(111111, 999999);
                 $random = Str::random(40);
                 $otp_expiry_time = Carbon::now()->addMinutes(10);
                 $emailVerify = ['otp' => $otp, 'name' => $checkEmail->name];
@@ -91,7 +91,7 @@ class ForgotPasswordService extends BaseController
         
             try {
 
-                $validation     =   Validator::make($request->all(),['otp'=>'required|integer']);
+                $validation     =   Validator::make($request->all(),['otp'=>'required|integer|digits:6']);
 
                 if($validation->fails()){
     
