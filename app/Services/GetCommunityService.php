@@ -48,16 +48,14 @@ class GetCommunityService extends BaseController
             // dd($user);
             // $posts              =       $user->posts()->latest()->simplePaginate($limit);
             // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
-            // $homeScreenPosts = $user->posts()
+            $homeScreenPosts = $user->posts()
+            ->where('posts.is_active', 1)
 
-            // ->where('posts.is_active', 1)
-
-
-            $homeScreenPosts = Post::whereIn('group_id', function($query) use ($user) {
-                $query->select('group_id')
-                      ->from('group_members')
-                      ->where('user_id', $user->id);
-            })
+            // $homeScreenPosts = Post::whereIn('group_id', function($query) use ($user) {
+            //     $query->select('group_id')
+            //           ->from('group_members')
+            //           ->where('user_id', $user->id);
+            // })
             ->whereNotExists(function ($query) use ($user) {
                 $query->select(DB::raw(1))
                     ->from('report_posts')
