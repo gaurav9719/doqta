@@ -40,7 +40,7 @@ class GroupMember extends Model
 
     public function group(){
 
-        $this->belongsTo(Group::class,'id','group_id');
+        return $this->belongsTo(Group::class,'group_id','id');
     }
 
 }

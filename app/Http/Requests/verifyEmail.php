@@ -22,7 +22,7 @@ class verifyEmail extends FormRequest
     {
         return [
             'type' => 'required|integer|between:1,2',
-            'otp' => 'required_if:type,2|digits:4',
+            'otp' => 'required_if:type,2|digits:6',
           
 
         ];

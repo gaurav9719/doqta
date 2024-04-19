@@ -64,6 +64,10 @@ class User extends Authenticatable
     //     'group_id'          // Local key on the intermediate model (GroupMember) used for the relationship
     // );
 
+    public function checkGroup()
+    {
+        return $this->hasOneThrough(Group::class, GroupMember::class, 'user_id', 'id', 'id', 'group_id');
+    }
 
     public function userPost()
     {

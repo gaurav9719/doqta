@@ -542,24 +542,34 @@ class DicoverService extends BaseController
 
             if (!empty($request->search)) {
 
-                $discoverPeople     =  $discoverPeople->with('user_group');
-  
+            $discoverPeople     =  $discoverPeople->whereHas('checkGroup', function($query) use($request){
+
+                $query->where('groups.name', 'like', "%$request->search%");
+
+            });
+
             }
+            $discoverPeople         =  $discoverPeople->with('checkGroup')->whereDoesntHave('following', function($query) use($authId){
+
+                                        $query->where('follower_user_id','=',$authId);
+            })->get()->take(10);
+
+            //  dd(DB::getQueryLog());
             
             
-            whereDoesntHave('following', function($query) use($authId){
+            // whereDoesntHave('following', function($query) use($authId){
 
-                                    $query->where('follower_user_id','=',$authId);
+            //                         $query->where('follower_user_id','=',$authId);
 
-                                })->where('is_active',1)->whereNotExists(function ($subquery) use ($authId) {    
+            //                     })->where('is_active',1)->whereNotExists(function ($subquery) use ($authId) {    
 
-                                    $subquery->select(DB::raw(1))
+            //                         $subquery->select(DB::raw(1))
 
-                                        ->from('friend_requests')
+            //                             ->from('friend_requests')
 
-                                        ->whereRaw(("sender_id ='".$authId."' AND receiver_id=id") or ("sender_id =id AND receiver_id='".$authId."'"));
+            //                             ->whereRaw(("sender_id ='".$authId."' AND receiver_id=id") or ("sender_id =id AND receiver_id='".$authId."'"));
 
-                                })->where('id','<>',$authId)->get()->take(10);
+            //                     })->where('id','<>',$authId)->get()->take(10);
             
                                 // dd(DB::getQueryLog());
             
