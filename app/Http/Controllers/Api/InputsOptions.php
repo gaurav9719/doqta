@@ -28,6 +28,9 @@ use App\Models\Interest;
 use App\Models\DocumentTypes;
 use App\Models\MedicalCredential;
 use App\Models\Specialty;
+use App\Models\Ethnicity;
+use App\Models\Gender;
+use App\Models\Pronouns;
 class InputsOptions extends BaseController
 {
     #--------------  U S E R    I N P U T S       S E L E C T I O N  ------------------#
@@ -43,9 +46,22 @@ class InputsOptions extends BaseController
             }else{
 
                 $type               =   $request->type;
-                if($type==3){
+
+
+                if($type==2){
+
+                    $data['ethnicity']  =   Ethnicity::where('is_active',1)->get();
+                    $data['gender']     =   Gender::where('is_active',1)->get();
+                    $data['pronouns']   =   Pronouns::where('is_active',1)->get();
+                    return $this->sendResponse($data, "step 2", 200);
+                }
+
+
+                elseif($type==3){
+
                     $category       =      ParticipantCategory::where('is_active',1)->get();
                     return $this->sendResponse($category, trans("message.bring_you_here"), 200);
+
                 }elseif ($type==4) {        //interest
                     
                     $interest       =       Interest::where('is_active',1)->get();
