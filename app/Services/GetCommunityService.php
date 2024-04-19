@@ -48,7 +48,8 @@ class GetCommunityService extends BaseController
             dd($user);
             // $posts              =       $user->posts()->latest()->simplePaginate($limit);
             // $posts = $user->posts()->where(['posts.is_active' => 1])->whereNotExists('')->latest()->simplePaginate($limit);
-            $homeScreenPosts = $user->posts()
+            $homeScreenPosts = $user->with('posts')
+
             ->where('posts.is_active', 1)
             ->whereNotExists(function ($query) use ($user) {
                 $query->select(DB::raw(1))
