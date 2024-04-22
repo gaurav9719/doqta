@@ -47,14 +47,15 @@ class UserProfileUpdate extends BaseController
             $this->authId = Auth::id();
             return $next($request);
         });
+
+       
     }
 
-    public function edit_profile($request){
+    public function edit_profile($request,$user_id){
 
         try {
 
             DB::beginTransaction();
-            $user_id                =       Auth::id();  
             $user_details           =       User::find($user_id);
 
             if(isset($request->profile) && !empty($request->profile)){
@@ -82,7 +83,10 @@ class UserProfileUpdate extends BaseController
             }
             $user_details->save();
             DB::commit();
-            // return  $this->userProfile->UserProfileById($user_id,"","Profile updated successfully");
+            
+            $getUser    =   $this->user->getUser($user_id,$user_id);
+
+            return $this->sendResponse($getUser, trans("message.updated_success_common"), 200);
 
         }catch (Exception $e) {
             

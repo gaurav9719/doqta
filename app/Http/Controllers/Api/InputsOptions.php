@@ -85,20 +85,18 @@ class InputsOptions extends BaseController
                         });
                     }
 
-
-
                     return $this->sendResponse($interest, trans("message.interest"), 200);
 
                 }elseif ($type==6) {       // identity document
                     
                     $documentType       =   DocumentTypes::where('is_active',1)->get();
                     return $this->sendResponse($documentType, trans("message.identity_document_list"), 200);
-                    
+
 
                 }elseif ($type==7) {        // medical conditions
 
                     $medical['medical_credentials']  =   MedicalCredential::where('is_active',1)->get();
-                    $medical['specialty']  =   Specialty::where('is_active',1)->get();
+                    $medical['specialty']  =   Specialty::where('is_active',1)->whereNull('user_id')->get();
                     return $this->sendResponse($medical, trans("message.medical_credentials_list"), 200);
 
                 }else{

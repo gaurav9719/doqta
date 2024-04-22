@@ -139,7 +139,6 @@ class GetUserService extends BaseController
                     // Prepend asset path to the icon attribute
                     $user_post->media_url = ($user_post->media_url)?asset('storage/' . $user_post->media_url):null;
                 }
-
             });
 
             // dd($userDetail->user_interest);
@@ -154,7 +153,6 @@ class GetUserService extends BaseController
 
             //     $userDetail->user_interest['interest']['icon']  = asset('storage/' . $userDetail->user_interest['interest']['icon']);
             // }
-
             $userDetail->profile        = $userDetail->profile ? asset('storage/' . $userDetail->profile) : null;
             $userDetail->cover          = $userDetail->cover ? asset('storage/' . $userDetail->cover) : null;
         }

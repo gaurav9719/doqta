@@ -67,9 +67,20 @@ Route::middleware(['with_fast_api_key','is_verified_email'])->controller(InputsO
 
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
-    Route::get('communityRequest', [CommunityController::class,'communityRequest']);
+    Route::get('community/memberRequest', [CommunityController::class,'communityRequest']);
     Route::post('updateCommunity', [CommunityController::class,'updateCommunity']);
+    Route::post('community/join', [CommunityController::class,'joinCoummnity']);
+    Route::put('community/assignRole', [CommunityController::class,'AssignRole']);
+    Route::delete('community/removeMember', [CommunityController::class,'removeMember']);
+    Route::get('community/members', [CommunityController::class,'communityUsers']);
+    Route::put('community/udpateRequest', [CommunityController::class,'acceptRejectCommunityRequest']);
+
+    
+
     Route::resource('community', CommunityController::class);
+
+
+    
 
 });
 
@@ -144,7 +155,6 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     
     Route::get('getUserProfile','getUserProfile');
     
-    Route::post('update_profile','update_profile');
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
 

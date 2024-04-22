@@ -72,16 +72,15 @@ return [
     "add_comment"=>"Comment posted successfully",
     "edit_community_successfully"=>"Edit updated successfully",
     "interest"=>"Interests",
+    "no_member_found_community"=>"This member is not exist in community",
+    "access_denied"=>"Access refused. You lack the authorization to perform this action.",
+    "community_role_updated"=>"Community member role updated successfully",
+    "not_change_role_yourself"=>"You are unable to alter your own role",
+    "remove_member_from_community"=>"Member removed successfully",
+    "community_users"=>"Community members",
+    "Permission_denied" =>"Permission denied",
 
     
-
-
-
-
-
-
-
-
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",
     'pointSystem'=>"Point System",

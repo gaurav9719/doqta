@@ -9,6 +9,8 @@ class GroupMemberRequest extends Model
 {
     use HasFactory;
 
+    
+
     public function myGroup(){
         return $this->belongsTo(Group::class,'group_id','id');
     }
@@ -17,6 +19,10 @@ class GroupMemberRequest extends Model
 
         return $this->belongsTo(User::class,'user_id','id');
     }
+    public function group(){
+        return $this->belongsTo(Group::class,'group_id','id');
+    }
+
 
 
 }

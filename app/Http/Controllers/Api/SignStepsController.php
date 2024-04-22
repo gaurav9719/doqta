@@ -357,16 +357,19 @@ class SignStepsController extends BaseController
                 if (is_numeric($specialty)) {
 
                     $isExist        =   Specialty::where('id', $specialty)->exists();
+
                     return $this->sendResponsewithoutData(trans('message.invalid_specialty'), 422);
 
                 } else {
                     // Check if the specialty name exists
-                    $existingSpecialty      =       Specialty::where('name', $specialty)->first();
+                    $existingSpecialty      =       Specialty::where('name', $specialty)->whereNull('user_id')->first();
 
                     if (empty($existingSpecialty)) {
+
                         $addSpecialty       =       removeSpecialCharsAndFormat($specialty);
                         // If the specialty name doesn't exist, attempt to add it as a new specialty
-                        $newSpecialty       =       Specialty::create(['name' => $addSpecialty]);
+                        $newSpecialty       =       Specialty::create(['name' => $addSpecialty,'user_id'=>$auth_id]);
+
                         $specialty          =       $newSpecialty->id;
                     }
                 }

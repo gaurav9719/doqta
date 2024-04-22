@@ -86,7 +86,8 @@ class UserController extends BaseController
 
     public function update_profile(UpdateProfileValidation $request)
     {
-        return $this->userProfile->edit_profile($request);
+        $authId                 =   Auth::id();
+        return $this->userProfile->edit_profile($request,$authId);
     }
     #---------*************--------E D I T     P R O F I L E---------*********** --------#
 
