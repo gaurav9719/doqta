@@ -73,7 +73,7 @@ class CommunityPost extends BaseController
         //check if you are the member of 
         if (isset($request->community_id) && !empty($request->community_id)) {
 
-            $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
+            $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId,'is_active'=>1])->exists();
             
             if (!$isExist) {
                 

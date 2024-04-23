@@ -40,10 +40,11 @@ class AddCommunityPost extends BaseController
                 $Uploaded            =       upload_file($post_image, 'post_images');
                 $post->media_url     =       $Uploaded;
             }
-            if (isset($request->group_id) && !empty($request->group_id)) {
 
-                $post->group_id      =      $request->group_id;
-            }
+            // if (isset($request->group_id) && !empty($request->group_id)) {
+
+            //     $post->group_id      =      $request->group_id;
+            // }
 
             if (isset($request->link) && !empty($request->link)) {
 
@@ -51,8 +52,8 @@ class AddCommunityPost extends BaseController
             }
 
             $post->group_id          =       $request->community_id;
-            $post->post_type         =       $request->post_type;
-            $post->post_category     =       $request->post_category;
+            $post->post_type         =       $request->post_type; //normal,community
+            $post->post_category     =       $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             // add increment to group post
             increment('groups', ['id' => $request->community_id], 'post_count', 1); 

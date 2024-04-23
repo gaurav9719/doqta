@@ -18,7 +18,7 @@ class UpdateProfileValidation extends FormRequest
     {
         $userId             =   Auth::id();
         return [
-            'bio' => 'required|regex:/^[a-zA-Z]/|min:50|max:160',
+            'bio' => 'required|regex:/^[a-zA-Z]/|min:20|max:200',
             'user_name' => 'required|unique:users,user_name,'.$userId,
             'profile'=>'required|mimes:jpg,jpeg,png,bmp,tiff',
             'cover'=>'required|mimes:jpg,jpeg,png,bmp,tiff',
