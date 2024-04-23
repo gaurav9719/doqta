@@ -48,6 +48,7 @@ class CommunityController extends BaseController
             if ($request->filled('search')) {
 
                 $searchTerm = $request->input('search');
+                
                 $communitiesQuery->whereHas('communities', function ($query) use ($searchTerm) {
 
                     $query->where('name', 'LIKE', "%$searchTerm%");

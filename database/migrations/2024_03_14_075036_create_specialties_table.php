@@ -15,6 +15,9 @@ return new class extends Migration
         Schema::create('specialties', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->tinyInteger('type')->nullable();
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });
