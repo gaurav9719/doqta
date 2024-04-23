@@ -78,10 +78,11 @@ class GetUserService extends BaseController
 
     public function getUser($userId,$auth_user="")
     {
-
+        DB::enableQueryLog();
         $userDetail = User::with([
 
             'user_interest.interest' => function ($query) {
+
                 $query->select('id', 'name', 'icon');
             },
             'user_documents'=>function($query){
@@ -91,6 +92,21 @@ class GetUserService extends BaseController
             },'user_documents.document'=>function($query){
 
                 $query->select('id','name');
+            },'user_medical_certificate'=>function($query){
+
+                $query->select('id','user_id','medicial_degree_type','specialty','medicial_document','verified_status','is_active');
+            },
+
+            'user_medical_certificate.medical_certificate'=>function($query){
+
+                $query->select('id', 'name', 'type');
+
+            },
+
+            'user_medical_certificate.speciality'=>function($query){
+
+                $query->select('id', 'name', 'type');
+                
             },
             'userParticipant.participant' => function ($query) {
 
@@ -107,7 +123,8 @@ class GetUserService extends BaseController
         
         
         ->selectRaw('IF(EXISTS(SELECT 1 FROM user_followers WHERE user_id = ? AND follower_user_id = ?), 1, 0) AS is_supporting', [$userId, $auth_user])->where('id', $userId)->first();
-    
+    // dd(DB::getQueryLog());
+       
         if ($userDetail) {
 
             $userDetail->user_interest->each(function ($userInterest) {
@@ -128,6 +145,8 @@ class GetUserService extends BaseController
 
             $pronouns   =   Pronouns::where('id',$userDetail->pronoun)->first();
 
+
+
             if(isset($pronouns) && !empty($pronouns)){
 
                 $userDetail->pronouns_name  =   $pronouns->subjective."/".$pronouns->objective;
@@ -140,6 +159,20 @@ class GetUserService extends BaseController
                     $user_post->media_url = ($user_post->media_url)?asset('storage/' . $user_post->media_url):null;
                 }
             });
+
+
+
+            if(isset($userDetail->user_medical_certificate) && !empty($userDetail->user_medical_certificate)){
+
+                $userDetail->user_medical_certificate->each(function ($user_medical) {
+            
+                    if(isset($user_medical->medicial_document) && !empty($user_medical->medicial_document)){
+                        // Prepend asset path to the icon attribute
+                        $user_medical->medicial_document = asset('storage/' . $user_medical->medicial_document);
+                    }
+                });
+
+            }
 
             // dd($userDetail->user_interest);
             // if(isset($userDetail->user_interest)){

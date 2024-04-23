@@ -32,6 +32,7 @@ class AddPostRequest extends FormRequest
             'post_category' => ['required', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],
+            'wrote_by' => ['nullable','integer'],
         ];
     
     }

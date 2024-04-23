@@ -363,7 +363,10 @@ class SignStepsController extends BaseController
 
                     $isExist        =   Specialty::where('id', $specialty)->exists();
 
-                    return $this->sendResponsewithoutData(trans('message.invalid_specialty'), 422);
+                    if(!$isExist){
+
+                        return $this->sendResponsewithoutData(trans('message.invalid_specialty'), 422);
+                    }
 
                 } else {
                     // Check if the specialty name exists
@@ -374,7 +377,7 @@ class SignStepsController extends BaseController
                         $addSpecialty       =       removeSpecialCharsAndFormat($specialty);
                         // If the specialty name doesn't exist, attempt to add it as a new specialty
                         $newSpecialty       =       Specialty::create(['name' => $addSpecialty,'user_id'=>$auth_id]);
-
+                        DB::commit();
                         $specialty          =       $newSpecialty->id;
                     }
                 }
@@ -383,21 +386,31 @@ class SignStepsController extends BaseController
 
                     $identity_proof                     =       $request->file('medicial_document');
                     $userMedicialDoc                    =       upload_file($identity_proof, 'medicial_document');
-                    $userDocument                       =       new UserMedicalCredentials();
-                    $userDocument->user_id              =       $auth_id;
-                    $userDocument->medicial_degree_type =       $request['degree_type'];
-                    $userDocument->medicial_document    =       $userMedicialDoc;
-                    $userDocument->specialty            =       $specialty;
-
-                    
-                    $userDocument->save();
-                    $userStep7                      =   User::find($auth_id);
-                    $userStep7->complete_step       =   7;
-                    $userStep7->save();   
-                    DB::commit();
-                    $userData                           =       $this->getUser->getUser($auth_id);
-                    return $this->sendResponse($userData, trans("message.steps_completed"), 200);
+                   
                 }
+
+
+                UserMedicalCredentials::updateOrCreate(
+
+                    ['user_id' => $auth_id],
+                    ['medicial_degree_type' => $request['degree_type'],'medicial_document'=>$userMedicialDoc,'specialty'=>$specialty,'is_active'=>1]
+                );
+
+                // $userDocument                       =       new UserMedicalCredentials();
+                // $userDocument->user_id              =       $auth_id;
+                // $userDocument->medicial_degree_type =       $request['degree_type'];
+                // $userDocument->medicial_document    =       $userMedicialDoc;
+                // $userDocument->specialty            =       $specialty;
+
+                // $userDocument->save();
+
+
+                $userStep7                      =   User::find($auth_id);
+                $userStep7->complete_step       =   7;
+                $userStep7->save();   
+                DB::commit();
+                $userData                       =       $this->getUser->getUser($auth_id);
+                return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
 

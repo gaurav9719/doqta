@@ -124,6 +124,14 @@ class User extends Authenticatable
 
         return $this->hasMany(UserDocuments::class,'user_id', 'id');
     }
+
+    public function user_medical_certificate(){
+
+        return $this->hasMany(UserMedicalCredentials::class,'user_id', 'id');
+    }
+
+    
+    
    
 
     

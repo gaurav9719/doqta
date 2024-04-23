@@ -49,7 +49,13 @@ class AddCommunityPost extends BaseController
             if (isset($request->link) && !empty($request->link)) {
 
                 $post->link      =      $request->link;
+
             }
+            if (isset($request->wrote_by) && !empty($request->wrote_by)) {
+
+                $post->wrote_by      =      $request->wrote_by;
+            }
+
 
             $post->group_id          =       $request->community_id;
             $post->post_type         =       $request->post_type; //normal,community
