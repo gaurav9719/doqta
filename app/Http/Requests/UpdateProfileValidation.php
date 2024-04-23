@@ -18,10 +18,10 @@ class UpdateProfileValidation extends FormRequest
     {
         $userId             =   Auth::id();
         return [
-            'bio' => 'required|regex:/^[a-zA-Z]/|min:20|max:200',
-            'user_name' => 'required|unique:users,user_name,'.$userId,
-            'profile'=>'required|mimes:jpg,jpeg,png,bmp,tiff',
-            'cover'=>'required|mimes:jpg,jpeg,png,bmp,tiff',
+            'bio' => 'nullable|regex:/^[a-zA-Z]/|min:20|max:200',
+            'user_name' => 'nullable|unique:users,user_name,'.$userId,
+            'profile'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
+            'cover'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
 
         ];
     }

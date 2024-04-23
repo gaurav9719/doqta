@@ -81,6 +81,7 @@ class UserProfileUpdate extends BaseController
                 $user_details->bio     =   $request->bio;
 
             }
+            
             $user_details->save();
             DB::commit();
             
