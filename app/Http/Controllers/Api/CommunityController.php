@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\GetCommunityService;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 
 class CommunityController extends BaseController
@@ -284,23 +285,17 @@ class CommunityController extends BaseController
 
                     $Uploaded                    = upload_file($cover_photo, 'cover_photo');
 
-                    $addCommunity['cover_photo'] = $Uploaded;
+                    $coverImage                  = Group::select('cover_photo')->where(['id' => $request->id])->first();
+                    if($coverImage){
+
+                        if(Storage::disk('public')->exists($coverImage->cover_photo)){
+
+                            Storage::disk('public')->delete($coverImage->cover_photo); // delete file from specific disk e.g; s3, local etc
+
+                        }
+                    }
+                    $addCommunity['cover_photo']  = $Uploaded;
                 }
-
-                // Assign role to member if provided
-                // if ($request->has('member_id') && $request->has('role_id')) {
-                //     // Check if the member belongs to the community
-                //     $communityMember = GroupMember::where('group_id', $request->id)
-
-                //         ->where('user_id', $request->input('member_id'))
-                //         ->first();
-                // }
-                // if (!$communityMember) {
-
-                //     return response()->json(['error' => 'Member not found in the community'], 403);
-                // }
-
-                // $communityMember->update(['role' => $request->role_id]);
 
                 if (isset($addCommunity) && !empty($addCommunity)) {
 
@@ -308,9 +303,6 @@ class CommunityController extends BaseController
 
                     DB::commit();
                 }
-
-                // $community                              =       Group::find($id);
-                // $community->cover_photo                 =   asset('storage/'.$community->cover_photo);
 
                 $updatedCommunity = $this->get_community_service->getCommunityById($request->id, $authId, trans('message.edit_community_successfully'));
 
