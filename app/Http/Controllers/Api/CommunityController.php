@@ -254,46 +254,55 @@ class CommunityController extends BaseController
             $isExist = Group::where(['id' => $request->id, 'created_by' => $authId, 'is_active' => 1])->exists();
             if ($isExist) {
                 //updated
-                $addCommunity = [];
-                $communityName = filter_text($request->name);
-                $isExist = Group::where(['name' => $communityName, 'is_active' => 1])->where('id', '<>', $request->id)->exists();
+                $addCommunity   = [];
 
-                if ($isExist) {
+                if(isset($request->name) && !empty($request->name)){
 
-                    return $this->sendResponsewithoutData("The community name is already in use", 422);
+                    $communityName  = filter_text($request->name);
+
+                    $isExist = Group::where(['name' => $communityName, 'is_active' => 1])->where('id', '<>', $request->id)->exists();
+
+                    if ($isExist) {
+    
+                        return $this->sendResponsewithoutData("The community name is already in use", 422);
+
+                    }else{
+
+                        $addCommunity['name']   =  $communityName;
+                    }
                 }
-                if (isset($request->name) && !empty($request->name)) {
 
-                    $addCommunity['name'] = $communityName;
-                }
+                
                 if (isset($request->description) && !empty($request->description)) {
 
-                    $addCommunity['description'] = filter_text($request->description);
+                    $addCommunity['description']   =  filter_text($request->description);
                 }
 
                 if ($request->hasFile('cover_photo')) {
 
-                    $cover_photo = $request->file('cover_photo');
-                    $Uploaded = upload_file($cover_photo, 'cover_photo');
+                    $cover_photo                 = $request->file('cover_photo');
+
+                    $Uploaded                    = upload_file($cover_photo, 'cover_photo');
+
                     $addCommunity['cover_photo'] = $Uploaded;
                 }
 
                 // Assign role to member if provided
-                if ($request->has('member_id') && $request->has('role_id')) {
-                    // Check if the member belongs to the community
-                    $communityMember = GroupMember::where('group_id', $request->id)
+                // if ($request->has('member_id') && $request->has('role_id')) {
+                //     // Check if the member belongs to the community
+                //     $communityMember = GroupMember::where('group_id', $request->id)
 
-                        ->where('user_id', $request->input('member_id'))
-                        ->first();
-                }
-                if (!$communityMember) {
+                //         ->where('user_id', $request->input('member_id'))
+                //         ->first();
+                // }
+                // if (!$communityMember) {
 
-                    return response()->json(['error' => 'Member not found in the community'], 403);
-                }
+                //     return response()->json(['error' => 'Member not found in the community'], 403);
+                // }
 
-                $communityMember->update(['role' => $request->role_id]);
+                // $communityMember->update(['role' => $request->role_id]);
 
-                if (isset($request) && !empty($request)) {
+                if (isset($addCommunity) && !empty($addCommunity)) {
 
                     Group::updateOrCreate(['created_by' => $authId, 'id' => $request->id], $addCommunity);
 
@@ -306,14 +315,15 @@ class CommunityController extends BaseController
                 $updatedCommunity = $this->get_community_service->getCommunityById($request->id, $authId, trans('message.edit_community_successfully'));
 
                 return $updatedCommunity;
-            } else {      //invalid
+
+            } else {      //invalid community
 
                 return $this->sendError(trans('message.something_went_wrong'), [], 403);
             }
         } catch (Exception $e) {
 
             DB::rollback();
-            Log::error('Error caught: "delete community" ' . $e->getMessage());
+            Log::error('Error caught: "update community" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }

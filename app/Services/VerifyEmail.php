@@ -145,7 +145,7 @@ class VerifyEmail extends BaseController
                             $user->is_email_verified        =  1;
                             $user->save();
                             DB::commit();
-                            $userData                       =   $this->getUserProfile->getAuthUser($user->id);
+                            $userData                       =   $this->getUserProfile->getUser($user->id);
                             return $this->sendResponse($userData,trans('message.email_verified'), 200);
 
                         } else {

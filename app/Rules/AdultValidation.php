@@ -18,9 +18,9 @@ class AdultValidation implements ValidationRule
     {
         //https://amanj0314.medium.com/exploring-the-power-of-custom-rule-validation-in-laravel-10-86c9c5abd470
 
-        $date = Carbon::parse($value);
+         $date = Carbon::parse($value);
+       // $date   = Carbon::createFromFormat('m/d/Y', $value);
 
-     
         if ($date->isPast() && $date->diffInYears(now()) < 18)  {
         
             $fail("User must be above 18 years");

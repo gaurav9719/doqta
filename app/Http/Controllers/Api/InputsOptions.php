@@ -46,7 +46,7 @@ class InputsOptions extends BaseController
             }else{
 
                 $type               =   $request->type;
-                if($type==2){
+                if($type==2){ 
 
                     $data['ethnicity']  =   Ethnicity::where('is_active',1)->get();
                     $data['gender']     =   Gender::where('is_active',1)->get();
@@ -106,7 +106,7 @@ class InputsOptions extends BaseController
             }
         } catch (Exception $e) {
 
-            Log::error('Error caught: "inputSelection" ' . $e->getMessage());
+            Log::error('Error caught: "completeSignUpSteps" ' . $e->getMessage());
             return $this->sendError(trans('message.something_went_wrong'), [], 400);
         }
     }

@@ -53,7 +53,7 @@ class SignStepsController extends BaseController
         $auth           =   Auth::user();
         $step           =   $request->step;
 
-        $validator = Validator::make($request->all(), ['step' => 'required', 'between:1,10']);
+        $validator = Validator::make($request->all(), ['step' => 'required', 'between:1,7']);
         // Add custom rule for no special characters        
         if ($validator->fails()) {
             
@@ -73,7 +73,7 @@ class SignStepsController extends BaseController
                 return $this->step1($request,$auth);
 
             }elseif ($step>1) {
-
+               
                 $previousCompleted      =   $this->checkPrevious($step,$auth->id);
 
                 if(!$previousCompleted){
@@ -116,7 +116,7 @@ class SignStepsController extends BaseController
                 $userStep1->complete_step   =  1;
                 $userStep1->save();   
                 DB::commit();
-                $userData   =   $this->getUser->getAuthUser($auth->id);
+                $userData   =   $this->getUser->getUser($auth->id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
@@ -133,7 +133,7 @@ class SignStepsController extends BaseController
         DB::beginTransaction();
         try {
             $validator = Validator::make($request->all(), [
-                'dob' => ['required', 'date', 'date_format:Y-m-d', new AdultValidation],
+                'dob' => ['required', 'date', 'date_format:m/d/Y', new AdultValidation],
                 'gender' => ['required', 'integer', 'exists:genders,id'],'pronoun'=>['required', 'integer', 'exists:pronouns,id','ethnicity'=>'required','integer','exists:ethnicities,id']],
             ['pronouns.exists'=>"Invalid pronoun",'ethnicity.exists'=>'Invalid ethnicity']);
             
@@ -142,10 +142,10 @@ class SignStepsController extends BaseController
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
     
             } else {
-                
+               
                 //check if step1 is compeleted
                 $userStep2                  =   User::find($auth_id);
-                $userStep2->dob             =   $request->dob; 
+                $userStep2->dob             =   Carbon::createFromFormat('m/d/Y', $request->dob)->format('Y-m-d'); 
                 $userStep2->gender          =   $request->gender;
                 $userStep2->pronoun         =   $request->pronoun;
                 $userStep2->ethnicity       =   $request->ethnicity;
@@ -153,13 +153,14 @@ class SignStepsController extends BaseController
 
                 $userStep2->save();   
                 DB::commit();
-                $userData                  =   $this->getUser->getAuthUser($auth_id);
+                $userData                  =   $this->getUser->getUser($auth_id);
+                // dd($userData);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error caught: "step1" ' . $e->getMessage());
-            return $this->sendError("Failed to update", [], 400);
+            Log::error('Error caught: "step2" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #---------------*************** S T E P  2****************----------------#
@@ -194,7 +195,7 @@ class SignStepsController extends BaseController
                 $userStep3->complete_step   =   3;
                 $userStep3->save();   
                 DB::commit();
-                $userData                  =   $this->getUser->getAuthUser($auth_id);
+                $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
@@ -235,7 +236,7 @@ class SignStepsController extends BaseController
                 $userStep3->complete_step   =   4;
                 $userStep3->save();   
                 DB::commit();
-                $userData                  =   $this->getUser->getAuthUser($auth_id);
+                $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
@@ -268,7 +269,7 @@ class SignStepsController extends BaseController
                 $userStep3->guideliness     =   1;
                 $userStep3->save();   
                 DB::commit();
-                $userData                  =   $this->getUser->getAuthUser($auth_id);
+                $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
             }
         } catch (Exception $e) {
@@ -313,7 +314,7 @@ class SignStepsController extends BaseController
                     $userStep6->complete_step       =   6;
                     $userStep6->save();   
                     DB::commit();
-                    $userData                       =   $this->getUser->getAuthUser($auth_id);
+                    $userData                       =   $this->getUser->getUser($auth_id);
                     return $this->sendResponse($userData, trans("message.steps_completed"), 200);
                     
                     } else {
@@ -390,7 +391,7 @@ class SignStepsController extends BaseController
                     $userStep7->complete_step       =   7;
                     $userStep7->save();   
                     DB::commit();
-                    $userData                           =       $this->getUser->getAuthUser($auth_id);
+                    $userData                           =       $this->getUser->getUser($auth_id);
                     return $this->sendResponse($userData, trans("message.steps_completed"), 200);
                 }
             }
@@ -418,7 +419,7 @@ class SignStepsController extends BaseController
     public function checkSteps($request,$userid)
     {
         $step     = $request->step;
-
+       
         switch ($step) {
             case '2':
                 return $this->step2($request,$userid);
@@ -449,7 +450,7 @@ class SignStepsController extends BaseController
 
     public function checkPrevious($step,$userid){
 
-        $checkPreviousStep      =   User::select('complete_step')->where('id',$userid)->first();
+        $checkPreviousStep      =   User::select('id','complete_step')->where('id',$userid)->first();
 
         if($checkPreviousStep['complete_step']>=$step ){
 
