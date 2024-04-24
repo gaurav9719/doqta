@@ -53,6 +53,8 @@ class CommunityPost extends BaseController
             $limit              =       $request->limit;
         }
 
+        
+
         return $this->getCommunityPost->homeScreen($request, $authId);
     }
 
@@ -71,17 +73,29 @@ class CommunityPost extends BaseController
     {
         $authId             =   Auth::id();
         //check if you are the member of 
-        if (isset($request->community_id) && !empty($request->community_id)) {
 
-            $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId,'is_active'=>1])->exists();
-            
-            if (!$isExist) {
+        //check group is active or not
+
+        $isGroupExist       =   Group::where(['id'=>$request->community_id,'is_active'=>1])->exists();
+        if($isGroupExist){
+
+            if (isset($request->community_id) && !empty($request->community_id)) {
+    
+                $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId,'is_active'=>1])->exists();
                 
-                return $this->sendError(trans("message.not_group_member"), [], 403);
+                if (!$isExist) {
+                    
+                    return $this->sendError(trans("message.not_group_member"), [], 403);
+                }
             }
+    
+            return $this->addCommunityPost->addPost($request, $authId);
+        }else{
+
+            return $this->sendError(trans("message.invalid_group"), [], 403);
+
         }
 
-        return $this->addCommunityPost->addPost($request, $authId);
     }
 
     /**
@@ -323,8 +337,6 @@ class CommunityPost extends BaseController
                         $rePost->link          =   $isExist->link;
                         $rePost->post_type     =   $isExist->post_type;
                         $rePost->group_id      =   $isExist->group_id;
-
-
                         $rePost->save();
                         $repostId              =   $rePost->id;   
                         $action =   1;
@@ -547,5 +559,37 @@ class CommunityPost extends BaseController
     }
     #------------------------------------######### E N D ######## -------------------------------------------#
 
+    #------------------ G E T       P O S T         C O M M E N T -------------------------#
+
+    public function comments(Request $request){
+
+        try {
+            
+
+            $validation = Validator::make($request->all(), [
+
+                'post_id' => 'required|integer|exists:posts,id'
+            ], [
+                'post_id.integer' => 'Invalid post'
+            ]);
+
+            if ($validation->fails()) {
+
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
+            }
+
+            $authId             =   Auth::id();
+
+            return $this->addCommunityPost->getComments($request, $authId);
+
+        }catch (Exception $e) {
+           
+            Log::error('Error caught: "addComment" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+
+    }
+    #------------------ G E T       P O S T         C O M M E N T -------------------------#
 
 }

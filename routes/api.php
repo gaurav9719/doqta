@@ -92,7 +92,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('communityPosts/resharePost', [CommunityPost::class,'resharePost']);
     Route::patch('communityPosts/hideSavePost', [CommunityPost::class,'hideSavePost']);
     Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
-
+    Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
+    
     
     Route::resource('communityPosts', CommunityPost::class);
 

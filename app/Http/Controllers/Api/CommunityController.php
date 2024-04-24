@@ -37,60 +37,66 @@ class CommunityController extends BaseController
     {
         try {
             // Get the authenticated user's ID
-            $authId = Auth::id();
-            // Query to fetch communities where the user is a member and communities are active
-            $communitiesQuery = GroupMember::where('user_id', $authId)
+            $authId             = Auth::id();
+            return  $this->get_community_service->getAllCommunity($request,$authId);
+            
+            
+            // // Query to fetch communities where the user is a member and communities are active
+            // $communitiesQuery  = GroupMember::where('user_id', $authId)
 
-                ->whereHas('communities', function ($query) {
+            //     ->whereHas('communities', function ($query) {
 
-                    $query->where('is_active', 1);
-                });
-            // Check if search term is provided and apply search filter
-            if ($request->filled('search')) {
+            //         $query->where('is_active', 1);
+            //     });
 
-                $searchTerm = $request->input('search');
+            // // Check if search term is provided and apply search filter
+
+            // if ($request->filled('search')) {
+
+            //     $searchTerm = $request->input('search');
                 
-                $communitiesQuery->whereHas('communities', function ($query) use ($searchTerm) {
+            //     $communitiesQuery->whereHas('communities', function ($query) use ($searchTerm) {
 
-                    $query->where('name', 'LIKE', "%$searchTerm%");
-                });
-            }
-            // Get the communities
-            $communities = $communitiesQuery->with('communities')->simplePaginate(10);
-            // Return the communities
-            $communities->each(function ($community) use ($authId) {
+            //         $query->where('name', 'LIKE', "%$searchTerm%");
+            //     });
+            // }
+            // // Get the communities
+            // $communities = $communitiesQuery->with('communities')->simplePaginate(10);
+            // // Return the communities
+            // $communities->each(function ($community) use ($authId) {
 
-                if (isset ($community->communities) && !empty ($community->communities)) {
+            //     if (isset ($community->communities) && !empty ($community->communities)) {
 
-                    if (isset ($community->communities->cover_photo) && !empty ($community->communities->cover_photo)) {
+            //         if (isset ($community->communities->cover_photo) && !empty ($community->communities->cover_photo)) {
 
-                        $community->communities->cover_photo = asset('storage/' . $community->communities->cover_photo);
-                    }
-                }
+            //             $community->communities->cover_photo = asset('storage/' . $community->communities->cover_photo);
+            //         }
+            //     }
 
-                //check i am the member of the community or not
+            //     //check i am the member of the community or not
 
-                $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->exists();
-                if ($isExist) {
+            //     $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->exists();
+            //     if ($isExist) {
 
-                    $community->is_joined = 1;
-                } else {
+            //         $community->is_joined = 1;
+            //     } else {
 
-                    $request = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
-                    if (isset ($request) && !empty ($request)) {
-                        if ($request->status = "pending") {
-                            $community->is_joined = 2; // pending request
-                        } elseif ($request->status = "rejected") {
-                            $community->is_joined = 3; // rejected
-                        }
-                    } else {
+            //         $request = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
+            //         if (isset ($request) && !empty ($request)) {
+            //             if ($request->status = "pending") {
+            //                 $community->is_joined = 2; // pending request
+            //             } elseif ($request->status = "rejected") {
+            //                 $community->is_joined = 3; // rejected
+            //             }
+            //         } else {
 
-                        $community->is_joined = 0; // not join the group
-                    }
-                }
-            });
+            //             $community->is_joined = 0; // not join the group
+            //         }
+            //     }
+            // });
 
-            return $this->sendResponse($communities, trans("message.communities"), 200);
+            // return $this->sendResponse($communities, trans("message.communities"), 200);
+
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "get community" ' . $e->getMessage());
@@ -390,6 +396,7 @@ class CommunityController extends BaseController
                 if ($alreadyMember) {
 
                     return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
+
                 } else {
                     //check group type is public or private
 

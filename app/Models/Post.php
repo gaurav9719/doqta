@@ -32,9 +32,6 @@ class Post extends Model
         return $this->belongsTo(Group::class,'group_id','id');
     }
 
-
-
-
     protected $hidden = [
         
         'laravel_through_key'

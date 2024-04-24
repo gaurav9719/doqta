@@ -57,6 +57,11 @@ return [
     "journals"=>"journals",
     "add_journals"=>"Add Journal successfully",
     "journal_topic"=>"Journal Topic",
+    "invalid_group"=>"Invalid Group",
+    
+
+
+
 
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",

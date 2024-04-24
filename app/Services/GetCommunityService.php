@@ -16,6 +16,8 @@ use Carbon\Carbon;
 use App\Services\NotificationService;
 use App\Services\AddCommunityPost;
 use App\Models\User;
+use App\Models\GroupMemberRequest;
+
 
 /**
  * Class GetCommunityService.
@@ -57,10 +59,12 @@ class GetCommunityService extends BaseController
             //           ->where('user_id', $user->id);
             // })
             ->whereNotExists(function ($query) use ($user) {
+
                 $query->select(DB::raw(1))
                     ->from('report_posts')
                     ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                     ->where('report_posts.user_id', '=', $user->id); // Check if the current user has reported the post
+                    
             })->with(['parent_post' => function ($query) {
 
                 $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
@@ -157,8 +161,127 @@ class GetCommunityService extends BaseController
     # -------------------- G E T        C O M M U N I T Y       B Y     I D -------------------#
 
 
+    #----------------- G E T        A L L       C O M M U N I T Y --------------#
+
+    public function getAllCommunity($request,$authId){
+
+
+        if($request->filled('search')){
+
+            return $this->getCommunityBySearch($request,$authId);
+
+        }else{
+
+            return $this->getJoinedCommunity($request,$authId);
+
+        }
+    }
+    #----------------- G E T        A L L       C O M M U N I T Y --------------#
+
+    #----------------- G E T    J O I N E D      C O M M U N I T Y --------------------#
+
+    public function getJoinedCommunity($request,$authId){
+
+        try {
+
+            $limit             =   10;
+
+            if(isset($request->limit) && !empty($request->limit)){
+
+                $limit          =   $request->limit;
+            }
+
+
+            $communitiesQuery  = GroupMember::where('user_id', $authId)
+
+                ->whereHas('communities', function ($query) {
+
+                    $query->where('is_active', 1);
+                })->pluck('group_id');
 
 
 
+            // Query to fetch communities where the user is a member and communities are active
+            // $communitiesQuery  = GroupMember::where('user_id', $authId)
 
+            //     ->whereHas('communities', function ($query) {
+
+            //         $query->where('is_active', 1);
+            //     });
+
+            $communities     = Group::whereIn('id',$communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
+         
+            return $this->communityLoop($communities,$authId);
+
+        } catch (Exception $e) {
+            // Handle exceptions
+            Log::error('Error caught: "getJoinedCommunity" ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred.'], 400);
+        }
+    }
+
+
+    #------------------------ G E T     C O M M U N I T Y   B Y     S E A R C H  -----------------------#
+    public function getCommunityBySearch($request,$authId){
+
+        try {
+            $limit             =   10;
+
+            if(isset($request->limit) && !empty($request->limit)){
+
+                $limit          =   $request->limit;
+            }
+            $communities        =  Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->simplePaginate($limit);
+
+            return $this->communityLoop($communities,$authId);
+           
+        } catch (Exception $e) {
+            // Handle exceptions
+            Log::error('Error caught: "getCommunityBySearch" ' . $e->getMessage());
+            return response()->json(['error' => 'An error occurred.'], 400);
+        }
+    }
+    #------------------------ G E T     C O M M U N I T Y   B Y     S E A R C H  -----------------------#
+
+
+    #----------------------  C O M M U N I T Y      C O M M O N     L O O P -------------------#
+    public function communityLoop($communities,$authId){
+
+        $communities->each(function ($community) use ($authId) {
+
+            if (isset ($community) && !empty ($community)) {
+
+                if (isset ($community->cover_photo) && !empty ($community->cover_photo)) {
+
+                    $community->cover_photo = asset('storage/' . $community->cover_photo);
+                }
+            }
+            //check i am the member of the community or not
+            $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->exists();
+            if ($isExist) {
+
+                $community->is_joined = 1;
+
+            } else {
+
+                $request                      = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+                if (isset ($request) && !empty ($request)) {
+
+                    if ($request->status = "pending") {
+
+                        $community->is_joined = 2; // pending request
+
+                    } elseif ($request->status = "rejected") {
+
+                        $community->is_joined = 3; // rejected
+                    }
+                } else {
+
+                    $community->is_joined = 0; // not join the group
+                }
+            }
+        });
+        return $this->sendResponse($communities, trans("message.communities"), 200);
+    }
 }
