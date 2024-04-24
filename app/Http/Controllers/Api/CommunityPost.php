@@ -73,9 +73,7 @@ class CommunityPost extends BaseController
     {
         $authId             =   Auth::id();
         //check if you are the member of 
-
         //check group is active or not
-
         $isGroupExist       =   Group::where(['id'=>$request->community_id,'is_active'=>1])->exists();
         if($isGroupExist){
 
@@ -495,9 +493,9 @@ class CommunityPost extends BaseController
 
             $validation = Validator::make($request->all(), [
 
-                'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4"
+                'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4",'mention_user_id'=>'nullable|integer|exists:users,id'
             ], [
-                'post_id.*' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type"
+                'post_id.*' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type",'mention_user_id.integer'=>"Invalid mention id",
             ]);
             if ($validation->fails()) {
 
@@ -512,6 +510,7 @@ class CommunityPost extends BaseController
             $addComment                  =   new Comment();
             $addComment->user_id         =   $authId;
             $addComment->post_id         =   $request->post_id;
+
             if(isset($request->parent_comment_id) && !empty($request->parent_comment_id)){
 
                 $addComment->parent_id   =   $request->parent_comment_id;
@@ -520,6 +519,12 @@ class CommunityPost extends BaseController
 
                 $addComment->comment_type   =   $request->comment_type;
             }
+
+            if(isset($request->mention_user_id) && !empty($request->mention_user_id)){
+
+                $addComment->mention_user_id   =   $request->mention_user_id;
+            }
+
             $addComment->save();
             $commentId                     =   $addComment->id;
               #----------- R E C O R D        A C T I V I T Y -------------#
@@ -531,7 +536,7 @@ class CommunityPost extends BaseController
             $addActivityLog->community_id=    $group_post->group_id;
             $addActivityLog->comment_id  =    $commentId;
             $addActivityLog->action      =    2; //comment
-            $addActivityLog->action_details =  "comment on coummunity post";
+            $addActivityLog->action_details =  "commented on coummunity post";
             $addActivityLog->save();
             DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
@@ -539,6 +544,7 @@ class CommunityPost extends BaseController
             $sender                             =       User::select('id','device_type')->where("id", $authId)->first();
             $notification_type                  =       trans('notification_message.post_comment_message_type');
             $notification_message               =       trans('notification_message.post_comment_message');
+            
             $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
 
             #------------  S E N D           N O T I F I C A T I O N --------------#

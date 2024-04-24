@@ -13,6 +13,7 @@ use App\Models\Group;
 use App\Models\Post;
 use Carbon\Carbon;
 use App\Models\Comment;
+use App\Models\PostLike;
 /**
  * Class AddCommunityPost.
  */
@@ -455,8 +456,12 @@ class AddCommunityPost extends BaseController
     public function getComments($request, $authId){
 
         try {
-            $group      =   Group::withCount('groupMember')->find($request->post_id);
+            $groupId    =   Post::select('group_id')->find($request->post_id);
             
+            if($groupId){
+                
+                $group      =   Group::withCount('groupMember')->find($groupId->group_id);
+            }
             $limit      =   10;
     
             if (isset($request['limit']) && !empty($request['limit'])) {
@@ -468,7 +473,8 @@ class AddCommunityPost extends BaseController
 
                 $query->select('id', 'name', 'user_name', 'profile');
 
-            },'replies.commentUser'=>function($query){
+            },
+            'replies.commentUser'=>function($query){
 
                 $query->select('id', 'name', 'user_name', 'profile');
                 
@@ -507,21 +513,27 @@ class AddCommunityPost extends BaseController
 
             ->orderByDesc('id')->simplePaginate($limit);
 
-            $comments->getCollection()->transform(function ($comment) {
+            $comments->getCollection()->transform(function ($comment) use($authId) {
 
                 if ($comment->commentUser && $comment->commentUser->profile) {
 
                     $comment->commentUser->profile = asset('storage/' . $comment->commentUser->profile);
                 }
 
+                if (isset($comment->replies[0]) && ($comment->replies[0])) {
+
+                    $comment->replies->each(function($replies) use($authId){
+
+                        $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
+
+                        $replies->is_liked  = (isset($isExist) && !empty($isExist))?1:0;
+                        $replies->reaction  = (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                    });
+
+
+                }
+
                 $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
-
-
-
-
-
-
-
 
                 return $comment;
             });

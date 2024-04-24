@@ -13,17 +13,16 @@ use Illuminate\Support\Facades\Log;
  */
 class NotificationService
 {
-
     public function sendNotification($receiver, $sender, $message, $section) {
         DB::beginTransaction();
         try {
-
             // Create a new notification instance
             $notification                       = new Notification();
             $notification->receiver_id          = $receiver->id;
             $notification->sender_id            = $sender->id;
             $notification->notification_type    = $section;
             $notification->message              = $message;
+
             if ($notification->save()) {
                 // Get the device tokens for the receiver
                 //get notification data
@@ -31,9 +30,7 @@ class NotificationService
                 $deviceTokens           =           UserDevice::where('user_id', $receiver->id)->get();
                 // Handle sending notifications to each device
                 foreach ($deviceTokens as $token) {
-                    
                     // $devtoken              =   $token->device_token;
-
                     if ($token->device_type == 1) {
                         // Handle iOS device notification
                         //IosPush($token,$message,$section,$notification_data);
@@ -43,7 +40,6 @@ class NotificationService
                         // You can add your Android notification logic here
                     }
                 }
-    
                 DB::commit();
                 return ['status' => 200, 'message' => "success"];
             } else {
