@@ -360,7 +360,7 @@ class CommunityController extends BaseController
                         return $this->sendResponsewithoutData(trans('message.community_already_deleted'), 422);
 
                     }
-                    
+
                     $isExist = Group::where(['id' => $id, 'created_by' => $authId])->update(['is_active' => 0]);
 
                     Post::where(['group_id' => $id])->update(['is_active' => 0]);
@@ -395,6 +395,7 @@ class CommunityController extends BaseController
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
 
                 $alreadyMember = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
@@ -404,10 +405,10 @@ class CommunityController extends BaseController
                     return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
 
                 } else {
+
                     //check group type is public or private
 
-                    $group = Group::find($request->community_id);
-
+                    $group              =   Group::find($request->community_id);
                     if ($group->visibility == 1) {          ##--------- PUBLIC COMMUNITIES ------------#
 
                         $addGroupMember = new GroupMember();
