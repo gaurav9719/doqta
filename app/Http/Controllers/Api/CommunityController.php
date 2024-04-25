@@ -351,10 +351,16 @@ class CommunityController extends BaseController
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
             } else {
 
-                $isExist = Group::where(['id' => $id, 'created_by' => $authId])->exists();
+                $isExist = Group::where(['id' => $id, 'created_by' => $authId])->first();
 
-                if ($isExist) { //deleted
+                if (isset($isExist) && !empty($isExist)) { //deleted
 
+                    if($isExist->is_active==0){
+
+                        return $this->sendResponsewithoutData(trans('message.community_already_deleted'), 422);
+
+                    }
+                    
                     $isExist = Group::where(['id' => $id, 'created_by' => $authId])->update(['is_active' => 0]);
 
                     Post::where(['group_id' => $id])->update(['is_active' => 0]);

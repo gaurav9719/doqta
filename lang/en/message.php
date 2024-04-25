@@ -59,6 +59,7 @@ return [
     "journal_topic"=>"Journal Topic",
     "invalid_group"=>"Invalid Group",
     "community_post"=>"Community Posts",
+    "community_already_deleted"=>"Community already deleted",
     
 
 
