@@ -78,7 +78,7 @@ class GetUserService extends BaseController
 
     public function getUser($userId,$auth_user="")
     {
-        DB::enableQueryLog();
+        
         $userDetail = User::with([
 
             'user_interest.interest' => function ($query) {

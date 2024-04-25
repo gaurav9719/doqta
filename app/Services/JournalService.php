@@ -189,7 +189,7 @@ class JournalService extends BaseController
 
             }
 
-            return $this->sendResponse($journal, ($message)?$message:trans("message.add_journals"), 200);
+            return $this->sendResponse($journal, ($message)?$message:trans("message.journals"), 200);
     
             // $requests->each(function ($groupRequest) {
         

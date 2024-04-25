@@ -16,6 +16,9 @@ use App\Models\journalsFeeling;
 use App\Models\journalSymptoms;
 use Carbon\Carbon;
 use App\Services\JournalService;
+use App\Models\PhysicalSymptom;
+use App\Rules\SymptomIsExist;
+
 class JournalEntries extends BaseController
 {
 
@@ -74,65 +77,80 @@ class JournalEntries extends BaseController
             $addJournal->content    =   $request->content;
             $addJournal->user_id    =   $userId;
             $addJournal->feeling_id =   $request->feeling;
-
-            
             $addJournal->entry_date =   Carbon::now();
-            
+
             if(isset($request->link) && !empty($request->link)){
 
                 $addJournal->link   =   $request->link;
             }
-
             if(isset($request->media) && !empty($request->media)){
-
                 $media              =       upload_file($request->media, 'journals');
-
                 $addJournal->media  =   $media;
             }
-
             if(isset($request->audio) && !empty($request->audio)){
-
                 $audio              =       upload_file($request->audio, 'journals/audio');
-
                 $addJournal->audio  =       $audio;
             }
-
             if($addJournal->save()){
                 DB::commit();
                 $journalId          =       $addJournal->id;
                 $feelings           =       $request->feeling_type;
-                $symptom            =       $request->symptom;
-
+                // $symptom            =       $request->symptom;
                 for ($i=0; $i <count($feelings) ; $i++) { 
-                
                     journalsFeeling::updateOrCreate(
                         ['journal_id' => $journalId, 'feeling_type_id' => $feelings[$i]],
                         ['is_active' => 1]
                     );
                     DB::commit();
-
                 }
-                // symptons
-                for ($i=0; $i <count($symptom) ; $i++) { 
-                
-                    journalSymptoms::updateOrCreate(
-                        ['journal_id' => $journalId, 'symptom_id' => $symptom[$i]],
-                        ['is_active' => 1]
-                    );
-                    DB::commit();
+                if (isset($request->symptom) && !empty($request->symptom)) {
+                    $symptom                 =     $request->symptom;
+                        // symptons
+                    for ($i=0; $i <count($symptom) ; $i++) { 
+                        journalSymptoms::updateOrCreate(
+                            ['journal_id' => $journalId, 'symptom_id' => $symptom[$i]],
+                            ['is_active' => 1]
+                        );
+                        DB::commit();
+                    }
                 }
+                if (isset($request->extra_symptom) && !empty($request->extra_symptom)) {
 
-                
+                    $extra_symptom                 =     $request->extra_symptom;
+                        // symptons
+                    for ($i=0; $i <count($extra_symptom) ; $i++) {
+
+                        $physicalSym       =   PhysicalSymptom::where(['symptom'=>$extra_symptom[$i],'is_active'])->whereNull('user_id')->first();
+                        
+                        if(isset($physicalSym) && !empty($physicalSym)){
+
+                            $physicalExtra   =  $physicalSym->id;
+
+                        }else{
+                            $addPhysicalSympton               =      new PhysicalSymptom();
+                            $addPhysicalSympton->symptom     =       $extra_symptom[$i];
+                            $addPhysicalSympton->is_active    =      1;
+                            $addPhysicalSympton->user_id      =      $userId;
+                            $addPhysicalSympton->save();
+                            $physicalExtra                       =     $physicalSym->id;
+                        }
+                        journalSymptoms::updateOrCreate(
+
+                            ['journal_id' => $journalId, 'symptom_id' => $physicalExtra],
+                            ['is_active' => 1]
+                        );
+                        DB::commit();
+                    }
+                }
                 return $this->journal->getJournal($userId,$journalId);
+            }else{
+                return $this->sendError(trans('message.journal_not_added'), [], 400);
             }
-            
-        } catch (Exception $e) {
+        }catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "addJournal" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
-         
         }
-    
     }
 
     /**

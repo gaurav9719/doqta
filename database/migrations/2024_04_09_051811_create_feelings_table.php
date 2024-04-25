@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('feelings', function (Blueprint $table) {
             $table->id();
-            $table->string('feeling',20);
             $table->string('name',100);
+            $table->string('feeling',150)->nullable();
+            $table->string('selected',150)->nullable();
             $table->boolean('is_active')->default(1)->comment('1:active,0:active');
             $table->timestamps();
         });

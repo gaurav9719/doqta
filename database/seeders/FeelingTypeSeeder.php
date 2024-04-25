@@ -13,11 +13,18 @@ class FeelingTypeSeeder extends Seeder
     public function run(): void
     {
         $feelingsData = [
-            ['feeling' => '😡', 'name' => 'Very Upset'],
-            ['feeling' => '😔', 'name' => 'Upset'],
-            ['feeling' => '😐', 'name' => 'Emotion'],
-            ['feeling' => '😊', 'name' => 'Happy'],
-            ['feeling' => '😄', 'name' => 'Very Happy'],
+            // ['feeling' => '😡', 'name' => 'Very Upset'],
+            // ['feeling' => '😔', 'name' => 'Upset'],
+            // ['feeling' => '😐', 'name' => 'Emotion'],
+            // ['feeling' => '😊', 'name' => 'Happy'],
+            // ['feeling' => '😄', 'name' => 'Very Happy'],
+
+            ['feeling' => 'feelings/very_upset.png', 'selected'=>'feelings/very_upset_selected.png','name' => 'Very Upset'],
+            ['feeling' => 'feelings/upset.png', 'selected'=>'feelings/upset_selected.png','name' => 'Upset'],
+            ['feeling' => 'feelings/neutral.png','selected'=>'feelings/neutral_selected.png', 'name' => 'Neutral'],
+            ['feeling' => 'feelings/happy.png', 'selected'=>'feelings/happy_selected.png','name' => 'Happy'],
+            ['feeling' => 'feelings/very_happy.png','selected'=>'feelings/very_happy_selected.png', 'name' => 'Very Happy'],
+            
             // Add more emotions as needed
         ];
     
@@ -29,7 +36,7 @@ class FeelingTypeSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
-    
+
             // Associate types with feelings
             $types = [];
             switch ($data['name']) {

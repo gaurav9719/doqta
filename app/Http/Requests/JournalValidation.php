@@ -23,6 +23,7 @@ class JournalValidation extends FormRequest
             'feeling_type' => ['required','array',new FeelingTypeIsExist],
             'pain' => 'required|integer|between:0,5',
             'symptom'=>['required','array',new SymptomIsExist],
+            'other_symptom'=>['required','array'],
             'content' => 'required|string|min:3',
             'link' => 'nullable|url',
             'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
@@ -43,6 +44,7 @@ class JournalValidation extends FormRequest
             'color.integer'=>"Invalid color",
             'feeling_type.array'=>"Invalid feeling type",
             'symptom.array'=>"Invalid symptom",
+            'other_symptom.array'=>"Invalid others symptom",
             'feeling.*'=>"Invalid feeling",
           
         ];

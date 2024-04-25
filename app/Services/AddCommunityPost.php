@@ -124,7 +124,7 @@ class AddCommunityPost extends BaseController
             $editPost->post_category    =       $request->post_category;
             $editPost->save();
             DB::commit();
-            return $this->getPost($postId,$authId,trans('message.update_post_successfully'),);
+            return $this->getPost($postId,$authId,trans('message.update_post_successfully'));
 
         } catch (Exception $e) {
 
@@ -188,7 +188,7 @@ class AddCommunityPost extends BaseController
     //     }
     // }
 
-    public function getPost($id,$message)
+    public function getPost($id,$authId,$message)
     {
         try {
             $post = Post::with(['group'=>function($query){
@@ -214,14 +214,19 @@ class AddCommunityPost extends BaseController
                 if(isset($post->group->cover_photo) && !empty($post->group->cover_photo)){
 
                     $post->group->cover_photo = asset('storage/' . $post->group->cover_photo);
-
+                    
                 }
             }
-
             if ($post->post_user && $post->post_user->profile) {
 
                 $post->post_user->profile = asset('storage/' . $post->post_user->profile);
             }
+
+            $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$post->id])->first();
+            $post->is_liked     =   (isset($isExist) && !empty($isExist))?1:0;
+            $post->reaction     =   (isset($isExist) && !empty($isExist))?$post->reaction:0;
+            $isRepost           =   Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+            $post->is_reposted  =  ($isRepost)?1:0;
 
             $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
 

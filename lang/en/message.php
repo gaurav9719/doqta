@@ -60,9 +60,11 @@ return [
     "invalid_group"=>"Invalid Group",
     "community_post"=>"Community Posts",
     "community_already_deleted"=>"Community already deleted",
-    
 
-
+    "not_community_member"=>"To reshare the post, please join the communit.",
+    "user_profile"=>"User profile",
+    "invalid_community"=>"Invalid community",
+    "journal_not_added"=>"Journal not added",
 
 
     "updated_success_common"=>"Update successfully",

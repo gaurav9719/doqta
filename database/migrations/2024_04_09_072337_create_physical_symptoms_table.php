@@ -16,6 +16,8 @@ return new class extends Migration
         Schema::create('physical_symptoms', function (Blueprint $table) {
             $table->id();
             $table->string('symptom')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });
