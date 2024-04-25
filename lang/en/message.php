@@ -65,6 +65,8 @@ return [
     "user_profile"=>"User profile",
     "invalid_community"=>"Invalid community",
     "journal_not_added"=>"Journal not added",
+    "physical_symptom"=>"Physical symptom",
+    
 
 
     "updated_success_common"=>"Update successfully",

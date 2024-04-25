@@ -30,7 +30,8 @@ class PhysicalSymptomSeeder extends Seeder
             'Dry mouth',
             'Stomach discomfort',
             'Restlessness',
-            'Difficulty swallowing'
+            'Difficulty swallowing',
+            'Other'
         ];
 
         foreach ($symptoms as $symptom) {

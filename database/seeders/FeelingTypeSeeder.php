@@ -32,6 +32,7 @@ class FeelingTypeSeeder extends Seeder
             // Insert feeling into the database
             $feelingId = DB::table('feelings')->insertGetId([
                 'feeling' => $data['feeling'],
+                'selected' => $data['selected'],
                 'name' => $data['name'],
                 'created_at' => now(),
                 'updated_at' => now()
