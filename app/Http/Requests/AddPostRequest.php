@@ -28,7 +28,7 @@ class AddPostRequest extends FormRequest
             'media' => ['nullable', 'file', 'mimes:jpeg,png,mp4,mpeg,wav', 'max:2048'],
             'title' => ['required', 'string', 'min:10', 'max:200'],
             'content' => ['required', 'string', 'min:10'],
-            'post_type' => ['required', 'in:normal,community'],
+            'post_type' => ['nullable', 'in:normal,community'],
             'post_category' => ['required', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],

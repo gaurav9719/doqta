@@ -58,6 +58,7 @@ return [
     "add_journals"=>"Add Journal successfully",
     "journal_topic"=>"Journal Topic",
     "invalid_group"=>"Invalid Group",
+    "community_post"=>"Community Posts",
     
 
 

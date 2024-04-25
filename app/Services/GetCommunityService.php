@@ -146,6 +146,7 @@ class GetCommunityService extends BaseController
         try {
             $community = Group::with([
                 'groupMember' => function ($query) {
+                    
                     $query->limit(10);
                 }
             ])

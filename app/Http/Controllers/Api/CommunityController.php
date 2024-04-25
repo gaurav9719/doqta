@@ -411,7 +411,7 @@ class CommunityController extends BaseController
 
                         if ($addGroupMember->save()) {
                             // increment in group member
-                            incrementMember($authId, $request->community_id, 1);
+                            incrementMemberWithAuth($request->community_id, 1);
                             $reciever = User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
                             $sender = User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
                             $notification_type = trans('notification_message.new_memeber_join_group_type');

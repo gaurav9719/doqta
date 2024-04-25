@@ -74,9 +74,6 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::delete('community/removeMember', [CommunityController::class,'removeMember']);
     Route::get('community/members', [CommunityController::class,'communityUsers']);
     Route::put('community/udpateRequest', [CommunityController::class,'acceptRejectCommunityRequest']);
-
-    
-
     Route::resource('community', CommunityController::class);
 
 
@@ -93,10 +90,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::patch('communityPosts/hideSavePost', [CommunityPost::class,'hideSavePost']);
     Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
     Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
-    
-    
+    Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
     Route::resource('communityPosts', CommunityPost::class);
-
     
 });
 

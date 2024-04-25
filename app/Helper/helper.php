@@ -878,8 +878,8 @@ if (!function_exists('incrementByPoint')) {
     if (!function_exists('incrementMember')) {
         function incrementMember($userId, $id,$point)
         {
-            return Group::updateOrCreate(
-                ['created_by' => $userId, 'id' => $id],
+            Group::updateOrCreate(
+                ['id' => $id, 'created_by' => $userId],
                 ['member_count' => DB::raw('member_count + ' . $point)]
             );
         }

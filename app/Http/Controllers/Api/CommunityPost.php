@@ -53,8 +53,6 @@ class CommunityPost extends BaseController
             $limit              =       $request->limit;
         }
 
-        
-
         return $this->getCommunityPost->homeScreen($request, $authId);
     }
 
@@ -99,11 +97,17 @@ class CommunityPost extends BaseController
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(string $id, Request $request)
     {
-        //
-    }
+        $validation = Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id']);
+    
+        if ($validation->fails()) {
 
+            return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+        }
+    
+        return $this->addCommunityPost->getCommunityPost($id, Auth::id(),$request);
+    }
     /**
      * Show the form for editing the specified resource.
      */
@@ -597,5 +601,71 @@ class CommunityPost extends BaseController
 
     }
     #------------------ G E T       P O S T         C O M M E N T -------------------------#
+
+    #---------- G E T       S A V E D    P O S T  ------------------------------------#
+    public function savedPosts(Request $request){
+        try {
+
+            $limit              =   10;
+
+            if(isset($request->limit) && !empty($request->limit)){
+                $limit          =   $request->limit;
+            }
+            $authId             =   Auth::id();
+
+            $savedPosts         =   SavedPost::with([
+                'post.post_user:id,name,profile',
+                //'group:id,name,description,cover_photo,post_count',
+              
+
+            ])
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('hidden_posts')
+                    ->whereColumn('hidden_posts.post_id', '=', 'saved_posts.post_id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                    ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
+            })
+
+            ->addSelect(['is_liked' => function ($query) use ($authId) {
+
+                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = saved_posts.post_id AND comment_id IS NULL), 1, 0)', [$authId]);
+
+            }])->where(['user_id'=>$authId])->orderByDesc('id')->simplePaginate($limit);
+
+            if(isset($savedPosts[0]) && !empty($savedPosts[0])){
+
+                $savedPosts->each(function($savedPost) use($authId){
+
+                    if(isset($savedPost->post->media_url) && !empty($savedPost->post->media_url)){
+
+                        $savedPost->post->media_url   =   asset('storage/'.$savedPost->post->media_url);
+                    }
+
+
+                    if(isset($savedPost->post->post_user) && !empty($savedPost->post->post_user)){
+
+                        if(isset($savedPost->post->post_user->profile) && !empty($savedPost->post->post_user->profile)){
+                        
+                            $savedPost->post->post_user->profile   =   asset('storage/'.$savedPost->post->post_user->profile);
+                        }
+                    }
+
+                    //check repost or not 
+
+                    $isRepost                =   Post::where(['parent_id'=>$savedPost->post_id,'user_id'=>$authId,'is_active'=>1])->exists();
+
+                    $savedPost->is_reposted  =  ($isRepost)?1:0;
+
+
+                });
+            }
+            return $this->sendResponse($savedPosts, trans('message.saved_posts'), 200);
+
+        } catch (Exception $e) {
+            Log::error('Error caught: "addComment" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #---------- G E T       S A V E D    P O S T  ------------------------------------#
 
 }
