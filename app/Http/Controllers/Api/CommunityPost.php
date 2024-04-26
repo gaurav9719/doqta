@@ -512,17 +512,24 @@ class CommunityPost extends BaseController
 
                 'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4",'mention_user_id'=>'nullable|integer|exists:users,id'
             ], [
-                'post_id.*' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type",'mention_user_id.integer'=>"Invalid mention id",
+                'post_id.integer' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type",'mention_user_id.integer'=>"Invalid mention id",
             ]);
             if ($validation->fails()) {
 
-                throw new ValidationException($validation);
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             }
             $authId             =   Auth::id();
             $post               =   Post::find($request->post_id);
             if (!$post || !$post->is_active) {
 
                 throw new Exception(trans('message.no_post_found'), 422);
+            }
+            // check i am group member or not 
+            $isMember           =   GroupMember::where(['group_id'=>$post->group_id,'user_id'=>$authId,'is_active'=>1])->exists();
+            if(!$isMember){
+
+                return $this->sendError(trans('message.you_are_not_group_member'), [], 403);
             }
             $addComment                  =   new Comment();
             $addComment->user_id         =   $authId;
@@ -542,6 +549,8 @@ class CommunityPost extends BaseController
                 $addComment->mention_user_id   =   $request->mention_user_id;
             }
 
+
+            $addComment->comment          = $request->comment;
             $addComment->save();
             $commentId                     =   $addComment->id;
               #----------- R E C O R D        A C T I V I T Y -------------#
@@ -557,6 +566,7 @@ class CommunityPost extends BaseController
             $addActivityLog->save();
             DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
+            
             $reciever                           =       User::select('id', 'device_type')->where("id", $group_post->user_id)->first();
             $sender                             =       User::select('id','device_type')->where("id", $authId)->first();
             $notification_type                  =       trans('notification_message.post_comment_message_type');
@@ -567,12 +577,6 @@ class CommunityPost extends BaseController
             #------------  S E N D           N O T I F I C A T I O N --------------#
             DB::commit();
             return $this->sendResponsewithoutData(trans('message.add_comment'), 200);
-
-        } catch (ValidationException $e) {
-
-            DB::rollBack();
-            Log::error('Error caught: "addComment" ' . $e->getMessage());
-            return $this->sendError($e->getMessage(), [], 400);
 
         } catch (Exception $e) {
             DB::rollBack();

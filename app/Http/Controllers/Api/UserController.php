@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Notification;
 use App\Services\NotificationService;
 use App\Http\Requests\UpdateProfileValidation;
-
+use App\Models\BlockedUser;
+use App\Models\UserFollower;
 class UserController extends BaseController
 {
     //
@@ -119,6 +120,46 @@ class UserController extends BaseController
     }
     #----------------------------*************** E N D ************* ----------------------------#
 
+    #--------------------- G E T        U S E R         P O S T     ----------------------------#
+    public function getUserPost(Request $request){
+
+        $validator                 =      Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id']);
+
+        if ($validator->fails()) {
+
+            return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
+        } else {
+            $authId             =   Auth::id();
+            $getUser            =   $request->user_id;
+            if(User::where(['id'=>$getUser,'is_active'=>1])->exists()){
+                //check user is blocked or not
+                if($authId!=$getUser){
+                    $isBlocked = BlockedUser::where(function ($query) use ($authId, $getUser) {
+                        // Check if the exact combination exists
+                        $query->where(['user_id' => $authId, 'blocked_user_id' => $getUser])
+                              ->orWhere(['user_id' => $getUser, 'blocked_user_id' => $authId]);
+                    })->exists();
+                    if($isBlocked){
+                        return $this->sendError(trans('message.something_went_wrong'), [], 403);
+                    }else{
+                        $isSupporting   =   UserFollower::where(['user_id'=>$getUser,'follower_user_id'=>$authId,'status'=>2])->exists();
+                        if(!$isSupporting){
+                            return $this->sendError(trans('message.you_are_not_supporting'), [], 403);
+                        }
+                    }
+                }
+                $limit          =   10;
+                if(isset($request->limit) && !empty($request->limit)){
+                    $limit      =   $request->limit;
+                }
+                return $this->getUser->getUserPosts($getUser,$authId,$limit);
+            }else{
+                return $this->sendError(trans('message.invalidUser'), [], 422);
+            }
+        }
+    }
+    #--------------------- G E T        U S E R         P O S T     ----------------------------#
 
 
 

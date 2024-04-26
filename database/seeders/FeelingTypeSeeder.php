@@ -45,7 +45,7 @@ class FeelingTypeSeeder extends Seeder
                 case 'Upset':
                     $types = ['Angry', 'Furious', 'Irritated', 'Frustrated', 'Enraged', 'Annoyed', 'Resentful', 'Hostile', 'Aggravated', 'Outraged', 'Displeased', 'Sad', 'Depressed', 'Miserable', 'Hopeless'];
                     break;
-                case 'Emotion':
+                case 'Neutral':
                     $types = ['Confused', 'Ambivalent', 'Mixed', 'Uncertain', 'Indecisive', 'Overwhelmed', 'Anxious', 'Stressed', 'Tense', 'Nervous', 'Worried', 'Restless', 'Uneasy', 'Fidgety', 'Panicked'];
                     break;
                 case 'Happy':

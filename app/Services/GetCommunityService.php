@@ -292,10 +292,13 @@ class GetCommunityService extends BaseController
                 }
             }
             //check i am the member of the community or not
-            $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->exists();
-            if ($isExist) {
+            $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+            if (isset($isExist) && !empty($isExist)) {
 
                 $community->is_joined = 1;
+                $community->role      = $isExist->role;
+
             } else {
 
                 $request = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
@@ -304,15 +307,18 @@ class GetCommunityService extends BaseController
 
                     if ($request->status = "pending") {
 
-                        $community->is_joined = 2; // pending request
+                        $community->is_joined  = 2; // pending request
 
                     } elseif ($request->status = "rejected") {
 
-                        $community->is_joined = 3; // rejected
+                        $community->is_joined  = 3; // rejected
                     }
+                    $community->role           = null;
+                    
                 } else {
 
                     $community->is_joined = 0; // not join the group
+                    $community->role      = null;
                 }
             }
         });

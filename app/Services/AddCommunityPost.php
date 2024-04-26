@@ -13,7 +13,9 @@ use App\Models\Group;
 use App\Models\Post;
 use Carbon\Carbon;
 use App\Models\Comment;
+use App\Models\GroupMember;
 use App\Models\PostLike;
+use App\Models\GroupMemberRequest;
 /**
  * Class AddCommunityPost.
  */
@@ -591,22 +593,24 @@ class AddCommunityPost extends BaseController
     #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
     public function getCommunityPost($community_id, $authId,$request) {
         try {
-
-            $limit      =   10;
-            if (isset($request['limit']) && !empty($request['limit'])) {
-    
-                $limit = $request['limit'];
-                
+            // check if i have join the community or not
+            $isGroupMember =   GroupMember::where(['group_id'=>$community_id,'user_id'=>$authId,'is_active'=>1])->first();
+          
+            if(!$isGroupMember){
+                return $this->sendError(trans('message.you_are_not_group_member'), [], 403);
             }
-            $group      =   Group::withCount('groupMember')->find($community_id);
-
-            $posts      =   Post::whereHas('post_user', function($query) {
-
+            $limit          =   10;
+            if (isset($request['limit']) && !empty($request['limit'])) {
+                $limit      =   $request['limit'];
+            }
+            $group          =   Group::withCount('groupMember')->find($community_id);
+            
+            $posts          =   Post::whereHas('post_user', function($query) {
                     $query->where('is_active', 1);
                 })
                 ->with([
                     'group:id,name,description,cover_photo,post_count',
-                    'post_user:id,name,profile'
+                    'post_user:id,user_name,name,profile'
 
                 ])
                 ->where('group_id', $community_id)
@@ -668,14 +672,47 @@ class AddCommunityPost extends BaseController
             }
 
             if(isset($group) && !empty($group)){
+
                 $group->cover_photo =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
+
+                //check role of community
+
+                $isGroupMember          =   GroupMember::where(['group_id'=>$group->id,'user_id'=>$authId,'is_active'=>1])->first();
+
+
+                if(isset($isGroupMember) && !empty($isGroupMember)){
+
+                    $group->is_joined = 1; // not join the group
+                    $group->role      = $isGroupMember->role;
+
+                }else{
+
+                    $request = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+    
+                    if (isset($request) && !empty($request)) {
+    
+                        if ($request->status = "pending") {
+    
+                            $group->is_joined  = 2; // pending request
+    
+                        } elseif ($request->status = "rejected") {
+    
+                            $group->is_joined  = 3; // rejected
+                        }
+                        
+                    } else {
+    
+                        $group->is_joined = 0; // not join the group
+                    }
+                    $group->role      = null;
+                }
             }
     
             return response()->json(['status' =>200,'message'=>trans('message.community_post'),'data'=>$posts, 'group'=>$group]);
 
         } catch (Exception $e) {
             Log::error('Error caught: "getPost" ' . $e->getMessage());
-            return $this->sendError('Error occurred while fetching post.', [], 500);
+            return $this->sendError('Error occurred while fetching post.', [], 400);
         }
     }
         #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#

@@ -90,6 +90,12 @@ return [
     "remove_member_from_community"=>"Member removed successfully",
     "community_users"=>"Community members",
     "Permission_denied" =>"Permission denied",
+    "you_are_not_group_member"=>"Access denied, Please join the community",
+    "user.posts"=>"User posts",
+    "you_are_not_supporting"=>"Access denied, Please support the user",
+    
+
+
 
     
     'updatePrefences'=>"Prefences updated successfully",
