@@ -91,6 +91,7 @@ return [
     "you_are_not_group_member"=>"Access denied, Please join the community",
     "user.posts"=>"User posts",
     "you_are_not_supporting"=>"Access denied, Please support the user",
+    "post_liked"=>"Post liked successfully",
     
 
 

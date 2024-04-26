@@ -280,7 +280,7 @@ class CommunityPost extends BaseController
                         increment('posts', ['id' => $request->post_id], 'like_count', 1); 
                         DB::commit();
                     }
-                    return $this->sendResponse($action, trans('message.update_successfully'), 200);
+                    return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
                 }
             }
         } catch (Exception $e) {

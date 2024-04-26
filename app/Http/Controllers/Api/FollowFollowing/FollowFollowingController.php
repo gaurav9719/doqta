@@ -121,7 +121,9 @@ class FollowFollowingController extends BaseController
                     DB::commit();
                     $message    =  trans('message.user.add_follow');
                 }
-                return $this->sendResponse($action, $message, 200);
+                $count['action']=$action;
+                $count['supporter'] = User::withCount('supporter')->where('id', $userId)->value('supporter_count');
+                return $this->sendResponse($count, $message, 200);
             }
         } catch (Exception $e) {
             DB::rollBack();
