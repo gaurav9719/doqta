@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\FeelingController;
 use App\Http\Controllers\Api\JournalEntries;
 use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Chat\ChatController;
+use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -97,6 +98,24 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 });
 
 
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+
+    // Route::post('communityPosts/likePost', [FollowFollowingController::class,'likePost']);
+    // Route::post('communityPosts/resharePost', [CommunityPost::class,'resharePost']);
+    // Route::patch('communityPosts/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    // Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
+    // Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
+    // Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
+    // Route::post('communityPosts/addComment', [CommunityPost::class,'addComment']);
+
+    Route::resource('supportSupporting', FollowFollowingController::class);
+    
+});
+
+
+
+
+
 Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 
     
@@ -149,10 +168,8 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     // Route::put('updateUserPreferences','updateUserPreferences');
     Route::post('changePassword','changePassword');
     Route::post('update_profile','update_profile');
-    
     Route::get('getUserProfile','getUserProfile');
     Route::get('getUserPost','getUserPost');
-    
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
 

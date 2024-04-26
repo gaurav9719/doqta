@@ -67,15 +67,13 @@ return [
     "journal_not_added"=>"Journal not added",
     "physical_symptom"=>"Physical symptom",
     
-
-
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",
     "dicover_community"=>"Discover communities",
     "dicover_people"=>"Discover people",
     "dicover_media"=>"Discover media",
-    "user.add_follow"=>"Follow successfully",
-    "user.unfollow"=>"Unfollow successfully",
+    "user.add_follow"=>"Support successfully",
+    "user.unfollow"=>"Unsupport successfully",
     "already_blocked"=>"User already blocked",
     "user_blocked"=>"User blocked successfully",
     "already_reported"=>"Report to user already submitted",

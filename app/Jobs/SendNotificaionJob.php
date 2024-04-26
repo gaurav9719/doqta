@@ -20,23 +20,29 @@ class SendNotificaionJob implements ShouldQueue
      */
     protected $notificatonData,$notification;
 
-    public function __construct($data,NotificationService $notification)
+    public function __construct($data)
     {
         $this->notificatonData      =   $data;
-        $this->notification         =   $notification;
+
+      
     }
 
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(NotificationService $notification): void
     {
-        //
-        $receiver        =          User::find($this->notificatonData->receiver, ['id','name']);
-        $sender          =          User::find($this->notificatonData->sender, ['id','name']);
-        $message_type    =           $this->notificatonData->message_type;
-        $message         =           $this->notificatonData->message;
-        $this->notification->sendNotification($receiver,$sender,$message,$message_type);     // send notification 
-        Log::error('Error caught: "sendNotificationJobs"');
+        
+        try {
+            $receiver = User::findOrFail($this->notificatonData['receiver'], ['id', 'name']);
+            $sender = User::findOrFail($this->notificatonData['sender'], ['id', 'name']);
+            $messageType = $this->notificatonData['message_type'];
+            $message = $this->notificatonData['message'];
+
+            $notification->sendNotification($receiver, $sender, $message, $messageType);
+        } catch (\Exception $e) {
+            Log::error('Error sending notification: ' . $e->getMessage());
+            // Optionally handle the error further or notify administrators
+        }
     }
 }

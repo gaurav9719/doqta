@@ -57,15 +57,31 @@ class FollowFollowingController extends BaseController
         try {
             
             $authId         =   Auth::id();
-            $validation     =   Validator::make($request->all(),['user_id'=>'required|integer|exists:users,id'],['user_id.*'=>"Invalid user"]);
+
+            $validation     =   Validator::make($request->all(),['user_id'=>'required|integer|exists:users,id'],['user_id.integer'=>"Invalid user"]);
             if($validation->fails()){
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
 
             }else{
 
+                $userId     =   $request->user_id;
+
+                //check is blocked or not
+                $isBlocked =     BlockedUser::where(function ($query) use ($authId,$userId) {
+
+                    // Check if the exact combination exists
+                    $query->where(['user_id' => $authId, 'blocked_user_id' => $userId])
+                          ->orWhere(['user_id' => $userId, 'blocked_user_id' => $authId]);
+                })->exists();
+
+                if($isBlocked){
+
+                    return $this->sendError(trans('message.something_went_wrong'), [], 403);
+
+                }
                 //check if already follow or not 
-                $following  =   UserFollower::where(['follower_user_id'=>$authId,'user_id'=>$request->user_id])->exists();
+                $following      =   UserFollower::where(['follower_user_id'=>$authId,'user_id'=>$request->user_id])->exists();
                 
                 if($following){     //delete unfollow
 
@@ -73,7 +89,7 @@ class FollowFollowingController extends BaseController
                     decrement('users',['id'=>$request->user_id],'followers_count',1);
                     decrement('users',['id'=>$authId],'followings_count',1);
                     DB::commit();
-                    
+                
                     Notification::where(['receiver_id'=>$request->user_id,'sender_id'=>$authId,'notification_type'=>trans('notification_message.started_supporting_you_type')])->delete();
 
                     $message                            =   trans('message.user.unfollow');
@@ -98,13 +114,10 @@ class FollowFollowingController extends BaseController
                     $action                             =   1;
                     increment('users',['id'=>$request->user_id],'followers_count',1);
                     increment('users',['id'=>$authId],'followings_count',1);
+                    $mesage                             =   Auth::user()->name." ".trans('notification_message.started_supporting_you');
+                    $data                               =   ['receiver'=>$request->user_id,'sender'=>$authId,'message'=>$mesage,'message_type'=>trans('notification_message.started_supporting_you_type')];
 
-                    $mesage                             =       Auth::user()->name." ".trans('notification_message.started_supporting_you');
-                    
-                    $data                               =       ['receiver'=>$request->user_id,'sender'=>$authId,'message'=>$mesage,'message_type'=>trans('notification_message.started_supporting_you_type')];
-
-                    SendNotificaionJob::dispatch($data);
-
+                    // SendNotificaionJob::dispatch($data);
                     DB::commit();
                     $message    =  trans('message.user.add_follow');
                 }
