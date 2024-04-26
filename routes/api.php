@@ -50,6 +50,7 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::get('matchQr','matchQr');
     Route::post('forgotPassword','forgotPassword');
     Route::post('socialLogin','socialLogin');
+    Route::delete('deleteAccount','deleteAccount')->middleware('auth:api');
     
 });
 

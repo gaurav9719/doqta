@@ -188,6 +188,8 @@ class AuthController extends BaseController
                 
             } else {                            #--- already in database ----#
 
+                // need to check account status
+
                 if (isset($userCheck->email) && !empty($userCheck->email)) {
 
                     if ($userCheck->email == $request->email) {
@@ -216,9 +218,9 @@ class AuthController extends BaseController
                     
                 }
 
-                $userCheck->device_type = $request->device_type;
-                $userCheck->device_token = $request->device_token;
-                $userCheck->login_type = $request->login_type;
+                $userCheck->device_type     = $request->device_type;
+                $userCheck->device_token    = $request->device_token;
+                $userCheck->login_type      = $request->login_type;
                 $userCheck->save();
                 $userID                     =   $userCheck->id;
                 UserDevice::where(["device_token" => $request->device_token])->delete();
@@ -243,5 +245,37 @@ class AuthController extends BaseController
     }
     #----------------********* S O C I A L      L O G I N ********-----------------#
 
+
+    #**********-------------  D E L E T E       A C C O U N T ----------------- **********#
+    public function deleteAccount(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+
+            $myuser_id                  =                Auth::id();
+
+            $hasDeleted                 =                User::find($myuser_id);
+
+            if ($hasDeleted) {
+
+                $hasDeleted->email      =               "";
+                $hasDeleted->user_name  =               "";
+                $hasDeleted->social_id  =               "";
+                $hasDeleted->save();
+                DB::commit();
+                return $this->sendResponsewithoutData("User Deleted Successfully!", 200);
+                
+            } else {
+
+                return $this->sendResponsewithoutData("User not Deleted!", 400);
+            }
+            //udpate is_active status
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "deleted_account" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #**********-------------  D E L E T E       A C C O U N T ----------------- **********#
 
 }

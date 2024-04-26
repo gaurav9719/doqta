@@ -381,7 +381,6 @@ class CommunityController extends BaseController
     #------------************** J O I N         C O M M U N I T Y ************----------------#
     public function joinCoummnity(Request $request)
     {
-        DB::beginTransaction();
         try {
 
             $authId = Auth::id();
@@ -394,73 +393,19 @@ class CommunityController extends BaseController
 
             } else {
 
-                
-
-
-
-
-
-
-
-
-
-
                 $group              =   Group::find($request->community_id);
 
                 if (isset($group) && !empty($group)) {
 
                     if ($group->is_active == 0) {
+
                         return $this->sendResponsewithoutData(trans('message.invalid_community'), 422);
                     }
                 }
-                $alreadyMember = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
-                if ($alreadyMember) {
-                    return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
-                } else {
-                    //check group type is public or private
-                    if ($group->visibility == 1) {         ##--------- PUBLIC COMMUNITIES ------------#
-
-                        $addGroupMember = new GroupMember();
-                        $addGroupMember->group_id = $request->community_id;
-                        $addGroupMember->user_id = $authId;
-                        $addGroupMember->role = "member";
-                        if ($addGroupMember->save()) {
-                            // increment in group member
-                            incrementMemberWithAuth($request->community_id, 1);
-                            $reciever = User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
-                            $sender = User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
-                            $notification_type = trans('notification_message.new_memeber_join_group_type');
-                            $notification_message = trans('notification_message.new_memeber_join_group_message');
-                            $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
-                            DB::commit();
-                            return $this->sendResponsewithoutData(trans('message.community_joined_successfully'), 200);
-                        }
-                    } else {                              ##--------- PRVATE COMMUNITIES ------------#
-
-                        $checkRequest = GroupMemberRequest::where(['user_id' => $authId, 'group_id' => $request->community_id]);
-                        if ($checkRequest) {
-
-                            return $this->sendError(trans('message.something_went_wrong'), [], 403);
-                        } else {
-                            $groupRequest = new GroupMemberRequest();
-                            $groupRequest->user_id = $authId;
-                            $groupRequest->group_id = $request->community_id;
-                            $groupRequest->save();
-                            $group = Group::find($request->community_id);
-                            $reciever = User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
-                            $sender = User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
-                            $notification_type = trans('notification_message.new_memeber_group_request_type');
-                            $notification_message = trans('notification_message.new_memeber_group_request_type_message');
-                            $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
-                            DB::commit();
-                            return $this->sendResponsewithoutData(trans('message.request_send_successfuly'), 200);
-                        }
-                    }
-                }
+                return $this->get_community_service->joinUnjoin($request,$authId,$group);
             }
         } catch (Exception $e) {
 
-            DB::rollback();
             Log::error('Error caught: "joinCoummnity" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }

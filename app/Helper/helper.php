@@ -896,6 +896,17 @@ if (!function_exists('incrementByPoint')) {
             );
         }
     }
+
+
+    if (!function_exists('decrementMemberWithAuth')) {
+        function decrementMemberWithAuth($id,$point)
+        {
+            return Group::updateOrCreate(
+                ['id' => $id],
+                ['member_count' => DB::raw('member_count - ' . $point)]
+            );
+        }
+    }
     if(!function_exists('filer_text')){
         function filter_text($text){
 

@@ -38,7 +38,7 @@ return [
     "communities"=>"Communities",
     "community_request"=>"Community request",
     "request_accepted"=>"Request accepted successfully",
-    "not_group_member"=>"You are not group member",
+    "not_group_member"=>"You are not currently a member of the group",
     "add_posted_successfully"=>"Post added successfully",
     "invalid_post"=>"Invalid Post",
     "update_post_successfully"=>"Update post successfully",
@@ -92,6 +92,8 @@ return [
     "user.posts"=>"User posts",
     "you_are_not_supporting"=>"Access denied, Please support the user",
     "post_liked"=>"Post liked successfully",
+    "remove_successfully"=>"Removed successfully",
+    "owner_cannot_leave_community"=>"Owner can't leave the community",
     
 
 
