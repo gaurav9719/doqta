@@ -383,13 +383,32 @@ class CommunityController extends BaseController
     {
         DB::beginTransaction();
         try {
+
             $authId = Auth::id();
-            $validator = Validator::make($request->all(), ['community_id' => 'required|integer|exists:groups,id']);
+
+            $validator = Validator::make($request->all(), ['community_id' => 'required|integer|exists:groups,id','type'=>'required|integer|between:0,1']);
+
             if ($validator->fails()) {
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
+
+                
+
+
+
+
+
+
+
+
+
+
                 $group              =   Group::find($request->community_id);
+
                 if (isset($group) && !empty($group)) {
+
                     if ($group->is_active == 0) {
                         return $this->sendResponsewithoutData(trans('message.invalid_community'), 422);
                     }

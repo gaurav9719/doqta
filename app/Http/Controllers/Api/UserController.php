@@ -143,8 +143,11 @@ class UserController extends BaseController
                     if($isBlocked){
                         return $this->sendError(trans('message.something_went_wrong'), [], 403);
                     }else{
+
                         $isSupporting   =   UserFollower::where(['user_id'=>$getUser,'follower_user_id'=>$authId,'status'=>2])->exists();
+                        
                         if(!$isSupporting){
+
                             return $this->sendError(trans('message.you_are_not_supporting'), [], 403);
                         }
                     }

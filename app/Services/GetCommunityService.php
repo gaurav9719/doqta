@@ -326,4 +326,14 @@ class GetCommunityService extends BaseController
     }
     #----------------------  C O M M U N I T Y      C O M M O N     L O O P -------------------#
 
+
+    #------------------- J O I N / U N J O I N      C O M M U N I T Y ---------------------#
+
+    public function joinUnjoin(){
+
+        
+
+    }
+    #-------------_________-----************ E N D ************----------------------------#
+
 }
