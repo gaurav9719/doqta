@@ -25,7 +25,6 @@ class AddPostRequest extends FormRequest
         //     'link' => 'nullable|url',
         // ];
         return [
-            'media' => ['nullable', 'file', 'mimes:jpeg,png,mp4,mpeg,wav', 'max:2048'],
             'title' => ['required', 'string', 'min:10', 'max:200'],
             'content' => ['required', 'string', 'min:10'],
             'post_type' => ['nullable', 'in:normal,community'],
@@ -33,6 +32,38 @@ class AddPostRequest extends FormRequest
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],
             'wrote_by' => ['nullable','integer'],
+            // 'media' => ['nullable', 'file', 'mimes:jpeg,png,mp4,mpeg,wav', 'max:2048'],
+            'media' => [
+                'required_if:media_type,1,2,3', // Media is required if media_type is 1, 2, or 3
+                'file', // Must be a file upload
+                function ($attribute, $value, $fail) {
+                    $allowedMimeTypes = [];
+    
+                    if ($this->media_type == 1) { // For image types
+
+                        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
+
+                    } elseif ($this->media_type == 2) { // For video types
+
+                        $allowedMimeTypes = [
+                            'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo',
+                            'video/x-flv', 'video/x-matroska', 'video/webm', 'video/x-ms-wmv'
+                        ];
+
+                    } elseif ($this->media_type == 3) { // For audio types
+
+                        $allowedMimeTypes = [
+                            'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg',
+                            'audio/aac', 'audio/flac', 'audio/midi', 'audio/x-ms-wma'
+                        ];
+                    }
+    
+                    // Check if the uploaded file MIME type is in the allowedMimeTypes array
+                    if (!in_array($value->getMimeType(), $allowedMimeTypes)) {
+                        $fail('The ' . $attribute . ' must be a valid file of the specified type.');
+                    }
+                },
+            ],
         ];
     
     }

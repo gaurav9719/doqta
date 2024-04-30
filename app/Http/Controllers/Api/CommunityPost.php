@@ -336,7 +336,7 @@ class CommunityPost extends BaseController
                         $repost               =   null;
                     } else {
                         // check i am the community member or not 
-                        $isGroupMember         =    GroupMember::where(['group_id'=>$post->group_id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $isGroupMember         =    GroupMember::where(['group_id'=>$isExist->group_id,'user_id'=>$authId,'is_active'=>1])->exists();
 
                         if($isGroupMember){
 
