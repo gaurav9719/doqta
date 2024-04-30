@@ -184,7 +184,7 @@ if (!function_exists('upload_file')) {
         // Check if the directory exists, if not, create it
         if (!Storage::disk('public')->exists($directory)) {
 
-            Storage::disk('public')->makeDirectory($directory,0755,true); // Recursive create directory
+            Storage::disk('public')->makeDirectory($directory); // Recursive create directory
         }
         // return Storage::disk('public')->put($directory, $file);
         $filePath = Storage::disk('public')->putFile($directory, $file);
