@@ -176,22 +176,30 @@ function randomCode($length = 9, $add_dashes = false, $available_sets = 'param')
 if (!function_exists('upload_file')) {
     function upload_file($file, $folder = "")
     {
-        $currentYear    = date('Y');
-        $currentMonth   = date('m');
-        // $d              = date('d');
-        // Create the directory path
-        $directory = "uploads/{$folder}/{$currentYear}/{$currentMonth}";
-        // Check if the directory exists, if not, create it
-        if (!Storage::disk('public')->exists($directory)) {
+        try{
 
-            Storage::disk('public')->makeDirectory($directory,0755,true); // Recursive create directory
+            $currentYear    = date('Y');
+            $currentMonth   = date('m');
+            // $d              = date('d');
+            // Create the directory path
+            $directory = "uploads/{$folder}/{$currentYear}/{$currentMonth}";
+            // Check if the directory exists, if not, create it
+            if (!Storage::disk('public')->exists($directory)) {
+    
+                Storage::disk('public')->makeDirectory($directory,0755,true); // Recursive create directory
+            }
+            // return Storage::disk('public')->put($directory, $file);
+            $filePath = Storage::disk('public')->putFile($directory, $file);
+    
+            Storage::disk('public')->setVisibility($filePath, 'public');
+            
+            return $filePath;
+
+        }catch(Exception $e){
+
+            dd($e);
+
         }
-        // return Storage::disk('public')->put($directory, $file);
-        $filePath = Storage::disk('public')->putFile($directory, $file);
-
-        Storage::disk('public')->setVisibility($filePath, 'public');
-        
-        return $filePath;
 
     }
 }

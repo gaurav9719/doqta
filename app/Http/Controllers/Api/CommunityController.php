@@ -229,6 +229,7 @@ class CommunityController extends BaseController
 
                     $cover_photo = $request->file('cover_photo');
                     $Uploaded    = upload_file($cover_photo, 'cover_photo');
+                    dd($Uploaded);
                     $addCommunity['cover_photo'] = $Uploaded;
                 }
                 
