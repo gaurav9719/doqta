@@ -225,6 +225,7 @@ class CommunityController extends BaseController
                     $addCommunity['description'] = filter_text($request->description);
                 }
   
+                dd($request);
                 if($request->cover_photo){
 
                     $cover_photo = $request->file('cover_photo');
