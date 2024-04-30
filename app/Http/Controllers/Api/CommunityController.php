@@ -139,7 +139,7 @@ class CommunityController extends BaseController
             }
             $addCommunity->created_by = $authId;
 
-            if(isset($request->cover_photo['name']) && !empty($request->cover_photo['name'])){
+            if ($request->has('cover_photo')) {
 
                 if ($request->hasFile('cover_photo') && Storage::exists('cover_photo')) {
     
