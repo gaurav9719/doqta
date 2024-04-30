@@ -202,11 +202,11 @@ class CommunityController extends BaseController
      */
     public function update(EditCommunity $request, string $id)
     {
+        dd($request);
         //
         DB::beginTransaction();
         try {
 
-            dd($request);
 
             $authId     =   Auth::id();
             $isExist    =   Group::where(['id' => $id, 'created_by' => $authId, 'is_active' => 1])->exists();
