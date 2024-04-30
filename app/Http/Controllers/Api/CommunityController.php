@@ -139,20 +139,19 @@ class CommunityController extends BaseController
             }
             $addCommunity->created_by = $authId;
 
-            
+            if ($request->file('cover_photo')) {
 
-                if ($request->hasFile('cover_photo')) {
-
+                // if ($request->hasFile('cover_photo') && Storage::exists('cover_photo')) {
                     if($request->cover_photo){
                         
                         $cover_photo = $request->file('cover_photo');
-
+                        
                         $Uploaded = upload_file($cover_photo, 'cover_photo');
                         $addCommunity->cover_photo = $Uploaded;
                     }
     
-                }
-            
+                // }
+            }
 
             if ($addCommunity->save()) { //** ADD IN MEMBER TABLE */
 
@@ -202,11 +201,9 @@ class CommunityController extends BaseController
      */
     public function update(EditCommunity $request, string $id)
     {
-        dd($request);
         //
         DB::beginTransaction();
         try {
-
 
             $authId     =   Auth::id();
             $isExist    =   Group::where(['id' => $id, 'created_by' => $authId, 'is_active' => 1])->exists();
@@ -226,16 +223,15 @@ class CommunityController extends BaseController
 
                     $addCommunity['description'] = filter_text($request->description);
                 }
-  
-                
-                if($request->cover_photo){
+
+
+                if ($request->hasFile('cover_photo')) {
 
                     $cover_photo = $request->file('cover_photo');
                     $Uploaded    = upload_file($cover_photo, 'cover_photo');
-                    dd($Uploaded);
                     $addCommunity['cover_photo'] = $Uploaded;
                 }
-                
+
                 if (isset($request) && !empty($request)) {
 
                     Group::updateOrCreate(['created_by' => $authId, 'id' => $id], $addCommunity);
@@ -296,15 +292,15 @@ class CommunityController extends BaseController
                     $addCommunity['description']   =  filter_text($request->description);
                 }
 
-                if ($request->hasFile('cover_photo')) {
+                if ($request->file('cover_photo')) {
 
                     $cover_photo                 = $request->file('cover_photo');
 
                     $Uploaded                    = upload_file($cover_photo, 'cover_photo');
 
                     $coverImage                  = Group::select('cover_photo')->where(['id' => $request->id])->first();
-                    if ($coverImage) {
-
+                    if (isset($coverImage->cover_photo) && !empty($coverImage->cover_photo)) {
+                            
                         if (Storage::disk('public')->exists($coverImage->cover_photo)) {
 
                             Storage::disk('public')->delete($coverImage->cover_photo); // delete file from specific disk e.g; s3, local etc
