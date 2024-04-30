@@ -9,6 +9,19 @@ class JournalEntry extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'journal_id',
+        'user_id',
+        'content',
+        'media',
+        'audio',
+        'link',
+        'feeling_id',
+        'pain',
+        'journal_on',
+        'is_favorite',
+        'is_active',
+    ];
     // public function feeling(){
 
     //     return $this->hasOne(Feeling::class,'id','feeling_id');
@@ -19,16 +32,17 @@ class JournalEntry extends Model
     }
     public function feeling_types(){
 
-        return $this->hasMany(journalsFeeling::class,'journal_id','id');
+        return $this->hasMany(journalsFeeling::class,'journal_entry_id','id');
     }
 
     public function symptom(){
 
-        return $this->hasMany(journalSymptoms::class,'journal_id','id');
+        return $this->hasMany(journalSymptoms::class,'journal_entry_id','id');
     }
 
     public function topic(){
         
         return $this->hasOne(JournalTopic::class,'id','topic_id');
     }
+
 }

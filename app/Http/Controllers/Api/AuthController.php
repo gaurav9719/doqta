@@ -189,6 +189,10 @@ class AuthController extends BaseController
             } else {                            #--- already in database ----#
 
                 // need to check account status
+                if($userCheck->status!=1){
+
+                    return $this->sendResponsewithoutData(trans('message.account_deleted_or_inactive'), 400);
+                }
 
                 if (isset($userCheck->email) && !empty($userCheck->email)) {
 

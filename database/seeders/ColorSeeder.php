@@ -13,14 +13,28 @@ class ColorSeeder extends Seeder
      */
     public function run(): void
     {
-        $colors = [
-            'F99797', 'F6EADF', 'F5E38B66', '5DB86F4D', 'DEEAEB', 
-            'ACCFF666', '70F2FA4D', 'E8E6FD', '904BFF33', 'E597F933', 
-            '222D654D', 'DDDDDD'
+        $colorsWithOpacity = [
+            ["hex_code" => "#F99797", "opacity" => 0.4],
+            ["hex_code" => "#F6EADF", "opacity" => 1.0],
+            ["hex_code" => "#F5E38B", "opacity" => 0.4],
+            ["hex_code" => "#5DB86F", "opacity" => 0.3],
+            ["hex_code" => "#DEEAEB", "opacity" => 1.0],
+            ["hex_code" => "#ACCFF6", "opacity" => 0.4],
+            ["hex_code" => "#70F2FA", "opacity" => 0.3],
+            ["hex_code" => "#E8E6FD", "opacity" => 1.0],
+            ["hex_code" => "#904BFF", "opacity" => 0.2],
+            ["hex_code" => "#E597F9", "opacity" => 0.2],
+            ["hex_code" => "#222D65", "opacity" => 0.3],
+            ["hex_code" => "#DDDDDD", "opacity" => 1.0],
         ];
-
-        foreach ($colors as $color) {
-            Color::create(['hex_code' => $color]);
+        
+        foreach ($colorsWithOpacity as $color) {
+            
+            Color::create([
+                'hex_code' => $color['hex_code'],
+                'opacity' => $color['opacity']
+            ]);
         }
+        
     }
 }

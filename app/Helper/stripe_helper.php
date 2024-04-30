@@ -30,10 +30,10 @@ if (!function_exists('createStripeCustomer')) {
     {
         try {
 
-            $stripe                 =       init_Stripe();
+            $stripe                 =               init_Stripe();
 
 
-            $user                   =       User::find($user_id);
+            $user                   =               User::find($user_id);
             
             if (isset($user->country_id) && !empty($user->country_id)) {
 

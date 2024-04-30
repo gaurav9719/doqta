@@ -17,18 +17,25 @@ class JournalValidation extends FormRequest
         return [
             'title' => 'required|string|min:10|max:100',
             'topic' => 'required|integer|exists:journal_topics,id',
-            'feeling'=>'required|integer|exists:feelings,id',
             'writing_for' => 'required|string|min:3',
             'color' => 'required|integer|exists:colors,id',
-            'feeling_type' => ['required','array',new FeelingTypeIsExist],
-            'pain' => 'required|integer|between:0,5',
-            'symptom'=>['required','array',new SymptomIsExist],
-            'other_symptom'=>['required','array'],
-            'content' => 'required|string|min:3',
-            'link' => 'nullable|url',
-            'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
-            'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
         ];
+
+        // return [
+        //     'title' => 'required|string|min:10|max:100',
+        //     'topic' => 'required|integer|exists:journal_topics,id',
+        //     'feeling'=>'required|integer|exists:feelings,id',
+        //     'writing_for' => 'required|string|min:3',
+        //     'color' => 'required|integer|exists:colors,id',
+        //     'feeling_type' => ['required','array',new FeelingTypeIsExist],
+        //     'pain' => 'required|integer|between:0,5',
+        //     'symptom'=>['required','array',new SymptomIsExist],
+        //     'other_symptom'=>['required','array'],
+        //     'content' => 'required|string|min:3',
+        //     'link' => 'nullable|url',
+        //     'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
+        //     'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
+        // ];
     }
  
 
@@ -39,14 +46,7 @@ class JournalValidation extends FormRequest
             'title.min' => 'The title must be at least :min characters.',
             'title.max' => 'The title may not be greater than :max characters.',
             'writing_for.min' => 'The writing must be at least :min characters.',
-            'pain.*'=>"invalid pain",
-            'topic.integer'=>"Invalid topic",
             'color.integer'=>"Invalid color",
-            'feeling_type.array'=>"Invalid feeling type",
-            'symptom.array'=>"Invalid symptom",
-            'other_symptom.array'=>"Invalid others symptom",
-            'feeling.*'=>"Invalid feeling",
-          
         ];
     }
 

@@ -15,8 +15,8 @@ return new class extends Migration
         Schema::create('colors', function (Blueprint $table) {
             $table->id();
             $table->string('hex_code')->unique();
+            $table->float('opacity')->define('1.0');
             $table->boolean('is_active')->comment('0:inactive,1:active')->default(1);
-
             $table->timestamps();
         });
 

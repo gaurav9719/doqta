@@ -207,7 +207,11 @@ class MessageController extends Controller
                 $sender                         =               User::find($myId);
                 $status                         =               $this->notification->sendNotification(2,$reciever, $sender, $message, $section);
                 $last_message                   =              Message::find($sendMesssage->id);
-                $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
+                // $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
+                $last_message->time_ago         =              time_elapsed_string($last_message->updated_at);
+                
+
+
                 $user_profile                   =              User::find($reciever, ['id', 'name', 'user_name', 'profile_pic']);
                 if(empty($user_profile->profile_pic) && $user_profile->profile_pic == null){
                     //check in portfolio 

@@ -9,7 +9,14 @@ class journalsFeeling extends Model
 {
     use HasFactory;
 
-    protected $fillable=['id','journal_id','feeling_type_id','is_active','created_at','updated_at'];
+    protected $fillable=['id','journal_entry_id','feeling_type','is_active','created_at','updated_at'];
 
-    
+   
+
+    public function feeling_type(){
+
+        return $this->belongsTo(FeelingType::class,'feeling_type','id');
+        
+    }
+
 }

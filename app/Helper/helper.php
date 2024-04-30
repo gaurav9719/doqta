@@ -983,4 +983,49 @@ if (!function_exists('incrementByPoint')) {
             return $suffixByNumber();
         }
     }
+
     
+    if (!function_exists('time_elapsed_string')) {
+        function time_elapsed_string($datetime, $full = false) {
+        $now = new DateTime;
+        $ago = new DateTime($datetime);
+        $diff = $now->diff($ago);
+        $diff->w = floor($diff->d / 7);
+        $diff->d -= $diff->w * 7;
+        $string = array(
+            'y' => 'y',
+            'm' => 'm',
+            'w' => 'w',
+            'd' => 'd',
+            'h' => 'hr',
+            'i' => 'min',
+            's' => '',
+        );
+        foreach ($string as $k => &$v) {
+            if ($diff->$k) {
+                $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
+            } else {
+                unset($string[$k]);
+            }
+        }
+        if (!$full) $string = array_slice($string, 0, 1);
+        return $string ? implode(', ', $string) . '' : 'just now';
+        }
+    }
+    
+    if (!function_exists('getDatesBetween')) {
+
+      function getDatesBetween($start_date,$end_date)
+        {   
+            $start      = Carbon::createFromFormat('Y-m-d', $start_date);
+            $end        = Carbon::createFromFormat('Y-m-d', $end_date);
+
+            $dates = [];
+            // Loop through each date from start to end (inclusive)
+            for ($date = $start; $date->lte($end); $date->addDay()) {
+                $dates[] = $date->format('Y-m-d'); // Format date as 'Y-m-d' and add to array
+            }
+            return $dates;
+        }
+
+    }

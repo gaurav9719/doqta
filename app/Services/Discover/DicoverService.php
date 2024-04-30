@@ -371,8 +371,9 @@ class DicoverService extends BaseController
                     if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
                         $homeScreenPost->parent_post->post_user->profile = asset('storage/'.$$homeScreenPost->parent_post->post_user->profile);         
                     }
-                    $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
-
+                    // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
+                    $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
+                    
                 });
             
 

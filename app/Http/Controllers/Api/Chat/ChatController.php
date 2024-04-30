@@ -352,7 +352,9 @@ class ChatController extends BaseController
         if(isset($result) && !empty($result)){
        
 
-            $result->time_ago         =              $result->created_at->diffForHumans();
+            // $result->time_ago         =              $result->created_at->diffForHumans();
+            
+            $result->time_ago         =              time_elapsed_string($result->created_at);
 
             if(isset($result->sender) && !empty($result->sender)){
 

@@ -256,7 +256,11 @@ class GetUserService extends BaseController
                     $groupPost->media_url = $media_url;
                     $groupPost->group->cover_photo = $cover_photo;
                     $groupPost->post_user->profile = $profile;
-                    $groupPost->postedAt     =   Carbon::parse($groupPost->created_at)->diffForHumans();
+                    // $groupPost->postedAt     =   Carbon::parse($groupPost->created_at)->diffForHumans();
+                    $groupPost->postedAt     =   time_elapsed_string($groupPost->created_at);
+
+
+                    
                     $isRepost                =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
                     $groupPost->is_reposted  =   ($isRepost)?1:0;
                     $isExist                 =   PostLike::where(['user_id'=>$authId,'post_id'=>$groupPost->id])->first();

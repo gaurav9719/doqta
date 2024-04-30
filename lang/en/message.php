@@ -95,7 +95,8 @@ return [
     "remove_successfully"=>"Removed successfully",
     "owner_cannot_leave_community"=>"Owner can't leave the community",
     
-
+"account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
+"journal_not_exist"=>"Journal not exist",
 
 
     

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\JournalEntries;
 use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Chat\ChatController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
+use App\Http\Controllers\Api\Journals\JournalController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -129,10 +130,14 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
-    // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
-    // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
-    Route::patch('journal/addToFavorite', [JournalEntries::class,'addToFavorite']);
-    Route::resource('journal', JournalEntries::class);
+    Route::post('journal/addToFavorite', [JournalController::class,'addToFavorite']);
+    Route::post('journal/updateJournal', [JournalController::class,'updateJournal']);
+    
+    Route::post('journal/journalEntry', [JournalController::class,'journalEntry']);
+    Route::get('journal/insights', [JournalController::class,'insights']);
+
+    
+    Route::resource('journal', JournalController::class);
 
     
 });

@@ -26,61 +26,30 @@ class FeelingController extends BaseController
 
         try {
 
-            $authId         =   Auth::id();
+            $authId                  =   Auth::id();
+            $data['color']           =   Color::where('is_active', 1)->get();
+            $data['journal_topic']   =   JournalTopic::where('is_active', 1)->get();
+            $data['symptom']         =   PhysicalSymptom::where('is_active',1)->orWhere('user_id',$authId)->get();
+            $feelings                =   Feeling::with('feeling_type')->where('is_active', 1)->get();
 
-            $validator      =  Validator::make($request->all(),['type'=>"nullable|integer|between:1,3"],['type.*'=>"Invalid type"]);
+            if(isset($feelings) && !empty($feelings)){
 
-            if($validator->fails()){
+                $feelings->each(function($query){
 
-                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+                    if(isset($query->feeling) && !empty($query->feeling)){
 
-            }else{
+                        $query->feeling =   asset('storage/'.$query->feeling);
+                    }
+                    if(isset($query->selected) && !empty($query->selected)){
 
-
-                if ($request->has('type') && !empty($request->type)) {
-
-                    if ($request->type == 1) {
-
-                        $data       =   Color::where('is_active', 1)->get();
-                        
-                        $message    =   trans("message.color"); 
-
-                    } 
-                    if ($request->type == 2) {
-
-                        $data       =   JournalTopic::where('is_active', 1)->get();
-                        $message    =   trans("message.journal_topic"); 
+                        $query->selected =   asset('storage/'.$query->selected);
                     }
 
-                    if($request->type==3){
-
-                        $data       =   PhysicalSymptom::where('is_active',1)->orWhere('user_id',$authId)->get();
-                        $message    =   trans("message.physical_symptom"); 
-                    }
-                } else {
-
-                    $data           =   Feeling::with('feeling_type')->where('is_active', 1)->get();
-
-                    if(isset($data) && !empty($data)){
-
-                        $data->each(function($query){
-
-                            if(isset($query->feeling) && !empty($query->feeling)){
-
-                                $query->feeling =   asset('storage/'.$query->feeling);
-                            }
-                            if(isset($query->selected) && !empty($query->selected)){
-
-                                $query->selected =   asset('storage/'.$query->selected);
-                            }
-
-                        });
-                    }
-                    $message        =    trans("message.feelings"); 
-                }
-        
-                return $this->sendResponse($data, $message, 200);
+                });
             }
+            $data['feelings']           =   $feelings;
+            return $this->sendResponse($data, "Journal inputs", 200);
+            
         } catch (Exception $e) {
             Log::error('Error caught: "feeling" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);

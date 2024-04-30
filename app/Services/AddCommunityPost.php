@@ -230,7 +230,10 @@ class AddCommunityPost extends BaseController
             $isRepost           =   Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
             $post->is_reposted  =  ($isRepost)?1:0;
 
-            $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
+            // $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
+            $post->postedAt     = time_elapsed_string($post->created_at);
+
+            
 
             return $this->sendResponse($post, $message, 200);
 
@@ -441,7 +444,10 @@ class AddCommunityPost extends BaseController
                     $groupPost->media_url = $media_url;
                     $groupPost->group->cover_photo = $cover_photo;
                     $groupPost->post_user->profile = $profile;
-                    $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
+                    // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
+                    $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
+
+                    
                 }
             }
 
@@ -538,8 +544,10 @@ class AddCommunityPost extends BaseController
                     });
 
                 }
+                // $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
+                $comment->postedAt          = time_elapsed_string($comment->created_at);;
 
-                $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
+                
 
                 return $comment;
             });
@@ -663,7 +671,10 @@ class AddCommunityPost extends BaseController
                     $groupPost->media_url = $media_url;
                     $groupPost->group->cover_photo = $cover_photo;
                     $groupPost->post_user->profile = $profile;
-                    $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
+                    // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
+                    $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
+
+                    
                     $isRepost                =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
                     $groupPost->is_reposted  =  ($isRepost)?1:0;
                     $isExist                =   PostLike::where(['user_id'=>$authId,'post_id'=>$groupPost->id])->first();

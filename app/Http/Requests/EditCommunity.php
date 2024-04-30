@@ -16,8 +16,8 @@ class EditCommunity extends FormRequest
         return [
             //
             'id'=>'required|integer|exists:groups,id',
-            'name' => 'nullable|regex:/^(?=.*[a-zA-Z])[a-zA-Z0-9\s]+$/u|min:3|max:25',
-            'description' => 'nullable|min:10|max:200',
+            'name' => 'nullable|regex:/^(?=.*[a-zA-Z])[a-zA-Z0-9\s]+$/u|min:1|max:25',
+            'description' => 'nullable|min:20|max:200',
             'cover_photo'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
             ];
     }
@@ -27,9 +27,9 @@ class EditCommunity extends FormRequest
         return [
             
             'id.interger'=>"Invalid community",
-            'name.min' => 'Names must have a minimum of 3 characters',
-            'name.max' => 'Names must have a maximum of  200 characters',
-            'description.min' => 'description must have a maximum of  200 characters',
+            'name.min' => 'Names must have a minimum of 1 characters',
+            'name.max' => 'Names must have a maximum of  25 characters',
+            'description.min' => 'description must have a minimum of  20 characters',
             'name.regex' => 'Characters and numerals are both accepted.',
         ];
     }
