@@ -224,18 +224,14 @@ class CommunityController extends BaseController
 
                     $addCommunity['description'] = filter_text($request->description);
                 }
+  
+                if($request->cover_photo){
 
-
-                 if ($request->hasFile('cover_photo')) {
-                    
-                    if($request->cover_photo){
-
-                        $cover_photo = $request->file('cover_photo');
-                        $Uploaded    = upload_file($cover_photo, 'cover_photo');
-                        $addCommunity['cover_photo'] = $Uploaded;
-                    }
+                    $cover_photo = $request->file('cover_photo');
+                    $Uploaded    = upload_file($cover_photo, 'cover_photo');
+                    $addCommunity['cover_photo'] = $Uploaded;
                 }
-
+                
                 if (isset($request) && !empty($request)) {
 
                     Group::updateOrCreate(['created_by' => $authId, 'id' => $id], $addCommunity);
