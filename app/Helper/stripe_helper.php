@@ -7,8 +7,6 @@ use App\Models\User;
 use App\Models\Country;
 use App\Models\State;
 use App\Models\City;
-
-
 function init_Stripe()
 {
     try{
