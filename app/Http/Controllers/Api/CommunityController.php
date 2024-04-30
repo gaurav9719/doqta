@@ -206,6 +206,8 @@ class CommunityController extends BaseController
         DB::beginTransaction();
         try {
 
+            dd($request);
+
             $authId     =   Auth::id();
             $isExist    =   Group::where(['id' => $id, 'created_by' => $authId, 'is_active' => 1])->exists();
             if ($isExist) {
@@ -225,7 +227,7 @@ class CommunityController extends BaseController
                     $addCommunity['description'] = filter_text($request->description);
                 }
   
-                dd($request);
+                
                 if($request->cover_photo){
 
                     $cover_photo = $request->file('cover_photo');
