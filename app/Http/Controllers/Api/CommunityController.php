@@ -141,7 +141,7 @@ class CommunityController extends BaseController
 
             if(isset($request->cover_photo['name']) && !empty($request->cover_photo['name'])){
 
-                if ($request->hasFile('cover_photo')) {
+                if ($request->hasFile('cover_photo') && Storage::exists('cover_photo')) {
     
                     $cover_photo = $request->file('cover_photo');
                     $Uploaded = upload_file($cover_photo, 'cover_photo');
