@@ -139,18 +139,20 @@ class CommunityController extends BaseController
             }
             $addCommunity->created_by = $authId;
 
-            if ($request->file('cover_photo')) {
+            
 
-                // if ($request->hasFile('cover_photo') && Storage::exists('cover_photo')) {
+                if ($request->hasFile('cover_photo')) {
+
                     if($request->cover_photo){
                         
                         $cover_photo = $request->file('cover_photo');
+
                         $Uploaded = upload_file($cover_photo, 'cover_photo');
                         $addCommunity->cover_photo = $Uploaded;
                     }
     
-                // }
-            }
+                }
+            
 
             if ($addCommunity->save()) { //** ADD IN MEMBER TABLE */
 
@@ -224,11 +226,14 @@ class CommunityController extends BaseController
                 }
 
 
-                if ($request->hasFile('cover_photo')) {
+                 if ($request->hasFile('cover_photo')) {
+                    
+                    if($request->cover_photo){
 
-                    $cover_photo = $request->file('cover_photo');
-                    $Uploaded    = upload_file($cover_photo, 'cover_photo');
-                    $addCommunity['cover_photo'] = $Uploaded;
+                        $cover_photo = $request->file('cover_photo');
+                        $Uploaded    = upload_file($cover_photo, 'cover_photo');
+                        $addCommunity['cover_photo'] = $Uploaded;
+                    }
                 }
 
                 if (isset($request) && !empty($request)) {
