@@ -35,7 +35,6 @@ class CommunityPost extends BaseController
     /**
      * Display a listing of the resource.
      */
-
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification, GetCommunityService $getCommunityPost)
     {
@@ -392,7 +391,7 @@ class CommunityPost extends BaseController
         try {
             $validation = Validator::make($request->all(), [
                 'post_id' => 'required|integer|exists:posts,id',
-                'type' => 'required|integer|between:0,1'
+                'type' => 'required|integer|between:0,2'
             ], [
                 'post_id.*' => 'Invalid post',
                 'type.*' => 'Invalid type'
@@ -420,13 +419,31 @@ class CommunityPost extends BaseController
                     HiddenPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
                     break;
                 case 1: // Save the post
+                    //check post is hidden for you
+                    $isHide =   HiddenPost::where(['user_id' => $authId, 'post_id' => $request->post_id])->exists();
+                    if($isHide){
 
-                    $message = trans('message.saved_post_successfully');
-                    SavedPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
+                        $message = trans('message.hidden_post_cannot_saved');
+                        
+                    }else{
+                        
+                        $message = trans('message.saved_post_successfully');
+                        SavedPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
+
+                    }
+                    break;
+                case 2: // Save the post
+
+                    $isHide  =  HiddenPost::where(['user_id' => $authId, 'post_id' => $request->post_id])->first();
+                    if(isset($isHide) && !empty($isHide)){
+                        $message =  trans('message.unhide_post_successfully');
+                        $isHide->delete();
+                    }else{
+                        $message =  trans('message.no_post_found');
+                    }
                     break;
                 default:
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
-
             }
 
             DB::commit();

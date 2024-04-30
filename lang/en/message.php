@@ -48,6 +48,9 @@ return [
     "update_successfully"=>"Post updated successfully",
     "reposted"=>"Reposted successfully",
     "hide_post_successfully"=>"Post hide successfully",
+    "unhide_post_successfully"=>"Post unhide successfully",
+    "hidden_post_cannot_saved"=>"You cannot save hidden post",
+
     "saved_post_successfully"=>"Post saved successfully",
     "repost_removed_successfully"=>"Repost removed successfully",
     "report_to_post_successfully"=>"Report submitted successfully",
