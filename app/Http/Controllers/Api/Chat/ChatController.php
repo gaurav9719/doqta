@@ -33,7 +33,7 @@ class ChatController extends BaseController
     {
         $this->notification         = $notification;
     }
- 
+
     public function index(Request $request) #---------- G E T     T H E       I N B O X ----------#
     {
         try {
@@ -56,7 +56,6 @@ class ChatController extends BaseController
                     $query->where('inboxes.receiver_id', '=', $myId)
                         ->where('inboxes.sender_id', '=', DB::raw('U.id'));
                 });
-                
             })
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table
@@ -67,13 +66,28 @@ class ChatController extends BaseController
                     // Filter the threads where I am the sender or receiver
                     $query->where('inboxes.sender_id', '=', $myId);
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
+
+                })->with('last_message',function($query){
+                    
+                    $query->select('id','message','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread');
                 })
                 ->select('inboxes.*', 'U.name', 'U.profile', 'U.id as other_user_id')
                 ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
                 ->simplePaginate($limit); // Paginate the results
 
-            return $this->sendResponse($threads, "Inbox.", 200);
+                if ($threads[0]) {
+                    $threads->each(function ($result) use($myId) {
+                        $result['unread_message_count'] =   Message::where(['inbox_id'=> $result->id])->where(function($query) use($myId){
 
+                            $query->where('is_user1_trash','!=',$myId)->orWhere('is_user2_trash','!=',$myId);
+
+                        })->where('sender_id','!=',$myId)->where('isread',0)->count();
+                        // dd(DB::getQueryLog());
+                             
+                        
+                    });
+                }
+            return $this->sendResponse($threads, "Inbox.", 200);
         } catch (Exception $e) {
 
             Log::error('Error caught: "get chat history" ' . $e->getMessage());
@@ -102,22 +116,22 @@ class ChatController extends BaseController
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
             $message_type                   =               $request->message_type;
-         
 
-            if($myId==$reciever){
-                return response()->json(['status'=>422,'message'=>"You are not allowed to message yourself."],422);
-           }
-         
-           $message = Inbox::where(function ($query) use ($myId, $reciever) {
-                    $query->where(function ($subQuery) use ($myId, $reciever) {
-                        $subQuery->where('sender_id', $myId)
+
+            if ($myId == $reciever) {
+                return response()->json(['status' => 422, 'message' => "You are not allowed to message yourself."], 422);
+            }
+
+            $message = Inbox::where(function ($query) use ($myId, $reciever) {
+                $query->where(function ($subQuery) use ($myId, $reciever) {
+                    $subQuery->where('sender_id', $myId)
                         ->where('receiver_id', $reciever);
-            })->orWhere(function ($subQuery) use ($myId, $reciever) {
-                $subQuery->where('receiver_id', $myId)
-                    ->where('sender_id', $reciever);
-            });
-        })->first();
-          
+                })->orWhere(function ($subQuery) use ($myId, $reciever) {
+                    $subQuery->where('receiver_id', $myId)
+                        ->where('sender_id', $reciever);
+                });
+            })->first();
+
             if (empty($message)) {
                 // create new thread
                 $message                       =               new Inbox();
@@ -127,19 +141,17 @@ class ChatController extends BaseController
             }
 
             if ($request->hasFile('media')) {
-                
-                $media                          =             message_media($request->media, $message_type);
 
+                $media                          =             message_media($request->media, $message_type);
             }
 
             if (isset($request->thumbnails) && !empty($request->thumbnails)) {
 
                 $media_thumbnail                =             message_media($request->thumbnails, 10);
-
             }
 
 
-            
+
             $inboxId                            =               $message->id;
 
             #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
@@ -147,21 +159,21 @@ class ChatController extends BaseController
             $sendMessage->inbox_id              =                $inboxId;
             $sendMessage->sender_id             =                $myId;
             $sendMessage->message               =                $request->message;
-            if(isset($media) && !empty($media)){
+            if (isset($media) && !empty($media)) {
 
                 $sendMessage->media             =                $media;
             }
-            if(isset($media_thumbnail) && !empty($media_thumbnail)){
+            if (isset($media_thumbnail) && !empty($media_thumbnail)) {
 
                 $sendMessage->media_thumbnail    =                $media_thumbnail;
             }
 
-            if(isset($lat) && !empty($lat)){
+            if (isset($lat) && !empty($lat)) {
 
                 $sendMessage->lat                =                $request->lat;
             }
 
-            if(isset($long) && !empty($long)){
+            if (isset($long) && !empty($long)) {
 
                 $sendMessage->long               =                $request->long;
             }
@@ -172,13 +184,13 @@ class ChatController extends BaseController
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
 
-            $reciever                       =               User::find($reciever, ['id', 'name','profile']);
+            $reciever                       =               User::find($reciever, ['id', 'name', 'profile']);
             $section                        =               trans('notification_message.send_message_type');
             $myName                         =               Auth::user()->first_name;
-            $message                        =               trans('notification_message.send_message')." ".$myName;
+            $message                        =               trans('notification_message.send_message') . " " . $myName;
             $sender                         =               User::find($myId);
             // $this->notification->pushNotificationOnly($reciever, $message,$section);
-            $sent_message                        =               $this->getLastMessage($lastMessageId,$myId);
+            $sent_message                        =               $this->getLastMessage($lastMessageId, $myId);
             return $this->sendResponse($sent_message, "Message send.", 200);
 
 
@@ -194,26 +206,20 @@ class ChatController extends BaseController
             DB::rollback();
             return $this->sendError($e->getMessage(), [], 422);
         }
-
-
-
-
-
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id,Request $request) #------- S H O W       C H A T          H I S T O R Y -----------#
+    public function show(string $id, Request $request) #------- S H O W       C H A T          H I S T O R Y -----------#
     {
         //
         try {
-            if(empty($id)){
+            if (empty($id)) {
 
                 return $this->sendError("user_id required", [], 422);
+            } else {
 
-            }else{
-              
                 $limit                          =               10;
                 if (isset($request->limit) && !empty($request->limit)) {
 
@@ -222,86 +228,84 @@ class ChatController extends BaseController
 
                 $myId                           =               Auth::id();
 
-                $reciever                       =               $request->receiver_id;
+                $reciever                       =               $id;
 
                 if ($myId == $reciever) {
 
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
-
                 } else {
 
                     $inbox                    =              Inbox::where(function ($query) use ($myId, $reciever) {
-
-                        $query->where(['sender_id' => $myId, 'receiver_id' => $reciever])
-                            ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
+                        $query->where(function ($subQuery) use ($myId, $reciever) {
+                            $subQuery->where('sender_id', $myId)
+                                ->where('receiver_id', $reciever);
+                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
+                            $subQuery->where('receiver_id', $myId)
+                                ->where('sender_id', $reciever);
+                        });
                     })->first();
+                    
 
-                    if(isset($inbox) && !empty($inbox)){
+                    if (isset($inbox) && !empty($inbox)) {
 
                         $inboxId              =             $inbox->id;
-                        $messages             =             Message::with(['sender'=>function($query){
+                        $messages             =             Message::with(['sender' => function ($query) {
 
-                                                                $query->select('id','name','profile');
+                            $query->select('id', 'name', 'profile');
+                        }, 'reply_to.sender' => function ($query) {
 
-                                                            },'reply_to.sender'=>function($query){
+                            $query->select('id', 'name', 'profile');
+                        }])->where(function ($query) use ($myId) {
 
-                                                                $query->select('id','name','profile');
-
-                                                            }])->where(function($query) use($myId){
-
-                                                            $query->where('is_user1_trash', '!=', $myId)
-                                                                ->orWhere('is_user2_trash', '!=', $myId);
-
-                                                        })->where('inbox_id',$inboxId)->orderByDesc('id')->simplePaginate($limit);
-                        if($messages[0]){
+                            $query->where('is_user1_trash', '!=', $myId)
+                                ->orWhere('is_user2_trash', '!=', $myId);
+                        })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
+                        if ($messages[0]) {
                             $messages->each(function ($result) {
 
-                                if(isset($result->sender) && !empty($result->sender)){
+                                if (isset($result->sender) && !empty($result->sender)) {
 
-                                    if(isset($result->sender->profile) && !empty($result->sender->profile)){
+                                    if (isset($result->sender->profile) && !empty($result->sender->profile)) {
 
-                                        $result->sender->profile        =   asset('storage/'.$result->sender->profile);
+                                        $result->sender->profile        =   asset('storage/' . $result->sender->profile);
                                     }
                                 }
-                                if(isset($result->media) && !empty($result->media)){
+                                if (isset($result->media) && !empty($result->media)) {
 
-                                    $result->media        =   asset('storage/'.$result->media);
-                                    
+                                    $result->media        =   asset('storage/' . $result->media);
                                 }
-                                if(isset($result->media_thumbnail) && !empty($result->media_thumbnail)){
+                                if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
 
-                                    $result->media_thumbnail        =   asset('storage/'.$result->media_thumbnail);
-
+                                    $result->media_thumbnail        =   asset('storage/' . $result->media_thumbnail);
                                 }
-                                if(isset($result->reply_to) && !empty($result->reply_to)){
+                                if (isset($result->reply_to) && !empty($result->reply_to)) {
 
-                                    if(isset($result->reply_to->media) && !empty($result->reply_to->media)){
+                                    if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
 
-                                        $result->reply_to->media        =   asset('storage/'.$result->reply_to->media);
-                                        
+                                        $result->reply_to->media        =   asset('storage/' . $result->reply_to->media);
                                     }
-                                    if(isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)){
-    
-                                        $result->reply_to->media_thumbnail        =   asset('storage/'.$result->reply_to->media_thumbnail);
-                                    }
-                                    if(isset($result->reply_to->sender) && !empty($result->reply_to->sender)){
+                                    if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
 
-                                        if(isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)){
-    
-                                            $result->reply_to->sender->profile        =   asset('storage/'.$result->reply_to->sender->profile);
+                                        $result->reply_to->media_thumbnail        =   asset('storage/' . $result->reply_to->media_thumbnail);
+                                    }
+                                    if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
+
+                                        if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
+
+                                            $result->reply_to->sender->profile        =   asset('storage/' . $result->reply_to->sender->profile);
                                         }
                                     }
                                 }
-                                if($result->isread==0){
+                                if ($result->isread == 0) {
                                     Message::where('id', $result->id)
-                                    ->update([
-                                        'isread' => 1,
-                                        'message_read_time' => now()
-                                    ]);
+                                        ->update([
+                                            'isread' => 1,
+                                            'message_read_time' => now()
+                                        ]);
                                 }
                             });
                         }
-                    }else{
+                    } else {
 
                         return $this->sendResponse([], "Chat History.", 200);
                     }
@@ -312,7 +316,7 @@ class ChatController extends BaseController
         } catch (Exception $e) {
 
             Log::error('Error caught: "messageHistory" ' . $e->getMessage());
-            
+
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
@@ -342,70 +346,64 @@ class ChatController extends BaseController
     }
 
 
-    public function getLastMessage($message_id,$myId){
+    public function getLastMessage($message_id, $myId)
+    {
 
-        $result             =             Message::with(['sender'=>function($query){
+        $result             =             Message::with(['sender' => function ($query) {
 
-            $query->select('id','name','profile');
+            $query->select('id', 'name', 'profile');
+        }, 'reply_to.sender' => function ($query) {
 
-        },'reply_to.sender'=>function($query){
+            $query->select('id', 'name', 'profile');
+        }])->where(function ($query) use ($myId) {
 
-            $query->select('id','name','profile');
-
-        }])->where(function($query) use($myId){
-
-        $query->where('is_user1_trash', '!=', $myId)
-            ->orWhere('is_user2_trash', '!=', $myId);
-
-        })->where('id',$message_id)->first();
+            $query->where('is_user1_trash', '!=', $myId)
+                ->orWhere('is_user2_trash', '!=', $myId);
+        })->where('id', $message_id)->first();
 
 
-        if(isset($result) && !empty($result)){
-       
+        if (isset($result) && !empty($result)) {
+
 
             // $result->time_ago         =              $result->created_at->diffForHumans();
-            
+
             $result->time_ago         =              time_elapsed_string($result->created_at);
 
-            if(isset($result->sender) && !empty($result->sender)){
+            if (isset($result->sender) && !empty($result->sender)) {
 
-                if(isset($result->sender->profile) && !empty($result->sender->profile)){
+                if (isset($result->sender->profile) && !empty($result->sender->profile)) {
 
-                    $result->sender->profile        =   asset('storage/'.$result->sender->profile);
-
+                    $result->sender->profile        =   asset('storage/' . $result->sender->profile);
                 }
             }
 
-            if(isset($result->media) && !empty($result->media)){
+            if (isset($result->media) && !empty($result->media)) {
 
-                $result->media        =   asset('storage/'.$result->media);
-
+                $result->media        =   asset('storage/' . $result->media);
             }
 
-            if(isset($result->media_thumbnail) && !empty($result->media_thumbnail)){
+            if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
 
-                $result->media_thumbnail        =   asset('storage/'.$result->media_thumbnail);
-
+                $result->media_thumbnail        =   asset('storage/' . $result->media_thumbnail);
             }
 
-            if(isset($result->reply_to) && !empty($result->reply_to)){
+            if (isset($result->reply_to) && !empty($result->reply_to)) {
 
-                if(isset($result->reply_to->media) && !empty($result->reply_to->media)){
+                if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
 
-                    $result->reply_to->media        =   asset('storage/'.$result->reply_to->media);
-
+                    $result->reply_to->media        =   asset('storage/' . $result->reply_to->media);
                 }
 
-                if(isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)){
+                if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
 
-                    $result->reply_to->media_thumbnail        =   asset('storage/'.$result->reply_to->media_thumbnail);
+                    $result->reply_to->media_thumbnail        =   asset('storage/' . $result->reply_to->media_thumbnail);
                 }
-                
-                if(isset($result->reply_to->sender) && !empty($result->reply_to->sender)){
 
-                    if(isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)){
+                if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
 
-                        $result->reply_to->sender->profile        =   asset('storage/'.$result->reply_to->sender->profile);
+                    if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
+
+                        $result->reply_to->sender->profile        =   asset('storage/' . $result->reply_to->sender->profile);
                     }
                 }
             }
@@ -413,5 +411,4 @@ class ChatController extends BaseController
 
         return $result;
     }
-    
 }

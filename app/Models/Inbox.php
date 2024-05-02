@@ -35,4 +35,9 @@ class Inbox extends Model
         return $query->where('sender_id', $userId)->orWhere('receiver_id', $userId);
     }
 
+    public function last_message(){
+
+        return $this->belongsTo(Message::class,'message_id','id');
+    }
+
 }
