@@ -97,7 +97,7 @@ class GetCommunityService extends BaseController
                             ]);
                     }
                 ])
-                ->latest()
+                ->orderByDesc('id')
                 ->simplePaginate($limit);
 
                 $homeScreenPosts->each(function ($homeScreenPost) use($authId) {
@@ -250,6 +250,7 @@ class GetCommunityService extends BaseController
 
             $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
 
+           
             return $this->communityLoop($communities, $authId);
         } catch (Exception $e) {
             // Handle exceptions
@@ -271,7 +272,7 @@ class GetCommunityService extends BaseController
 
                 $limit = $request->limit;
             }
-            $communities = Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->simplePaginate($limit);
+            $communities = Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->orderBy('name', 'asc')->simplePaginate($limit);
 
             return $this->communityLoop($communities, $authId);
         } catch (Exception $e) {
@@ -379,7 +380,10 @@ class GetCommunityService extends BaseController
 
                     $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
                     DB::commit();
-                    return $this->sendResponsewithoutData(trans('message.community_joined_successfully'), 200);
+                    $result                 =   $this->communityMemberCount($request->community_id,$authId);
+                    return $this->sendResponse($result,trans('message.community_joined_successfully'), 200);
+
+                    
                 }
 
             } else {                              ##--------- PRVATE COMMUNITIES ------------#
@@ -404,7 +408,10 @@ class GetCommunityService extends BaseController
                     $notification_message   =   trans('notification_message.new_memeber_group_request_type_message');
                     $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
                     DB::commit();
-                    return $this->sendResponsewithoutData(trans('message.request_send_successfuly'), 200);
+                    $result                 =   $this->communityMemberCount($request->community_id,$authId);
+
+                    return $this->sendResponse($result,trans('message.request_send_successfuly'), 200);
+
                 }
             }
             
@@ -441,7 +448,9 @@ class GetCommunityService extends BaseController
                 $alreadyMember->delete();
                 DB::commit();
                 decrementMemberWithAuth($request->community_id,1);
-                return $this->sendResponsewithoutData(trans('message.remove_successfully'), 200);
+                $result                 =   $this->communityMemberCount($request->community_id,$authId);
+                return $this->sendResponse($result,trans('message.remove_successfully'), 200);
+
             }
         } catch (Exception $e) {
             DB::rollback();
@@ -452,6 +461,15 @@ class GetCommunityService extends BaseController
     #-------------------   R E M O V E        C O M M U N I T Y     -----------------------#
 
 
+
+    public function communityMemberCount($communityId,$authId){
+        $memberCount                 =   GroupMember::where(['group_id'=>$communityId,'is_active'=>1])->count();
+        $is_member                   =   GroupMember::where(['group_id'=>$communityId,'is_active'=>1,'user_id'=>$authId])->exists();
+        $response['groupMemberCount']=   $memberCount;
+        $response['is_joined']       =   ($is_member)?1:0;
+        return $response;
+
+    }
 
 
 }

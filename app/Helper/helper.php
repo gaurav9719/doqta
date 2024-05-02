@@ -1052,3 +1052,21 @@ if (!function_exists('incrementByPoint')) {
 
         }
     }
+
+    if (!function_exists('post_category')) {
+        function post_category($type="")
+        {
+            $categories = [
+                1 => "seeing advice",
+                2 => "giving advice",
+                3 => "sharing media"
+            ];
+            // Check if $type is a valid key in the categories array
+            return $categories[$type] ?? null;
+        }
+    }
+    
+
+
+
+

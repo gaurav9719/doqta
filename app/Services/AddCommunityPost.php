@@ -228,6 +228,7 @@ class AddCommunityPost extends BaseController
             $post->is_reposted  =  ($isRepost)?1:0;
 
             // $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
+            $post->post_category_name = post_category($post->post_category);
             $post->postedAt     = time_elapsed_string($post->created_at);
 
             
@@ -438,12 +439,13 @@ class AddCommunityPost extends BaseController
                     $profile = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
                         (filter_var($groupPost->post_user->profile, FILTER_VALIDATE_URL) ? $groupPost->post_user->profile : asset('storage/' . $groupPost->post_user->profile)) : '';
             
+
                     $groupPost->media_url = $media_url;
                     $groupPost->group->cover_photo = $cover_photo;
                     $groupPost->post_user->profile = $profile;
                     // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
                     $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
-
+                    $groupPost->post_category_name = post_category($groupPost->post_category);
                     
                 }
             }
@@ -533,19 +535,13 @@ class AddCommunityPost extends BaseController
                 if (isset($comment->replies[0]) && ($comment->replies[0])) {
 
                     $comment->replies->each(function($replies) use($authId){
-
                         $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
-
                         $replies->is_liked  = (isset($isExist) && !empty($isExist))?1:0;
                         $replies->reaction  = (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
                     });
-
                 }
                 // $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
                 $comment->postedAt          = time_elapsed_string($comment->created_at);;
-
-                
-
                 return $comment;
             });
 
@@ -599,16 +595,42 @@ class AddCommunityPost extends BaseController
     public function getCommunityPost($community_id, $authId,$request) {
         try {
             // check if i have join the community or not
-            $isGroupMember =   GroupMember::where(['group_id'=>$community_id,'user_id'=>$authId,'is_active'=>1])->first();
-          
-            if(!$isGroupMember){
-                return $this->sendError(trans('message.you_are_not_group_member'), [], 403);
+            $group                          =   Group::withCount('groupMember')->find($community_id);
+            if(isset($group) && !empty($group)){
+
+                $group->cover_photo         =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
+                //check role of community
+                $isGroupMember              =   GroupMember::where(['group_id'=>$group->id,'user_id'=>$authId,'is_active'=>1])->first();
+                if(isset($isGroupMember) && !empty($isGroupMember)){
+
+                    $group->is_joined       = 1; // not join the group
+                    $group->role            = $isGroupMember->role;
+
+                }else{
+                    $request                = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+                    if (isset($request) && !empty($request)) {
+                        if ($request->status == "pending") {
+                            $group->is_joined  = 2; // pending request
+                        } elseif ($request->status == "rejected") {
+                            $group->is_joined  = 3; // rejected
+                        }
+                    } else {
+                        $group->is_joined = 0; // not join the group
+                    }
+                    $group->role      = null;
+                }
             }
+            $isGroupMember =   GroupMember::where(['group_id'=>$community_id,'user_id'=>$authId,'is_active'=>1])->first();
+            if(!$isGroupMember){
+
+                return response()->json(['status' =>400,'message'=>trans('message.you_are_not_group_member'), 'group'=>$group]);
+            }
+
             $limit          =   10;
             if (isset($request['limit']) && !empty($request['limit'])) {
                 $limit      =   $request['limit'];
             }
-            $group          =   Group::withCount('groupMember')->find($community_id);
+           
             
             $posts          =   Post::whereHas('post_user', function($query) {
                     $query->where('is_active', 1);
@@ -655,30 +677,62 @@ class AddCommunityPost extends BaseController
 
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
     
-            if (!empty($posts)) {
+            // if (!empty($posts)) {
 
-                foreach ($posts as $groupPost) {
+            //     foreach ($posts as $groupPost) {
 
-                    $media_url = isset($groupPost->media_url) ? asset('storage/' . $groupPost->media_url) : '';
-                    $cover_photo = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
-                        (filter_var($groupPost->group->cover_photo, FILTER_VALIDATE_URL) ? $groupPost->group->cover_photo : asset('storage/' . $groupPost->group->cover_photo)) : '';
-                    $profile = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
-                        (filter_var($groupPost->post_user->profile, FILTER_VALIDATE_URL) ? $groupPost->post_user->profile : asset('storage/' . $groupPost->post_user->profile)) : '';
+            //         $media_url = isset($groupPost->media_url) ? asset('storage/' . $groupPost->media_url) : '';
+            //         $cover_photo = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
+            //             (filter_var($groupPost->group->cover_photo, FILTER_VALIDATE_URL) ? $groupPost->group->cover_photo : asset('storage/' . $groupPost->group->cover_photo)) : '';
+            //         $profile = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
+            //             (filter_var($groupPost->post_user->profile, FILTER_VALIDATE_URL) ? $groupPost->post_user->profile : asset('storage/' . $groupPost->post_user->profile)) : '';
             
-                    $groupPost->media_url = $media_url;
-                    $groupPost->group->cover_photo = $cover_photo;
-                    $groupPost->post_user->profile = $profile;
-                    // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
-                    $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
+            //         $groupPost->media_url = $media_url;
+            //         $groupPost->group->cover_photo = $cover_photo;
+            //         $groupPost->post_user->profile = $profile;
+            //         // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
+            //         $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
 
                     
-                    $isRepost                =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $groupPost->is_reposted  =  ($isRepost)?1:0;
-                    $isExist                =   PostLike::where(['user_id'=>$authId,'post_id'=>$groupPost->id])->first();
-                    $groupPost->reaction    =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
-                }
-            }
+            //         $isRepost                =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
+            //         $groupPost->is_reposted  =  ($isRepost)?1:0;
+            //         $isExist                 =   PostLike::where(['user_id'=>$authId,'post_id'=>$groupPost->id])->first();
+            //         $groupPost->reaction     =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
 
+            //         $groupPost->post_category_name  =  post_category($groupPost->post_category);
+
+            //     }
+            // }
+            $posts->getCollection()->transform(function ($post) use($authId) {
+                $post->media_url = isset($post->media_url) ? asset('storage/' . $post->media_url) : '';
+               // Check if the post has a group and cover photo is set
+                if ($post->group && $post->group->cover_photo) {
+                    $post->group->cover_photo = filter_var($post->group->cover_photo, FILTER_VALIDATE_URL)
+                        ? $post->group->cover_photo
+                        : asset('storage/' . $post->group->cover_photo);
+                }
+
+                // Check if the post has a user associated with it and user profile is set
+                if ($post->post_user && $post->post_user->profile) {
+                    $post->post_user->profile = filter_var($post->post_user->profile, FILTER_VALIDATE_URL)
+                        ? $post->post_user->profile
+                        : asset('storage/' . $post->post_user->profile);
+                }
+                $post->postedAt = time_elapsed_string($post->created_at);
+    
+                $post->is_reposted = Post::where('parent_id', $post->id)
+                    ->where('user_id', $authId)
+                    ->where('is_active', 1)
+                    ->exists();
+    
+                $post->reaction = PostLike::where('user_id', $authId)
+                    ->where('post_id', $post->id)
+                    ->value('reaction');
+    
+                $post->post_category_name = post_category($post->post_category);
+    
+                return $post;
+            });
             if(isset($group) && !empty($group)){
 
                 $group->cover_photo =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
@@ -699,11 +753,11 @@ class AddCommunityPost extends BaseController
     
                     if (isset($request) && !empty($request)) {
     
-                        if ($request->status = "pending") {
+                        if ($request->status == "pending") {
     
                             $group->is_joined  = 2; // pending request
     
-                        } elseif ($request->status = "rejected") {
+                        } elseif ($request->status == "rejected") {
     
                             $group->is_joined  = 3; // rejected
                         }
@@ -723,7 +777,7 @@ class AddCommunityPost extends BaseController
             return $this->sendError('Error occurred while fetching post.', [], 400);
         }
     }
-        #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
+    #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
 
 
 

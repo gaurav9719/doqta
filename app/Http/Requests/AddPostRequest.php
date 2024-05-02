@@ -28,7 +28,7 @@ class AddPostRequest extends FormRequest
             'title' => ['required', 'string', 'min:1', 'max:25'],
             'content' => ['required', 'string', 'min:10','max:200'],
             'post_type' => ['nullable', 'in:normal,community'],
-            'post_category' => ['required', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
+            'post_category' => ['nullable', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],
             'wrote_by' => ['nullable','integer'],

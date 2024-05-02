@@ -191,11 +191,14 @@ class JournalController extends BaseController
             // Check if the journal with the specified ID exists
 
             $journalExists  = Journal::find($journalId);
+
             if (!isset($journalExists)) {
+
                 DB::rollback();
                 return $this->sendError(trans('message.journal_not_exist'), [], 403);
             }
             if($journalExists->user_id != $userId){
+
                 return $this->sendError('The selected journal id is invalid.', [], 400);
             }
             // Prepare data for creating a new journal entry
@@ -357,16 +360,18 @@ class JournalController extends BaseController
                         if ($isExist->is_favorite == 0) {
 
                             $favorite       =   1;
-
+                            $message= "Added to favorite.";
                         } else {
 
                             $favorite       =   0;
+                            $message= "Removed from favorite.";
                         }
 
                         $isExist->is_favorite       =   $favorite;
                         $isExist->save();
                         DB::commit();
-                        return      $this->journal->journals($authId, $request['id'],$request);
+                        return $this->sendResponsewithoutData($message, 200);
+                        // return      $this->journal->journals($authId, $request['id'],$request);
 
                     }else{
 
@@ -382,16 +387,18 @@ class JournalController extends BaseController
                         if ($isExist->is_favorite == 0) {
 
                             $favorite           =   1;
-
+                            $message= "Added to favorite.";
                         } else {
 
                             $favorite           =   0;
+                            $message= "Removed from favorite.";
                         }
 
                         $isExist->is_favorite   =   $favorite;
                         $isExist->save();
                         DB::commit();
-                        return      $this->journal->journalEntries($authId, $isExist['journal_id'],10,$request,$request['id']);
+                        return $this->sendResponsewithoutData($message, 200);
+                        // return      $this->journal->journalEntries($authId, $isExist['journal_id'],10,$request,$request['id']);
                         
                     }else{
                         return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 422);
@@ -535,6 +542,7 @@ class JournalController extends BaseController
             return $response;
         }
         else{
+
             return $this->sendError('The selected journal id is invalid.', [], 400);
         }
     }

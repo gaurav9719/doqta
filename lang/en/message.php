@@ -102,8 +102,10 @@ return [
 "journal_not_exist"=>"Journal not exist",
 "insight"=>"Insights",
 "trail_already_used"=>"You have already used trail",
+"this_payment_account_already_used"=>"This account is already used by other user",
 
-
+"plan_activates_successfully"=>"Plan activated successfully",
+"Plan_updated_successfully"=>"Plan updated successfully",
     
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",

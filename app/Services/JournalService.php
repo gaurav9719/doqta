@@ -32,23 +32,21 @@ class JournalService extends BaseController
             $limit        = $limit ?? 10; 
             // Eager load relationships with selected fields
             $userJournals = Journal::with(['color:id,hex_code,opacity', 'topic:id,name'])
-                ->where('user_id', $authId)
-                ->where('is_active', 1)
-                ->when($request->filled('search'), function ($query) use ($request) {
-                    // Apply search filter if 'search' parameter is provided
-                    $searchTerm = '%' . $request->input('search') . '%';
-
-                    $query->where('title', 'like', $searchTerm)
-
-                    ->orWhereHas('topic', function ($topicQuery) use ($searchTerm) {
-
-                        $topicQuery->where('name', 'like', $searchTerm);
-                        
-                    });
-                })
-                ->orderByRaw('FIELD(is_favorite,1) DESC')
-                ->orderByDesc('id')
-                ->simplePaginate($limit);
+            ->where('user_id', $authId)
+            ->where('is_active', 1)
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $searchTerm = '%' . $request->input('search') . '%';
+        
+                $query->where(function ($subQuery) use ($searchTerm) {
+                    $subQuery->where('title', 'like', $searchTerm)
+                        ->orWhereHas('topic', function ($topicQuery) use ($searchTerm) {
+                            $topicQuery->where('name', 'like', $searchTerm);
+                        });
+                });
+            })
+            ->orderByDesc('is_favorite') // Order by is_favorite in descending order (1 first)
+            ->orderByDesc('id') // Then order by id in descending order
+            ->simplePaginate($limit);
 
             return $this->sendResponse($userJournals, trans("message.journals"), 200);
 
@@ -67,7 +65,7 @@ class JournalService extends BaseController
 
         try {
             // Default limit if not provided
-          
+         
             $limit          =   $limit ?? 10; 
            
             $journalEntry   =   JournalEntry::with(['feeling_types'=>function($q){
@@ -86,8 +84,18 @@ class JournalService extends BaseController
                 $q->select('id','symptom_id','journal_entry_id');
             },
             'symptom.journalSymtom'=>function($q){
+
                 $q->select('id','symptom');
-            }]);
+                
+            }])
+            
+            ->when($request->filled('search'),function($query) use($request){
+
+                $searchTerm = '%' . $request->search . '%';
+
+                $query->where('content', 'like', $searchTerm);
+                
+            });
             
             if(isset($id) && !empty($id)){
 

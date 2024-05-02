@@ -19,7 +19,7 @@ class EditCommunityPost extends FormRequest
             'content' => 'required|string|min:10|max:200',
             'media_url' => 'nullable|string|min:10',
             'post_type' => 'nullable|in:normal,community',
-            'post_category' => 'required|integer|between:1,3',
+            'post_category' => 'nullable|integer|between:1,3',
             // 'community_id' => 'required|integer|exists:groups,id',
             'link' => 'nullable|url',
             

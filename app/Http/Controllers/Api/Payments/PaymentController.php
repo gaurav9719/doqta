@@ -82,10 +82,7 @@ class PaymentController extends BaseController
             } else {
 
                 $authId          =      Auth::id();
-
                 return  $this->userPayment->AppInPurchase($request,$authId);
-               
-
 
             }
         }catch(Exception $e){

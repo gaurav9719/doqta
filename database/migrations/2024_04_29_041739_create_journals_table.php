@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('journals', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable();
-            $table->string('title')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->string('title')->nullable()->index();
             $table->unsignedBigInteger('topic_id')->nullable();
             $table->string('writing_for')->nullable();
             $table->unsignedBigInteger('color')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('topic_id')->references('id')->on('journal_topics')->onDelete('cascade');
             $table->foreign('color')->references('id')->on('colors')->onDelete('cascade');
-            $table->date('entry_date')->default(now());
-            $table->boolean('is_favorite')->default(0)->comment('1:yes,0:no');
+            $table->date('entry_date')->default(now())->index();
+            $table->boolean('is_favorite')->default(0)->comment('1:yes,0:no')->index();
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });

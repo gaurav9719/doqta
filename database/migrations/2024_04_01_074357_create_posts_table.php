@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('content')->nullable();
             $table->string('media_url')->nullable();
             $table->enum('post_type', ['normal', 'community'])->default('community')->index();
-            $table->tinyInteger('post_category')->default(1)->comment('1: seeking advice, 2: giving advice, 3: sharing media')->index();
+            $table->tinyInteger('post_category')->nullable()->comment('1: seeking advice, 2: giving advice, 3: sharing media')->index();
             $table->timestamps();
         });
     }
