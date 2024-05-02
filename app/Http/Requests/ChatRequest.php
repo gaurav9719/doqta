@@ -67,6 +67,7 @@ class ChatRequest extends FormRequest
         return [
             'receiver_id' => 'required|exists:users,id',
             'message_type' => 'required|numeric|between:1,7',
+            'message'=> 'required_if:message_type,1',
             'media' => [
                 'required_if:message_type,2,3,4,5,7',
                 'file',
@@ -76,9 +77,13 @@ class ChatRequest extends FormRequest
                     return in_array($this->message_type, [2, 3, 4, 7]); // Check if message_type is 2, 3, 4, or 7
                 }),
                 function ($attribute, $value, $fail) use ($allowedMimeTypes) {
+                    
                     // Check if the uploaded file MIME type is in the allowedMimeTypes array
+
                     if (!in_array($value->getMimeType(), $allowedMimeTypes)) {
+
                         $fail('The ' . $attribute . ' must be a valid file of the specified type.');
+
                     }
                 },
             ],
@@ -125,6 +130,8 @@ class ChatRequest extends FormRequest
 
     {
         return [
+
+            'message.message_type'=>"Message required"
         ];
     }
 

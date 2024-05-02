@@ -69,6 +69,7 @@ return [
     "invalid_community"=>"Invalid community",
     "journal_not_added"=>"Journal not added",
     "physical_symptom"=>"Physical symptom",
+    "discover_all"=>"Discovers all",
     
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",

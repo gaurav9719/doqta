@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::table('activity_logs', function (Blueprint $table) {
             //
-            $table->unsignedBigInteger('comment_id')->nullable()->index();
+            $table->unsignedBigInteger('comment_id')->nullable()->after('community_id')->index();
             $table->foreign('comment_id')->references('id')->on('comments')->onDelete('cascade');
         });
     }
-
+    
     /**
      * Reverse the migrations.
      */

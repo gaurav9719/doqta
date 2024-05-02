@@ -208,6 +208,7 @@ class FollowFollowingController extends BaseController
     public function reportUser(Request $request){
 
         DB::beginTransaction();
+
         try {
             
             $authId         =   Auth::id();
@@ -242,6 +243,7 @@ class FollowFollowingController extends BaseController
                 return $this->sendResponsewithoutData(trans('message.user_reported'), 200);
             }
         } catch (Exception $e) {
+            
             DB::rollBack();
             Log::error('Error caught: "report-user" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);

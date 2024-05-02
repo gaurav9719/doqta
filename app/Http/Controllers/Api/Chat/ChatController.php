@@ -102,21 +102,28 @@ class ChatController extends BaseController
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
             $message_type                   =               $request->message_type;
-            
+         
+
             if($myId==$reciever){
                 return response()->json(['status'=>422,'message'=>"You are not allowed to message yourself."],422);
            }
-            $message                        =               Inbox::where(function ($query) use ($myId, $reciever) {
-
-                $query->where(['sender_id' => $myId, 'receiver_id' => $reciever])
-                    ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
-            })->first();
-
+         
+           $message = Inbox::where(function ($query) use ($myId, $reciever) {
+                    $query->where(function ($subQuery) use ($myId, $reciever) {
+                        $subQuery->where('sender_id', $myId)
+                        ->where('receiver_id', $reciever);
+            })->orWhere(function ($subQuery) use ($myId, $reciever) {
+                $subQuery->where('receiver_id', $myId)
+                    ->where('sender_id', $reciever);
+            });
+        })->first();
+          
             if (empty($message)) {
                 // create new thread
                 $message                       =               new Inbox();
                 $message->sender_id            =               $myId;
                 $message->receiver_id          =               $reciever;
+                $message->save();
             }
 
             if ($request->hasFile('media')) {
@@ -130,7 +137,9 @@ class ChatController extends BaseController
                 $media_thumbnail                =             message_media($request->thumbnails, 10);
 
             }
-            $message->save();
+
+
+            
             $inboxId                            =               $message->id;
 
             #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
@@ -226,10 +235,10 @@ class ChatController extends BaseController
                         $query->where(['sender_id' => $myId, 'receiver_id' => $reciever])
                             ->orWhere(['receiver_id' => $myId, 'sender_id' => $reciever]);
                     })->first();
+
                     if(isset($inbox) && !empty($inbox)){
 
                         $inboxId              =             $inbox->id;
-
                         $messages             =             Message::with(['sender'=>function($query){
 
                                                                 $query->select('id','name','profile');
@@ -243,7 +252,7 @@ class ChatController extends BaseController
                                                             $query->where('is_user1_trash', '!=', $myId)
                                                                 ->orWhere('is_user2_trash', '!=', $myId);
 
-                                                        })->orderByDesc('id')->simplePaginate($limit);
+                                                        })->where('inbox_id',$inboxId)->orderByDesc('id')->simplePaginate($limit);
                         if($messages[0]){
                             $messages->each(function ($result) {
 

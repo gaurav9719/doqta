@@ -65,6 +65,7 @@ class DicoverService extends BaseController
             if (!empty($request->search)) {
 
                 $groupIdsQuery->whereHas('communities', function ($query) use ($request) {
+
                     $query->where('name', 'like', "%$request->search%");
                 });
             }
@@ -106,27 +107,33 @@ class DicoverService extends BaseController
             $startOfWeek                            =       Carbon::now()->startOfWeek();
             $endOfWeek                              =       Carbon::now()->endOfWeek();
             $topCommunities                         =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
+
                 $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+
+
             }]);
+
             if(isset($request->search) && !empty($request->search)){
 
                 $topCommunities=$topCommunities->where('name','LIKE',"%$request->search%");
             }
-            $topCommunities=$topCommunities->orderByDesc('post_count')
+            $topCommunities = $topCommunities->orderByDesc('post_count')
 
             ->limit(5)
             ->get();
 
             if(isset($topCommunities) && !empty($topCommunities)){
 
-                $topCommunities->each(function($topCommunity){
+                $topCommunities->each(function($topCommunity) use($authId){
 
                     if(isset($topCommunity->cover_photo) && !empty($topCommunity->cover_photo)){
 
                         $topCommunity->cover_photo =   asset('storage/'.$topCommunity->cover_photo); 
                     }
 
+                    $topCommunity->isJoined         =   (GroupMember::where(['group_id'=>$topCommunity->id,'user_id'=>$authId])->exists())?1:0;
                 });
+                //check is join community or not
             }
             $data['top_communities_this_week']      =     $topCommunities;
 
@@ -217,12 +224,7 @@ class DicoverService extends BaseController
         // Assign the result to the correct variable
         $data['top_videos'] = $topVideos;
 
-
-
-
-
-
-            return $this->sendResponse($data, "dds", 200);
+            return $this->sendResponse($data, trans('message.discover_all'), 200);
 
         } catch (Exception $e) {
             Log::error('Error caught: "discover-all"' . $e->getMessage());
@@ -355,13 +357,9 @@ class DicoverService extends BaseController
             ->simplePaginate($limit);
 
                 $homeScreenPosts->each(function ($homeScreenPost) use($authId) {
-
-
                     #----------- check has liked or not------------#
-
                     $hasLiked                       =   Like::where(['user_id'=>$authId,'post_id'=>$homeScreenPost->id])->whereNull('comment_id')->exists();
-
-                    $homeScreenPost->has_liked      = ($hasLiked)?1:0;
+                    $homeScreenPost->is_liked      = ($hasLiked)?1:0;
 
                     if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
@@ -369,7 +367,7 @@ class DicoverService extends BaseController
                     }
 
                     if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
-                        $homeScreenPost->parent_post->post_user->profile = asset('storage/'.$$homeScreenPost->parent_post->post_user->profile);         
+                        $homeScreenPost->parent_post->post_user->profile = asset('storage/'.$homeScreenPost->parent_post->post_user->profile);         
                     }
                     // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                     $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
