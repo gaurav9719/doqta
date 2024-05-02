@@ -37,9 +37,13 @@ class JournalService extends BaseController
                 ->when($request->filled('search'), function ($query) use ($request) {
                     // Apply search filter if 'search' parameter is provided
                     $searchTerm = '%' . $request->input('search') . '%';
+
                     $query->where('title', 'like', $searchTerm)
+
                     ->orWhereHas('topic', function ($topicQuery) use ($searchTerm) {
+
                         $topicQuery->where('name', 'like', $searchTerm);
+                        
                     });
                 })
                 ->orderByRaw('FIELD(is_favorite,1) DESC')

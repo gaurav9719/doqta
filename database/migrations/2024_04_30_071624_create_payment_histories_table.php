@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('payment_histories', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable()->index();
-
             $table->unsignedBigInteger('user_plan_id')->nullable();
             $table->string('transaction_id')->nullable();
             $table->float('amount')->nullable();

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\PaymentHistory;
 use App\Models\UserPlan;
 use Exception;
+use App\Models\User;
 
 /**
  * Class user_payment.
@@ -40,7 +41,32 @@ class user_payment extends BaseController
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
     
             } else {
-    
+                //check user already used trailed or not
+                $isTrailUsed        =       User::select(['id'=>$userId,'is_active'=>1,'is_trial_used'=>1])->exists();
+
+                if($isTrailUsed){
+
+                    return $this->sendResponsewithoutData(trans('message.trail_already_used'), 403);
+
+                }
+                //check user transaction id with userid
+
+                UserPlan::where('transaction_id')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 $isTrail                              =     $request->is_trial_period;
                 $startdate                            =     utc_time_conversion($request->start_date);
                 $enddate                              =     utc_time_conversion($request->end_date);

@@ -101,6 +101,7 @@ return [
 "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
 "journal_not_exist"=>"Journal not exist",
 "insight"=>"Insights",
+"trail_already_used"=>"You have already used trail",
 
 
     

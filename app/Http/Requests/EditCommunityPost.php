@@ -14,9 +14,9 @@ class EditCommunityPost extends FormRequest
     public function rules()
     {
         return [
-
-            'title' => 'required|string|min:10|max:200',
-            'content' => 'required|string|min:10',
+           
+            'title' => 'required|string|min:1|max:25',
+            'content' => 'required|string|min:10|max:200',
             'media_url' => 'nullable|string|min:10',
             'post_type' => 'nullable|in:normal,community',
             'post_category' => 'required|integer|between:1,3',
