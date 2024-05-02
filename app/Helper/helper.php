@@ -1037,3 +1037,18 @@ if (!function_exists('incrementByPoint')) {
         }
 
     }
+
+
+    if(!function_exists('utc_time_conversion')){
+
+        function utc_time_conversion($datetimeString){
+            // Create a Carbon instance from the datetime string
+            $datetime = Carbon::parse($datetimeString);
+            // Convert the datetime to UTC
+            $utcDatetime = $datetime->setTimezone('UTC');
+
+            // Format the UTC datetime as needed (optional)
+            return $utcDatetime->format('Y-m-d H:i:s');
+
+        }
+    }

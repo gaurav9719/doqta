@@ -63,7 +63,7 @@ class JournalService extends BaseController
 
         try {
             // Default limit if not provided
-            DB::enableQueryLog();
+          
             $limit          =   $limit ?? 10; 
            
             $journalEntry   =   JournalEntry::with(['feeling_types'=>function($q){

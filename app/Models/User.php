@@ -19,9 +19,47 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+      
+            "id",
+            "social_id",
+            "name",
+            "user_name",
+            "email",
+            "password",
+            "dob",
+            "country_code",
+            "phone_no",
+            "country_id",
+            "state_id",
+            "city_id",
+            "zipcode",
+            "lat",
+            "long",
+            "gender",
+            "pronoun",
+            "ethnicity",
+            "guideline",
+            "complete_step",
+            "login_type",
+            "device_type",
+            "device_token",
+            "profile",
+            "cover",
+            "bio",
+            "stripe_customer_id",
+            "mute_notification",
+            "otp",
+            "otp_expiry_time",
+            "is_email_verified",
+            "signup_process",
+            "email_verified_at",
+            "remember_token",
+            "is_active",
+            "created_at",
+            "updated_at"
+          
+          
+        
         
     ];
 

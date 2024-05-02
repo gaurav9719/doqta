@@ -21,19 +21,16 @@ use App\Models\GroupMemberRequest;
  */
 class AddCommunityPost extends BaseController
 {
-
     #*********-------     A D D        P O S T     ---------------********#
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
-
         try {
 
             $post                    =      new Post();
             $post->user_id           =      $authId;
             $post->title             =      $request->title;
             $post->content           =      $request->content;
-
             if ($request->hasFile('media')) {
 
                 if(empty($request->media_type)){
@@ -43,12 +40,12 @@ class AddCommunityPost extends BaseController
                 $post_image          =       $request->file('media');
                 $Uploaded            =       upload_file($post_image, 'post_images');
                 $post->media_url     =       $Uploaded;
-                $post->media_type     =       $request->media_type;
+                $post->media_type    =       $request->media_type;
             }
-
             // if (isset($request->group_id) && !empty($request->group_id)) {
 
-            //     $post->group_id      =      $request->group_id;
+                //     $post->group_id      =      $request->group_id;
+
             // }
 
             if (isset($request->link) && !empty($request->link)) {

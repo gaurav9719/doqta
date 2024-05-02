@@ -16,6 +16,7 @@
         "laravel/tinker": "^2.8",
         "romanzipp/laravel-queue-monitor": "^5.0",
         "simplesoftwareio/simple-qrcode": "^4.2",
+        "stripe/stripe-php": "^14.4",
         "yajra/laravel-datatables-oracle": "^10.11"
     },
     "require-dev": {

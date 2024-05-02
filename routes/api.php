@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Chat\ChatController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
 use App\Http\Controllers\Api\Journals\JournalController;
+use App\Http\Controllers\Api\Payments\PaymentController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -135,12 +136,22 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     
     Route::post('journal/journalEntry', [JournalController::class,'journalEntry']);
     Route::get('journal/insights', [JournalController::class,'insights']);
-
-    
+    Route::get('journal/getJournalEntries', [JournalController::class,'getJournalEntries']);
     Route::resource('journal', JournalController::class);
+});
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+
+    // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
+   
+    
+    Route::resource('payment', PaymentController::class);
 
     
 });
+
+
+
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);

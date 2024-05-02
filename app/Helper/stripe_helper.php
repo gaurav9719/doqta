@@ -29,47 +29,13 @@ if (!function_exists('createStripeCustomer')) {
         try {
 
             $stripe                 =               init_Stripe();
-
-
             $user                   =               User::find($user_id);
-            
-            if (isset($user->country_id) && !empty($user->country_id)) {
-
-                $user->country_name =               Country::find($user->country_id)['name'];
-            } else {
-
-                $user->country_name =               "USA";
-            }
-
-            if (isset($user->state_id) && !empty($user->state_id)) {
-
-                $user->state_name   =               State::find($user->state_id)['name'];
-            } else {
-
-                $user->state_name   =               "California";
-            }
-
-            if (isset($user->city_id) && !empty($user->city_id)) {
-
-                $user->city_name    =               City::find($user->city_id)['name'];
-            } else {
-
-                $user->city_name    =                "Hollywood";
-            }
-
-            if (isset($user->zipcode) && !empty($user->zipcode)) {
-
-                $user->zipcode    =              $user->zipcode;
-
-            } else {
-
-                $user->zipcode    =                33004;
-            }
-
-
-            $customer               =       $stripe->customers->create([
-
-                'name' => $user->first_name." ". $user->last_name,
+            $user->country_name     =               "USA";
+            $user->state_name       =               "California";
+            $user->city_name        =               "Hollywood";
+            $user->zipcode          =               33004;
+            $customer               =               $stripe->customers->create([
+                'name' =>      $user->user_name,
                 'email' => $user->email,
                 'description' => $user_id,
 

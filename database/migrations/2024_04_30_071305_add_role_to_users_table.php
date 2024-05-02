@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('is_trial_used')->default(0)->comment('1=trial used, 0=not used')->after('is_public');
             $table->tinyInteger('plan_status')->default(0)->comment('1=active, 0=not active, 2=expired')->after('is_public');
             $table->foreign('user_plan_id')->references('id')->on('user_plans')->onDelete('cascade');
+            $table->string('stripe_customer_id')->nullable()->after('bio');
         });
     }
 

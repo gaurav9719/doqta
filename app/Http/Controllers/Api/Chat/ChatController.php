@@ -46,6 +46,7 @@ class ChatController extends BaseController
             $myId                           =               Auth::id();
             $data                           =               $request->all();
             $threads                        =               Inbox::leftJoin('users as U', function ($join) use ($myId) {
+
                 $join->on(function ($query) use ($myId) {
                     // Join condition when sender_id matches myId
                     $query->where('inboxes.sender_id', '=', $myId)
@@ -55,6 +56,7 @@ class ChatController extends BaseController
                     $query->where('inboxes.receiver_id', '=', $myId)
                         ->where('inboxes.sender_id', '=', DB::raw('U.id'));
                 });
+                
             })
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table

@@ -189,12 +189,15 @@ class JournalController extends BaseController
             $userId         = Auth::id();
             $journalId      = $request->journal_id;
             // Check if the journal with the specified ID exists
-            $journalExists  = Journal::where('id', $journalId)->exists();
-            if (!$journalExists) {
+
+            $journalExists  = Journal::find($journalId);
+            if (!isset($journalExists)) {
                 DB::rollback();
                 return $this->sendError(trans('message.journal_not_exist'), [], 403);
             }
-
+            if($journalExists->user_id != $userId){
+                return $this->sendError('The selected journal id is invalid.', [], 400);
+            }
             // Prepare data for creating a new journal entry
             $addJournal = [
                 'journal_id' => $journalId,
@@ -465,8 +468,10 @@ class JournalController extends BaseController
 
     #-------------------- G E N E R A L     I N S I G H T      -------------------------------#
     public function insights(Request $request){
+
         try {
-            $validation         =   Validator::make($request->all(),['journal_id'=>'nullable|integer|exists:journals,id',
+
+            $validation                 =   Validator::make($request->all(),['journal_id'=>'nullable|integer|exists:journals,id',
             'start_date' => ['required', 'date', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date', 'date_format:Y-m-d'],]);
             if($validation->fails()){
@@ -474,9 +479,9 @@ class JournalController extends BaseController
             }
             $start_date                 =   $request->start_date;
             $end_date                   =   $request->end_date;
-            $dates                      = getDatesBetween($start_date,$end_date);
+            $dates                      =   getDatesBetween($start_date,$end_date);
             if(isset($dates[0]) && !empty($dates[0])){
-                $insight              =   array();
+                $insight                =   array();
                 foreach ($dates as $date) {
 
                     $insights           =   JournalEntry::with(['feeling'=>function($query){
@@ -498,16 +503,40 @@ class JournalController extends BaseController
                         ];
                     }
                 }
-               return $this->sendResponse($insight, "hgk",200);
+               return $this->sendResponse($insight, trans('message.insight'),200);
             }
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error caught in "UpdatejournalEntry" method: ' . $e->getMessage());
+            Log::error('Error caught in "insights" method: ' . $e->getMessage());
             return $this->sendError('Failed to create journal entry.', [], 400);
         }
     }
     #-------------------- G E N E R A L     I N S I G H T     -------------------------------#
 
+    function getJournalEntries(Request $request){
 
+        $limit  = $request->filled('limit') ? (int) $request->input('limit') : 10;
+        $userId = Auth::id();
+
+        $validate=Validator::make($request->all(), [
+            'journal_id' => 'required|integer|exists:journals,id',
+            'limit' => 'nullable|integer',
+        ]);
+        
+        if($validate->fails()){
+            return $this->sendError($validate->errors()->first(), [], 400); 
+        }
+
+        $check          = Journal::find($request->journal_id);
+
+        if($check->user_id == $userId){
+
+            $response = $this->journal->journalEntries($userId, $request->journal_id, $limit, $request);
+            return $response;
+        }
+        else{
+            return $this->sendError('The selected journal id is invalid.', [], 400);
+        }
+    }
 
 }
