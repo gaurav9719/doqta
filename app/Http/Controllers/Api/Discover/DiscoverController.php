@@ -86,4 +86,11 @@ class DiscoverController extends BaseController
     {
         //
     }
+
+    public function topHealthProvider(Request $request){
+        $authId     =   Auth::id();
+        
+        return $this->discover->topHealthProvider($request,$authId,3);
+
+    }
 }

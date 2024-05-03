@@ -17,6 +17,9 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->unsignedBigInteger('participant_id')->nullable()->index();
             $table->foreign('participant_id')->references('id')->on('participant_categories')->onDelete('cascade')->onUpdate('cascade');
+            $table->boolean('is_verify')->default(0)->comment('0:inactive,1:active');
+            $table->integer('tag_id')->nullable();
+            $table->string('tag')->nullable();
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });

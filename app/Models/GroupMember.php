@@ -43,4 +43,13 @@ class GroupMember extends Model
         return $this->belongsTo(Group::class,'group_id','id');
     }
 
+    public function HealthProvider(){
+
+        return $this->hasMany(UserParticipantCategory::class,'user_id','user_id');
+    }
+
+
+
+
+
 }

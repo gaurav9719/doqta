@@ -68,7 +68,9 @@ class JournalService extends BaseController
          
             $limit          =   $limit ?? 10; 
            
-            $journalEntry   =   JournalEntry::with(['feeling_types'=>function($q){
+            $journalEntry   =   JournalEntry::with(['feeling:id,name,feeling,selected',
+            
+            'feeling_types'=>function($q){
 
                 $q->select('id','journal_entry_id','feeling_type');
             },
@@ -77,6 +79,7 @@ class JournalService extends BaseController
                 $q->select('id','name');
             }
             ,'feeling'=>function($q){
+
                 $q->select('id','name');
 
             },'symptom'=>function($q){
@@ -112,6 +115,7 @@ class JournalService extends BaseController
             ->simplePaginate($limit);
             // dd(DB::getQueryLog());
             $journalEntry->each(function($journal){
+
                 if($journal->media){
 
                     $journal->media     =   asset('storage/'.$journal->media);    
@@ -121,6 +125,15 @@ class JournalService extends BaseController
 
                     $journal->audio     =   asset('storage/'.$journal->audio);    
                 }
+
+                if(isset($journal->feeling) && !empty($journal->feeling)){
+
+                    $journal->feeling->feeling     =   asset('storage/'.$journal->feeling->feeling);    
+                    $journal->feeling->selected     =   asset('storage/'.$journal->feeling->selected);    
+                }
+
+
+
             });
             return $this->sendResponse($journalEntry, trans("message.journals"), 200);
 

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('followers_count')->default(0)->after('is_public')->comment('count the user who followinf me');
             $table->integer('followings_count')->default(0)->after('followers_count')->comment('whose i am follwing');
             
+
         });
     }
 

@@ -17,6 +17,8 @@ use App\Services\NotificationService;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Like;
+use App\Models\UserFollower;
+use GuzzleHttp\Psr7\Query;
 
 /**
  * Class DicoverService.
@@ -404,7 +406,8 @@ class DicoverService extends BaseController
         
                 $query->where('user_id','<>' ,$authId);
 
-                })->where('created_by','<>' ,$authId);
+            })->where('created_by','<>' ,$authId)->where('is_active',1);
+                
 
             if (!empty($request->search)) {
 
@@ -413,7 +416,7 @@ class DicoverService extends BaseController
             }
             $discoveredCommunity       =   $discoverCommunity->simplePaginate($limit);
 
-            $discoveredCommunity->each(function($query){
+            $discoveredCommunity->each(function($query) use($authId){
 
                 if(isset($query->member_count) && !empty($query->member_count)){
 
@@ -426,6 +429,10 @@ class DicoverService extends BaseController
                     $query->cover_photo    =   asset('storage/'.$query->cover_photo);
 
                 }
+                $query->isJoined         =   (GroupMember::where(['group_id'=>$query->id,'user_id'=>$authId])->exists())?1:0;
+
+
+
             });
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
             
@@ -708,4 +715,109 @@ class DicoverService extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+
+
+
+    #------------------- G E T       T O P      H E A L T H         P R O V I D E R  ------------------------#
+
+
+    public function topHealthProvider($request,$authId,$limit){
+
+        $limit                 =    $request->limit??10;
+        $groupIds              =    Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+        if ($groupIds->isNotEmpty()) {
+            $maxLikesPosts      =   Post::selectRaw('
+                                        group_id,
+                                        user_id,
+                                        COUNT(*) as post_count,
+                                        SUM(support_count + helpful_count) as total_likes_count
+                                    ')
+                                   
+                                    ->whereNotExists(function ($query) use ($authId) {
+
+                                        $query->select(DB::raw(1))->from('blocked_users')
+
+                                            ->where(function ($query) use ($authId) {
+                                                // Check if the authenticated user has blocked someone
+                                                $query->where('user_id', $authId)
+                                                      ->whereColumn('blocked_users.blocked_user_id', 'user_id');
+                                            })
+                                            ->orWhere(function ($query) use ($authId) {
+                                                // Check if the authenticated user has been blocked by someone
+                                                $query->where('blocked_user_id', $authId)
+                                                      ->whereColumn('blocked_users.user_id', 'user_id');
+                                            });
+                                    })
+
+                                    ->whereNotExists(function ($query) use ($authId) {
+                                        $query->select(DB::raw(1))
+                                            ->from('user_followers')
+                                            ->whereColumn('user_followers.user_id', '=', 'posts.user_id')
+                                            ->where('user_followers.follower_user_id', '=', $authId);
+                                    })->with('post_user',function($query){
+
+                                        $query->select('id','name','user_name','profile');
+                                    })
+                                    
+                                    ->where('user_id','<>',$authId)
+                                    ->where('is_health_provider', 1)
+                                    ->whereIn('group_id', $groupIds)
+                                    ->groupBy('group_id', 'user_id')
+                                    ->havingRaw('total_likes_count > 0')
+                                    ->orderByDesc('total_likes_count')
+                                    ->simplePaginate($limit);
+                                    // Filter to keep only the first occurrence of each user_id
+                                    // $uniqueUserIds = [];
+                                    // $filteredPosts = [];
+                                    // foreach ($maxLikesPosts as $post) {
+                                    //     $userId = $post->user_id;
+                                    //     if (!in_array($userId, $uniqueUserIds)) {
+                                    //         $uniqueUserIds[] = $userId;
+                                    //         $filteredPosts[] = $post;
+                                    //     }
+                                    // }
+                                    // $filteredPosts = $maxLikesPosts->unique('user_id')->values();
+                                    $uniqueUserIds = collect();
+
+                                    // Process each page of results
+                                    // Process each page of results
+                            $maxLikesPosts->getCollection()->transform(function ($post) use ($uniqueUserIds,$authId) {
+                                
+                                if(isset($post->post_user) && !empty($post->post_user)){
+
+                                    if(isset($post->post_user->profile) && !empty($post->post_user->profile)){
+
+                                        $post->post_user->profile   =   asset('storage/'.$post->post_user->profile);
+
+                                    }
+                                }
+                                $post->is_supporting                =   (UserFollower::where(['user_id'=>$post->user_id,'follower_user_id'=>$authId,'status'=>2])->exists())?1:0;
+                                if (!$uniqueUserIds->contains($post->user_id)) {
+
+                                    $uniqueUserIds->push($post->user_id);
+                                    return $post; // Include this post in filtered result
+                                }
+                                return null; // Exclude this post
+                            });
+                            // Filter out null values (excluded posts) and reset keys
+                            $filteredPosts = $maxLikesPosts->getCollection()->filter()->values();
+                            // Update the collection in $maxLikesPosts with the filtered posts
+                            $maxLikesPosts->setCollection($filteredPosts);
+                            // Return the paginated results after processing
+                            return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200);
+                                            
+          
+          
+        } else {
+            // Handle case when no matching group IDs found
+        }
+    }
+
+
+
+
+
+
+
 }
