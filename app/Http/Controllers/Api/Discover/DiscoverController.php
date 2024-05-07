@@ -36,7 +36,7 @@ class DiscoverController extends BaseController
     {
         $authId         =   Auth::id();
 
-        return $this->discover->discover($request,$authId);
+        return $this->discover->discover($request,$authId,3);
     }
 
     /**
@@ -90,7 +90,105 @@ class DiscoverController extends BaseController
     public function topHealthProvider(Request $request){
         $authId     =   Auth::id();
         
-        return $this->discover->topHealthProvider($request,$authId,3);
+        return $this->discover->topCommunityThisWeek($request,$authId,3,1);
 
     }
+
+    #------------------------ D I S C O V E R        P A R T S   ----------------------# 
+    public function discoverPart(Request $request){
+
+        try {
+            
+            $authId         =   Auth::id();
+
+            $validation     =   Validator::make($request->all(),['type'=>'required|integer|in:0,3,4',
+                                'inner_type' => [
+                                    'required_if:type,0,3,4', // inner_type is required if type is 0, 3, or 4
+                                    'integer',
+                                    // inner_type must be one of 0, 3, or 4 if provided
+                                ],]);
+            if($validation->fails()){
+
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
+            }else{
+
+                $limit      =   $request->limit??10;
+
+                if($request->type==0){      // All type
+
+                    if($request->inner_type==1){ #----------support_shared_interests ---------------#
+
+                        return $this->discover->supportShareInterest($request,$authId,$limit);
+
+                    }elseif ($request->inner_type==2) { #----------top_communities_this_week ---------------#
+                       
+                        return $this->discover->topCommunityThisWeek($request,$authId,$limit);
+
+                        
+                    }elseif ($request->inner_type==3) { #----------care_takers ---------------#
+                        
+                        return $this->discover->topArticles($request,$authId,$limit);
+
+
+                    }
+                    elseif ($request->inner_type==4) {  #----------top_videos ---------------#
+                        
+                        return $this->discover->topVideos($request,$authId,$limit);
+
+                    }
+                }
+                // if($request->type==1){  #-----------Discover posts ---------------#
+
+                
+                    
+                // }
+
+                // if($request->type==2){      #-----------Discover communities ---------------#
+
+
+                
+                // }
+
+                if($request->type==3){       #-----------Discover people ---------------#
+
+                
+                    if($request->inner_type==1){ #----------support_shared_interests ---------------#
+
+                        return $this->discover->supportUsers($request,$authId,$limit);
+
+                    }elseif ($request->inner_type==2) { #----------top_communities_this_week ---------------#
+                       
+                        return $this->discover->topHealthProvider($request,$authId,$limit);
+
+                        
+                    }elseif ($request->inner_type==3) { #----------care_takers ---------------#
+                        
+                        return $this->discover->careTakerBySearch($request,$authId,$limit);
+
+                    }
+                }
+
+                if($request->type==4){      #-----------Discover media ---------------#
+
+
+                    if($request->inner_type==1){ #--------- T O P   A R T I C L E S ---------------#
+
+                        return $this->discover->topArticles($request,$authId,$limit);
+
+                    }elseif ($request->inner_type==2) { #---------- T O P   V I D E O ---------------#
+                       
+                        return $this->discover->topVideos($request,$authId,$limit);
+                    }
+                }
+            }
+        }catch(Exception $e){
+
+            DB::rollback();
+            Log::error('Error caught: "discoverPart" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------------------ D I S C O V E R        P A R T S   ----------------------# 
+
 }

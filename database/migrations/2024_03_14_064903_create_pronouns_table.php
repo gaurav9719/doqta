@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('subjective')->nullable();
             $table->string('objective')->nullable();
             $table->string('possessive')->nullable();
-            $table->string('possessive')->nullable();
             $table->string('possessive_plural')->nullable();
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();

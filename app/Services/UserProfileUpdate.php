@@ -81,7 +81,19 @@ class UserProfileUpdate extends BaseController
                 $user_details->bio     =   $request->bio;
 
             }
+
+            if($request->is_public == 0 && $request->is_public != null || $request->is_public == 1){
+
+                $user_details->is_public     =   $request->is_public;
+
+            }
             
+            if($request->is_muted == 0 && $request->is_muted != null || $request->is_muted == 1){
+
+                $user_details->is_muted     =   $request->is_muted;
+
+            }
+
             $user_details->save();
             DB::commit();
             

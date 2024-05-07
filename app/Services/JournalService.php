@@ -301,6 +301,7 @@ class JournalService extends BaseController
         try {
 
             $journal        =   Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
+
             if ($request->filled('title')) {
 
                 $journal->title = $request->title;
@@ -310,7 +311,32 @@ class JournalService extends BaseController
             // Check and set 'topic_id' if provided
             if ($request->filled('topic')) {
 
-                $journal->topic_id = $request->topic;
+                $topic          =   $request->topic;
+            }
+
+            if(isset($request->other_topic) && !empty($request->other_topic)){
+
+                $topicString           =   $request->topic;
+
+                $isExist = JournalTopic::where('name', $topicString)->where(function ($query) use ($authId) {
+
+                                    $query->whereNull('user_id')->orWhere('user_id', $authId);
+
+                                })->exists();
+                if(!$isExist){
+                    
+                    $addTopic              =   new JournalTopic();
+                    $addTopic->name        =   $topic;
+                    $addTopic->icon        =   'interest/other.png';
+                    $addTopic->user_id     =   $authId;
+                    $addTopic->save();
+                    $topic                 =  $addTopic->id;
+                }
+            }
+
+            if(isset($topic) && !empty($topic)){
+
+                $journal->topic =  $topic;
             }
 
             // Check and set 'writing_for' if provided

@@ -696,4 +696,45 @@ class CommunityPost extends BaseController
     }
     #---------- G E T       S A V E D    P O S T  ------------------------------------#
 
+
+    #---------------   Delete Comment --------------------#
+    function deleteComment(Request $request){
+
+        $validate= Validator::make($request->all(),[
+
+            'comment_id' => 'required|exists:comments,id',
+
+        ]);
+        if($validate->fails()){
+
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+        }
+
+        $userId             =   Auth::id();
+
+        $comment            =   Comment::where('id', $request->comment_id)->where('is_active', 1)->first();
+
+        if(isset($comment) && $comment->user_id == $userId) {
+
+            $comment->delete();
+
+            $commentCount       =   Post::select('comment_count')->where('id',$comment->post_id)->first();
+
+            if($commentCount->comment_count >0){
+
+                decrement('posts', ['id' => $request->post_id], 'comment_count', 1); //decrement post
+            }
+            $activity       =   ActivityLog::where('post_id', $comment->post_id)->where('comment_id', $comment->id)->first();
+
+            if(isset($activity)){
+
+                $activity->delete();
+            }
+            return $this->sendResponsewithoutData("Comment Deleted Successfully", 200);
+        }
+        else{
+            return $this->sendResponsewithoutData("Comment not found", 400);
+        }
+    }
+
 }

@@ -28,8 +28,19 @@ class FeelingController extends BaseController
 
             $authId                  =   Auth::id();
             $data['color']           =   Color::where('is_active', 1)->get();
-            $data['journal_topic']   =   JournalTopic::where('is_active', 1)->get();
-            $data['symptom']         =   PhysicalSymptom::where('is_active',1)->orWhere('user_id',$authId)->get();
+            $data['journal_topic']   =  JournalTopic::where('is_active', 1)
+                                        ->where(function ($query) use ($authId) {
+                                            $query->whereNull('user_id') // Check for NULL user_id
+                                                ->orWhere('user_id', $authId); // OR user_id matches $authId
+                                        })->get();
+                                
+                                
+            $data['symptom']        =   PhysicalSymptom::where('is_active', 1)
+                                        ->where(function ($query) use ($authId) {
+                                            $query->whereNull('user_id') // Empty user_id condition
+                                                ->orWhere('user_id', $authId); // OR user_id matches $authId
+                                        })->get();
+
             $feelings                =   Feeling::with('feeling_type')->where('is_active', 1)->get();
 
             if(isset($feelings) && !empty($feelings)){

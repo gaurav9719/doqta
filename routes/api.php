@@ -95,8 +95,9 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
     Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
     Route::post('communityPosts/addComment', [CommunityPost::class,'addComment']);
-
+    Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::resource('communityPosts', CommunityPost::class);
+
     
 });
 
@@ -158,6 +159,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
     // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
     Route::get('discover/topHealthProvider', [DiscoverController::class,'topHealthProvider']);
+    Route::get('discover/parts', [DiscoverController::class,'discoverPart']);
     Route::resource('discover', DiscoverController::class);
 
 });

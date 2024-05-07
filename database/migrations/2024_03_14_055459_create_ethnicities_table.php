@@ -16,7 +16,10 @@ return new class extends Migration
         Schema::create('ethnicities', function (Blueprint $table) {
             $table->id();
             $table->string('name',50)->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->boolean('is_active')->default(1);
+            $table->tinyInteger('type')->default(1);
             $table->timestamps();
         });
         Artisan::call('db:seed', ['--class' => EthnicitySeeder::class]);
@@ -29,6 +32,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('ethnicities');
+
+
     }
 
 

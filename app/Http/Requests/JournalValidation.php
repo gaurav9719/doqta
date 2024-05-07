@@ -16,7 +16,8 @@ class JournalValidation extends FormRequest
     {
         return [
             'title' => 'required|string|min:10|max:100',
-            'topic' => 'required|integer|exists:journal_topics,id',
+            'topic' => 'nullable|integer|exists:journal_topics,id',
+            'other_topic' => 'nullable|string',
             'writing_for' => 'required|string|min:3',
             'color' => 'required|integer|exists:colors,id',
         ];

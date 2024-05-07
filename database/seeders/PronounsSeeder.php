@@ -14,9 +14,10 @@ class PronounsSeeder extends Seeder
     {
         //
         $pronouns = [
-            ['subjective' => 'He', 'objective' => 'Him', 'possessive' => 'His'],
-            ['subjective' => 'She', 'objective' => 'Her', 'possessive' => 'Hers'],
-            ['subjective' => 'They', 'objective' => 'Them', 'possessive' => 'Their', 'possessive_plural' => 'Theirs'],
+            ['subjective' => 'He', 'objective' => 'him', 'possessive' => 'his'],
+            ['subjective' => 'She', 'objective' => 'her', 'possessive' => 'hers'],
+            ['subjective' => 'They', 'objective' => 'them', 'possessive' => 'theirs'],
+            ['subjective' => 'Prefer not to disclose', 'objective' =>null , 'possessive' =>null]
             // Add more pronouns as needed
         ];
 
@@ -25,7 +26,7 @@ class PronounsSeeder extends Seeder
                 'subjective' => $pronoun['subjective'],
                 'objective' => $pronoun['objective'],
                 'possessive' => $pronoun['possessive'],
-                'possessive_plural' => $pronoun['possessive_plural'] ?? null,
+                // 'possessive_plural' => $pronoun['possessive_plural'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

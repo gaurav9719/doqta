@@ -19,6 +19,7 @@ use Carbon\Carbon;
 use App\Services\JournalService;
 use App\Models\PhysicalSymptom;
 use App\Models\Journal;
+use App\Models\JournalTopic;
 use App\Rules\FeelingTypeIsExist;
 use App\Rules\SymptomIsExist;
 
@@ -70,11 +71,48 @@ class JournalController extends BaseController
         DB::beginTransaction();
 
         try {
+
             $userId         = Auth::id();
-            $addJournal     = Journal::create([
+           
+            if(empty($request->topic) && empty($request->other_topic)){
+
+                return $this->sendError("topic required", [], 400);
+
+            }
+            $topic          = "";
+
+
+            if(isset($request->topic) && !empty($request->topic)){
+
+                $topic          =   $request->topic;
+
+            }
+           
+            if(isset($request->other_topic) && !empty($request->other_topic)){
+
+                $topicString           =   $request->other_topic;
+
+                $isExist = JournalTopic::where('name', $topicString)->where(function ($query) use ($userId) {
+
+                                    $query->whereNull('user_id')->orWhere('user_id', $userId);
+
+                                })->exists();
+                if(!$isExist){
+
+                    $addTopic              =   new JournalTopic();
+                    $addTopic->name        =   $topicString;
+                    $addTopic->icon        =   'interest/other.png';
+                    $addTopic->user_id     =   $userId;
+                    $addTopic->save();
+                    $topic                 =  $addTopic->id;
+                }
+            }
+           
+
+            $addJournal                  = Journal::create([
                 'title' => $request->title,
                 'user_id' => $userId,
-                'topic_id' => $request->topic,
+                'topic_id' => $topic,
                 'writing_for' => $request->writing_for,
                 'color' => $request->color,
                 'entry_date' => Carbon::now(),
@@ -330,9 +368,56 @@ class JournalController extends BaseController
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request,string $id)
     {
         //
+        if(empty($id)){
+
+            return $this->sendResponsewithoutData("Invalid id", 422);
+        }
+        DB::beginTransaction();
+
+        try {
+            $authId     =   Auth::id();
+            $validation =   Validator::make($request->all(), ['type'=>'required|between:1,2']);
+
+            if ($validation->fails()) {
+
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
+            } else {
+
+                if($request->type==1){
+
+                    //check is exist and ownner of the journal 
+                    $isExist        =   Journal::where(['id'=>$id,'user_id'=>$authId,'is_active'=>1])->first();
+
+                    if(isset($isExist) && !empty($isExist)){
+
+                        $isExist->delete();
+                        DB::commit();
+                    }else{
+                        return $this->sendResponsewithoutData("Invalid journal", 422);
+
+                    }
+                }else {
+                    
+                    $isExist        =  JournalEntry::where(['id'=>$id,'user_id'=>$authId,'is_active'=>1])->first();
+                    if(isset($isExist) && !empty($isExist)){
+
+                        $isExist->delete();
+                        DB::commit();
+                    }else{
+                        return $this->sendResponsewithoutData("Invalid journal", 422);
+                    }
+                }
+                return $this->sendResponsewithoutData(trans('message.deleted_successfully'), 422);
+            }
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::error('Error caught: "delete journal" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
     }
 
     public function addToFavorite(Request $request)
@@ -430,6 +515,7 @@ class JournalController extends BaseController
                 //check journal id
                 //check jurnal is active and owner of the journal
                 $journal        =   Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->exists();
+
                 if (empty($journal)) {
 
                     return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 403);

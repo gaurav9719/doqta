@@ -19,7 +19,11 @@ class GenderSeeder extends Seeder
             ['name' => 'Male'],
             ['name' => 'Female'],
             ['name' => 'Non-binary'],
-            ['name' => 'Prefer not to specify'],
+            ['name' => 'Transgender Male'],
+            ['name' => 'Transgender Female'],
+            ['name' => 'Gender non-conforming'],
+            ['name' => 'Prefer not to disclose'],
+          
 
             // Add more genders as needed
         ];

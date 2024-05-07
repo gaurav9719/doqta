@@ -70,6 +70,13 @@ return [
     "journal_not_added"=>"Journal not added",
     "physical_symptom"=>"Physical symptom",
     "discover_all"=>"Discovers all",
+    "shared_support_users"=>"Shared Support users",
+    "top_community"=>"Top community",
+    "top_articles"=>"Top articles",
+    "top_videos"=>"Top videos",
+    "discover_people"=>"Discover people",
+    "discover_media"=>"Discover media",
+    "deleted_successfully"=>"Deleted Successfully",
     
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",

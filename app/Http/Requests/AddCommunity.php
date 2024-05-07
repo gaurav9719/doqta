@@ -16,7 +16,7 @@ class AddCommunity extends FormRequest
             //
             // 'name' => 'required|regex:/^[a-zA-Z\s]+$/u|min:3|max:25',
             'name' => 'required|regex:/^(?=.*[a-zA-Z])[a-zA-Z0-9\s]+$/u|min:1|max:25',
-            'description' => 'nullable|min:20|max:200',
+            'description' => 'nullable|min:10|max:200',
             'cover_photo'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
             ];
     }

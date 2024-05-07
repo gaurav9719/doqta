@@ -257,15 +257,16 @@ class AuthController extends BaseController
         try {
 
             $myuser_id                  =                Auth::id();
-
             $hasDeleted                 =                User::find($myuser_id);
-
             if ($hasDeleted) {
 
                 $hasDeleted->email      =               "";
                 $hasDeleted->user_name  =               "";
                 $hasDeleted->social_id  =               "";
                 $hasDeleted->save();
+                $hasDeleted->tokens()->delete();
+                // Perform standard logout logic (e.g., clearing session)
+                Auth::logout();
                 DB::commit();
                 return $this->sendResponsewithoutData("User Deleted Successfully!", 200);
                 
