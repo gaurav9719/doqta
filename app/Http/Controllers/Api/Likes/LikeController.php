@@ -79,7 +79,7 @@ class LikeController extends BaseController
                 } else {
 
                     //check community is joined or not
-                    dd($this->checkCommunityJoind($isExist->group_id));
+                    
                     if($this->checkCommunityJoind($isExist->group_id)){
 
                         $likeType           =   $request->like_type;
