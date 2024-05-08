@@ -98,7 +98,6 @@ class LikeController extends BaseController
                         return $this->sendError(trans("message.you_are_not_group_member"), [], 403);
 
                     }
-                    
                 }
             }
         }catch(Exception $e){

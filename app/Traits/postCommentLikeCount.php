@@ -21,7 +21,6 @@ trait postCommentLikeCount {
         
     }
 
-
     public function commentLikeCount($comment_id) {
 
         $userId                         =       Auth::id();
@@ -32,9 +31,9 @@ trait postCommentLikeCount {
         return $postLike;
         
     }
-
-
-
-
+    public function addBaseInImage($cover_photo){
+        
+        return (filter_var($cover_photo, FILTER_VALIDATE_URL))? $cover_photo : asset('storage/'.$cover_photo);
+    }
 
 }

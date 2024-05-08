@@ -21,6 +21,7 @@ use App\Models\Like;
 use App\Models\UserFollower;
 use App\Models\UserParticipantCategory;
 use GuzzleHttp\Psr7\Query;
+use App\Traits\postCommentLikeCount;
 
 /**
  * Class DicoverService.
@@ -28,12 +29,13 @@ use GuzzleHttp\Psr7\Query;
 class DicoverService extends BaseController
 {
 
+    use postCommentLikeCount;
     public function discover($request, $userId,$limit)
     {
-
         if (empty($request->type)) {
 
             return $this->all($request, $userId,$limit);
+
         } else {
 
             if ($request->type == 1) {          //posts
@@ -686,6 +688,8 @@ class DicoverService extends BaseController
                 }, 'group' => function ($query) {
 
                     $query->select('id', 'name');
+                },'post_user'=>function($q){
+                    $q->select('id','user_name','name','profile');
                 }])
                 ->orderBy('like_count', 'desc')
                 ->simplePaginate($limit);
@@ -695,6 +699,12 @@ class DicoverService extends BaseController
                 $hasLiked                       =   Like::where(['user_id' => $authId, 'post_id' => $homeScreenPost->id])->whereNull('comment_id')->exists();
                 $homeScreenPost->is_liked      = ($hasLiked) ? 1 : 0;
 
+                if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user->profile)) {
+
+                    $homeScreenPost->post_user->profile = $this->addBaseInImage($homeScreenPost->post_user->profile);
+
+                }
+
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
                     $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
@@ -702,6 +712,11 @@ class DicoverService extends BaseController
 
                 if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
                     $homeScreenPost->parent_post->post_user->profile = asset('storage/' . $homeScreenPost->parent_post->post_user->profile);
+                }
+
+                if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
+
+                    $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
                 }
                 // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                 $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
@@ -723,7 +738,6 @@ class DicoverService extends BaseController
 
     public function getDiscoverCommunity($request, $authId)
     {
-
         try {
 
             $limit              =   10;
@@ -732,18 +746,26 @@ class DicoverService extends BaseController
                 $limit          =   $request->limit;
             }
             $data               =    [];
-
+            DB::enableQueryLog();
             $discoverCommunity  =  Group::whereHas('groupMember', function ($query) use ($authId) {
 
                 $query->where('user_id', '<>', $authId);
-            })->where('created_by', '<>', $authId)->where('is_active', 1);
 
+            })->where('created_by', '<>', $authId)->where('is_active', 1);
 
             if (!empty($request->search)) {
 
-                $discoverCommunity = $discoverCommunity->where('name', 'like', "%$request->search%");
+                $discoverCommunity =   $discoverCommunity->where('name', 'like', "%$request->search%");
+
             }
-            $discoveredCommunity       =   $discoverCommunity->simplePaginate($limit);
+            $discoveredCommunity       =   $discoverCommunity->whereNotExists(function ($subquery) use ($authId) {    
+                $subquery->select(DB::raw(1))
+                    ->from('group_members')
+                    ->whereRaw("group_id = groups.id AND user_id=".$authId);
+            })->simplePaginate($limit);
+
+            // dd(DB::getQueryLog());
+
 
             $discoveredCommunity->each(function ($query) use ($authId) {
 
