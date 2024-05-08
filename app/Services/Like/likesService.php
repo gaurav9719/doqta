@@ -18,12 +18,13 @@ use Exception;
 use App\Services\AddCommunityPost;
 use App\Models\Comment;
 use App\Traits\IsCommunityJoined;
+use App\Traits\postCommentLikeCount;
 /**
  * Class likesService.
  */
 class likesService extends BaseController
 {
-    use IsCommunityJoined;
+    use IsCommunityJoined ,postCommentLikeCount;
 
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(AddCommunityPost $addCommunityPost)
@@ -48,7 +49,8 @@ class likesService extends BaseController
                     post_reaction_count(0, $post->reaction, $request->post_id);
                     ActivityLog::where(['user_id'=>$authId,'post_id'=>$request->post_id,'action'=>1])->delete();
                     Notification::where(['sender_id'=>$authId,'post_id'=>$request->post_id,'notification_type'=>trans('notification_message.post_liked_message_type')])->delete();
-                    return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.updated_successfully'));
+                    $data                   =   $this->postLikeCount($request->post_id);
+                    return $this->sendResponse($data, trans('message.updated_successfully'), 200);
 
                 } 
                
@@ -91,7 +93,11 @@ class likesService extends BaseController
                         post_reaction_count(1, $request->reaction, $request->post_id);
                     }
                 }
-                return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
+
+                $data                   =   $this->postLikeCount($request->post_id);
+                return $this->sendResponse($data, trans('message.post_liked'), 200);
+
+                // return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
             }
         } catch (Exception $e) {
             Log::info('rollback');
@@ -124,8 +130,8 @@ class likesService extends BaseController
                 }else{
 
                     $post->delete();
-                    return $this->addCommunityPost->getCommentById($request,$authId,trans('message.updated_successfully'));
-
+                    $data                   =   $this->commentLikeCount($request->comment_id);
+                    return $this->sendResponse($data, trans('message.updated_successfully'), 200);
                 }
             }else{                      // liked/update
 
@@ -146,7 +152,9 @@ class likesService extends BaseController
                     $post->reaction                     =      $request->reaction;
                     $post->save();
                 }
-                return $this->addCommunityPost->getCommentById($request,$authId,trans('message.comment_liked'));
+                // return $this->addCommunityPost->getCommentById($request,$authId,trans('message.comment_liked'));
+                $data                   =   $this->commentLikeCount($request->comment_id);
+                return $this->sendResponse($data, trans('message.comment_liked'), 200);
             }
 
         } catch (Exception $e) {
