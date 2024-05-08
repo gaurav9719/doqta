@@ -570,6 +570,7 @@ class CommunityPost extends BaseController
             $addComment->comment          = $request->comment;
             $addComment->save();
             $commentId                     =   $addComment->id;
+            $request['comment_id']         = $commentId;
               #----------- R E C O R D        A C T I V I T Y -------------#
             $group_post                  =    Post::select('group_id','user_id')->where(['id' => $request->post_id])->first();
             // $groupData                =    Group::where('id', $group->group_id);

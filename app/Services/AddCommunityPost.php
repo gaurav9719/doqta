@@ -500,15 +500,10 @@ class AddCommunityPost extends BaseController
 
             }])->withCount('totalLikes')
             ->where('post_id', $request->post_id)
-
             ->whereNull('parent_id')
-
             ->whereNotExists(function ($query) use ($authId) {
-
                 $query->select(DB::raw(1))
-
                     ->from('blocked_users')
-
                     ->where(function ($query) use ($authId) {
                         // Check if the authenticated user has blocked someone
                         $query->where('user_id', $authId)
@@ -521,26 +516,35 @@ class AddCommunityPost extends BaseController
                     });
             })->orderByDesc('id')->paginate($limit);
 
-        //    dd($comments->total()); 
-
             $comments->getCollection()->transform(function ($comment) use($authId) {
 
-                $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$comment->post_id,'comment_id'=>$comment->id])->first();
+                $isExist            =   CommentLike::where(['comment_id'=>$comment->id])->first();
                 $comment->is_liked  =   (isset($isExist) && !empty($isExist))?1:0;
                 $comment->reaction  =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                $comment->total_likes_count =       CommentLike::where(['comment_id'=>$comment->id])->count();
 
                 if ($comment->commentUser && $comment->commentUser->profile) {
 
                     $comment->commentUser->profile      =   isset( $comment->commentUser) && isset($comment->commentUser->profile) ?(filter_var( $comment->commentUser->profile, FILTER_VALIDATE_URL) ?  $comment->commentUser->profile : asset('storage/' .  $comment->commentUser->profile)) : '';
                     
                 }
-
                 if (isset($comment->replies[0]) && ($comment->replies[0])) {
 
                     $comment->replies->each(function($replies) use($authId){
-                        $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
-                        $replies->is_liked  = (isset($isExist) && !empty($isExist))?1:0;
-                        $replies->reaction  = (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+
+                        $isExist                    =       CommentLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
+                        $replies->is_liked          =       (isset($isExist) && !empty($isExist))?1:0;
+                        $replies->reaction          =       (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                        $replies->total_likes_count =       CommentLike::where(['comment_id'=>$replies->id])->count();
+
+                        if(isset($replies->commentUser) && !empty($replies->commentUser)){
+
+                            $replies->commentUser->profile  =   isset($replies->commentUser) && isset($replies->commentUser->profile) ?(filter_var($replies->commentUser->profile, FILTER_VALIDATE_URL) ?  $replies->commentUser->profile : asset('storage/' .  $replies->commentUser->profile)) : '';
+                        }
+                        if(isset($replies->replied_to) && !empty($replies->replied_to)){
+
+                            $replies->replied_to->profile  =   isset($replies->replied_to) && isset($replies->replied_to->profile) ?(filter_var($replies->replied_to->profile, FILTER_VALIDATE_URL) ?  $replies->replied_to->profile : asset('storage/' .  $replies->replied_to->profile)) : '';
+                        }
                     });
                 }
                 // $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
@@ -810,7 +814,6 @@ class AddCommunityPost extends BaseController
 
         try {
 
-            DB::enableQueryLog();
             $comment = Comment::where(['id'=>$request->comment_id,'is_active'=>1])->with(['commentUser' => function($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
@@ -875,4 +878,7 @@ class AddCommunityPost extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+    #-------------- G E T       P O S T   / C O M M E N T       L I K E S   C O U N T -----------------#
+
 }
