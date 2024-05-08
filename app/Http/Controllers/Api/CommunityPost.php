@@ -188,7 +188,7 @@ class CommunityPost extends BaseController
     #-------------------    D E L E T E          P O S T  ------------------------#
 
     #--------------------- L I K E      P O S T  ------------------------------#
-    public function likePost(Request $request)
+    public function like(Request $request)
     {
         DB::beginTransaction();
 
@@ -588,12 +588,11 @@ class CommunityPost extends BaseController
             $sender                             =       User::select('id','device_type')->where("id", $authId)->first();
             $notification_type                  =       trans('notification_message.post_comment_message_type');
             $notification_message               =       trans('notification_message.post_comment_message');
-            
             $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
 
             #------------  S E N D           N O T I F I C A T I O N --------------#
             DB::commit();
-            return $this->sendResponsewithoutData(trans('message.add_comment'), 200);
+            return $this->addCommunityPost->getCommentById($request, $authId,trans('message.add_comment'));
 
         } catch (Exception $e) {
             DB::rollBack();

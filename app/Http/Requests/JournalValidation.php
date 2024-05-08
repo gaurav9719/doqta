@@ -15,7 +15,7 @@ class JournalValidation extends FormRequest
     public function rules()
     {
         return [
-            'title' => 'required|string|min:10|max:100',
+            'title' => 'required|string|min:2|max:100',
             'topic' => 'nullable|integer|exists:journal_topics,id',
             'other_topic' => 'nullable|string',
             'writing_for' => 'required|string|min:3',

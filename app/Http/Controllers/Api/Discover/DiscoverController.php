@@ -126,7 +126,7 @@ class DiscoverController extends BaseController
                         return $this->discover->topCommunityThisWeek($request,$authId,$limit);
 
                         
-                    }elseif ($request->inner_type==3) { #----------care_takers ---------------#
+                    }elseif ($request->inner_type==3) { #----------articles ---------------#
                         
                         return $this->discover->topArticles($request,$authId,$limit);
 

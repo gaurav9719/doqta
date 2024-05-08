@@ -238,11 +238,9 @@ class JournalService extends BaseController
                 
                 // Eager load necessary relationships to avoid N+1 problem
                 // $journal->load(['feeling_types.feelingType', 'symptom.symptom']);
-              
                 // Iterate over each journal entry
                 $journal->each(function ($getJournal) {
                     // Accessing 'name' attribute of 'topic' relationship directly without additional query
-                
                     // Accessing 'feeling_types' and 'symptom' relationships directly without additional queries
                     $getJournal->feeling_types->each(function ($feeling) {
 
@@ -251,20 +249,13 @@ class JournalService extends BaseController
 
                     // $getJournal->entry_time =   Carbon::parse($getJournal->created_at)->diffForHumans();
                     $getJournal->entry_time =   time_elapsed_string($getJournal->created_at);
-                
-
-                    
                     $getJournal->symptom->each(function ($symptom) {
-
                         $symptom->name = $symptom->symptom->symptom ?? '';
                     });
-                
                     // Handling media and audio attributes
                     $getJournal->media = $getJournal->media ? asset('storage/'.$getJournal->media) : null;
                     $getJournal->audio = $getJournal->audio ? asset('storage/'.$getJournal->audio) : null;
                 });
-                
-
             }
 
             return $this->sendResponse($journal, ($message)?$message:trans("message.journals"), 200);

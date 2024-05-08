@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
             $table->unsignedBigInteger('parent_id')->nullable()->index();
             $table->foreign('parent_id')->references('id')->on('comments')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('mention_user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('mention_user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade')->index();
             $table->text('comment')->nullable();
             $table->tinyInteger('comment_type')->default(1)->comment('1: text, 2: video, 3: link, 4: emoji');
             $table->boolean('is_active')->default(true)->comment('1: active, 0: inactive');

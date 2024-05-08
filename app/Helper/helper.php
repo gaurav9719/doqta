@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 use Spatie\Snapshots\MatchesSnapshots;
 use App\Models\Group;
 use BaconQrCode\Renderer\RendererStyle\Gradient\HorizontalGradient;
+use App\Models\Post;
 function getErrorAsStringsasa($messagearr)
 {
     $message = '';
@@ -176,7 +177,7 @@ function randomCode($length = 9, $add_dashes = false, $available_sets = 'param')
 if (!function_exists('upload_file')) {
     function upload_file($file, $folder = "")
     {
-        try{
+        try {
 
             $currentYear    = date('Y');
             $currentMonth   = date('m');
@@ -185,22 +186,19 @@ if (!function_exists('upload_file')) {
             $directory = "uploads/{$folder}/{$currentYear}/{$currentMonth}";
             // Check if the directory exists, if not, create it
             if (!Storage::disk('public')->exists($directory)) {
-    
-                Storage::disk('public')->makeDirectory($directory,0755,true); // Recursive create directory
+
+                Storage::disk('public')->makeDirectory($directory, 0755, true); // Recursive create directory
             }
             // return Storage::disk('public')->put($directory, $file);
             $filePath = Storage::disk('public')->putFile($directory, $file);
-    
-            Storage::disk('public')->setVisibility($filePath, 'public');
-            
-            return $filePath;
 
-        }catch(Exception $e){
+            Storage::disk('public')->setVisibility($filePath, 'public');
+
+            return $filePath;
+        } catch (Exception $e) {
 
             dd($e);
-
         }
-
     }
 }
 
@@ -225,35 +223,35 @@ if (!function_exists('qr_code_generator')) {
     function qr_code_generator($userid)
     {
         // Generate the QR code image
-        $random     =   rand(1111,9999);
-        $encryptdQr =   Crypt::encrypt($random.$userid);
+        $random     =   rand(1111, 9999);
+        $encryptdQr =   Crypt::encrypt($random . $userid);
         // $qr_image   =   QrCode::format('png')->size(300)->generate("https://rosterapp/match?u=" .$encryptdQr);
 
-            // $qr_image =QrCode::format('svg')->size(399)->color(40,40,40)->generate('Make me a QrCode!');
+        // $qr_image =QrCode::format('svg')->size(399)->color(40,40,40)->generate('Make me a QrCode!');
 
-            // $qr_image =QrCode::format('png')->generate("rosterapp/match?u=" ."dsdsdsd");
+        // $qr_image =QrCode::format('png')->generate("rosterapp/match?u=" ."dsdsdsd");
 
-            // $qr_image   = QrCode::format('png')
-            //     ->size(250)
-            //     ->backgroundColor(255, 255, 255) // White background
-            //     ->color(0, 0, 0) // Black foreground
-            //     ->generate("https://rosterapp/match?u=" .$encryptdQr);
-            
+        // $qr_image   = QrCode::format('png')
+        //     ->size(250)
+        //     ->backgroundColor(255, 255, 255) // White background
+        //     ->color(0, 0, 0) // Black foreground
+        //     ->generate("https://rosterapp/match?u=" .$encryptdQr);
+
         $from = [0, 204, 204];
         $to = [0, 230, 230];
-        $qr_image=QrCode::size(200)
-        ->eye('circle')
-        ->style('round')
-        ->gradient($from[0], $from[1], $from[2], $to[0], $to[1], $to[2], 'diagonal')
-        ->margin(1)
-        // ->style('dot')
-        // ->eyeColor(0, 19,137,131, 19,137,131)
-        // ->eyeColor(1, 19,137,131, 19,137,131)
-        // ->eyeColor(2, 19,137,131, 19,137,131)
-        
-        ->generate("https://rosterapp/match?u=" .$encryptdQr) ;
+        $qr_image = QrCode::size(200)
+            ->eye('circle')
+            ->style('round')
+            ->gradient($from[0], $from[1], $from[2], $to[0], $to[1], $to[2], 'diagonal')
+            ->margin(1)
+            // ->style('dot')
+            // ->eyeColor(0, 19,137,131, 19,137,131)
+            // ->eyeColor(1, 19,137,131, 19,137,131)
+            // ->eyeColor(2, 19,137,131, 19,137,131)
 
-      
+            ->generate("https://rosterapp/match?u=" . $encryptdQr);
+
+
 
 
 
@@ -745,7 +743,7 @@ if (!function_exists('incrementByPoint')) {
 
 //  function generateQRCode($data)
 //     {
-        
+
 //         // Create a QR code writer
 //         // $renderer = new png();
 //         // $renderer->setHeight(300);
@@ -776,11 +774,11 @@ if (!function_exists('incrementByPoint')) {
 // // Return the path to the stored QR code image
 // return Storage::url($filename);
 //     }
- function generateQRCode($userid)
+function generateQRCode($userid)
 {
 
-    $random     =   rand(1111,9999);
-    $encryptdQr =   Crypt::encrypt($random.$userid);
+    $random     =   rand(1111, 9999);
+    $encryptdQr =   Crypt::encrypt($random . $userid);
     $currentYear = date('Y');
     $currentMonth = date('m');
     $directory = "uploads/qr/{$currentYear}/{$currentMonth}";
@@ -795,206 +793,209 @@ if (!function_exists('incrementByPoint')) {
 
     $filename = $directory . '/' . Str::uuid() . '.png';
     // Generate QR code image and save it to the storage directory
-    $filePath = storage_path('app/public/'.$filename);
+    $filePath = storage_path('app/public/' . $filename);
 
     // Storage::disk('public')->put($filename, $qr_image);
 
-    $writer->writeFile("https://rosterapp/match?u=" .$encryptdQr, $filePath);
+    $writer->writeFile("https://rosterapp/match?u=" . $encryptdQr, $filePath);
 
     // Return the path to the generated QR code image
     return $filename;
 
 
 
-  
+
 
 
     // Store the QR code image directly into the storage disk
-    
-   // Storage::disk('public')->put($filename, $qr_image);
+
+    // Storage::disk('public')->put($filename, $qr_image);
     // Return the path to the stored QR code image
-   // return $filename;
+    // return $filename;
 
 
 
-   
+
 
 
 }
 
- 
 
-    function colorFullQr($userid)
+
+function colorFullQr($userid)
+{
+    try {
+
+        $random         =   rand(1111, 9999);
+        $encryptdQr     =   $random . $userid;
+        $currentYear    = date('Y');
+        $currentMonth   = date('m');
+        $directory      = "uploads/qr/{$currentYear}/{$currentMonth}";
+        $eye            = SquareEye::instance();
+        $squareModule   = SquareModule::instance();
+        $eyeFill        = new EyeFill(new Rgb(43, 22, 11), new Rgb(28, 150, 138));
+        // Define the starting and ending colors for the gradient
+        // $startColor = new Rgb(82, 190, 169); // RGB(82, 190, 169)
+        $startColor     = new Rgb(43, 22, 11); // Pink: RGB(255, 192, 203)
+        $endColor       = new Rgb(28, 150, 138); // RGB(28, 150, 138)
+        // Create a gradient transitioning between the provided colors
+        $gradient       = new Gradient($startColor, $endColor, GradientType::HORIZONTAL());
+        $renderer       = new ImageRenderer(
+            new RendererStyle(
+                300,
+                2,
+                $squareModule,
+                $eye,
+                Fill::withForegroundGradient(new Rgb(255, 255, 255), $gradient, $eyeFill, $eyeFill, $eyeFill)
+            ),
+            new ImagickImageBackEnd()
+        );
+        // Mocking the HTTP request with Laravel's Http facade
+        $writer     = new Writer($renderer);
+        $filename   = $directory . '/' . Str::uuid() . '.png';
+        // Generate QR code image and save it to the storage directory
+        $filePath   = storage_path('app/public/' . $filename);
+        // Storage::disk('public')->put($filename, $filePath);
+        $writer->writeFile("https://rosterapp/match?u=" . $encryptdQr, $filePath);
+
+        return $filename;
+    } catch (Exception $e) {
+        return 400;
+    }
+}
+
+
+
+if (!function_exists('removeSpecialCharsAndFormat')) {
+
+    function removeSpecialCharsAndFormat($inputString)
     {
-        try{
+        // Remove all special characters from the string
+        $cleanedString = preg_replace('/[^a-zA-Z0-9 ]/', '', $inputString);
 
-            $random         =   rand(1111,9999);
-            $encryptdQr     =   $random.$userid;
-            $currentYear    = date('Y');
-            $currentMonth   = date('m');
-            $directory      = "uploads/qr/{$currentYear}/{$currentMonth}";
-            $eye            = SquareEye::instance();
-            $squareModule   = SquareModule::instance();
-            $eyeFill        = new EyeFill(new Rgb(43, 22, 11), new Rgb(28, 150, 138));
-            // Define the starting and ending colors for the gradient
-            // $startColor = new Rgb(82, 190, 169); // RGB(82, 190, 169)
-            $startColor     = new Rgb(43, 22, 11); // Pink: RGB(255, 192, 203)
-            $endColor       = new Rgb(28, 150, 138); // RGB(28, 150, 138)
-            // Create a gradient transitioning between the provided colors
-            $gradient       = new Gradient($startColor, $endColor, GradientType::HORIZONTAL());
-            $renderer       = new ImageRenderer(
-                new RendererStyle(
-                    300,
-                    2,
-                    $squareModule,
-                    $eye,
-                    Fill::withForegroundGradient(new Rgb(255, 255, 255), $gradient, $eyeFill, $eyeFill, $eyeFill)
-                ),
-                new ImagickImageBackEnd()
+        // Capitalize the first letter of each word
+        $cleanedString = ucwords($cleanedString);
+
+        // Remove trailing spaces from the right side of the string
+        $cleanedString = rtrim($cleanedString);
+
+        return $cleanedString;
+    }
+}
+
+
+if (!function_exists('incrementMember')) {
+    function incrementMember($userId, $id, $point)
+    {
+        Group::updateOrCreate(
+            ['id' => $id, 'created_by' => $userId],
+            ['member_count' => DB::raw('member_count + ' . $point)]
+        );
+    }
+}
+if (!function_exists('incrementMemberWithAuth')) {
+    function incrementMemberWithAuth($id, $point)
+    {
+
+        return Group::updateOrCreate(
+            ['id' => $id],
+            ['member_count' => DB::raw('member_count + ' . $point)]
+        );
+    }
+}
+
+
+if (!function_exists('decrementMemberWithAuth')) {
+    function decrementMemberWithAuth($id, $point)
+    {
+        return Group::updateOrCreate(
+            ['id' => $id],
+            ['member_count' => DB::raw('member_count - ' . $point)]
+        );
+    }
+}
+if (!function_exists('filer_text')) {
+    function filter_text($text)
+    {
+
+        $text = rtrim($text);
+        // Remove special characters
+        $text = preg_replace('/[^A-Za-z0-9\s]/', '', $text);
+        return  strip_tags($text);
+    }
+}
+
+
+
+
+
+if (!function_exists('increment')) {
+    function increment($tableName, $conditions, $field, $incrementBy)
+    {
+        return DB::table($tableName)
+            ->updateOrInsert(
+                $conditions,
+                [$field => DB::raw("$field + $incrementBy")]
             );
-            // Mocking the HTTP request with Laravel's Http facade
-            $writer     = new Writer($renderer);
-            $filename   = $directory . '/' . Str::uuid() . '.png';
-            // Generate QR code image and save it to the storage directory
-            $filePath   = storage_path('app/public/'.$filename);
-            // Storage::disk('public')->put($filename, $filePath);
-            $writer->writeFile("https://rosterapp/match?u=" .$encryptdQr, $filePath);
-
-            return $filename;
-        }catch(Exception $e){
-            return 400;
-        }
     }
+}
 
-
-
-    if (!function_exists('removeSpecialCharsAndFormat')) {
-
-        function removeSpecialCharsAndFormat($inputString) {
-            // Remove all special characters from the string
-            $cleanedString = preg_replace('/[^a-zA-Z0-9 ]/', '', $inputString);
-            
-            // Capitalize the first letter of each word
-            $cleanedString = ucwords($cleanedString);
-        
-            // Remove trailing spaces from the right side of the string
-            $cleanedString = rtrim($cleanedString);
-        
-            return $cleanedString;
-        }
-    }
-
-
-    if (!function_exists('incrementMember')) {
-        function incrementMember($userId, $id,$point)
-        {
-            Group::updateOrCreate(
-                ['id' => $id, 'created_by' => $userId],
-                ['member_count' => DB::raw('member_count + ' . $point)]
+if (!function_exists('decrement')) {
+    function decrement($tableName, $conditions, $field, $incrementBy)
+    {
+        return DB::table($tableName)
+            ->updateOrInsert(
+                $conditions,
+                [$field => DB::raw("$field - $incrementBy")]
             );
-        }
     }
-    if (!function_exists('incrementMemberWithAuth')) {
-        function incrementMemberWithAuth($id,$point)
-        {
+}
 
-            return Group::updateOrCreate(
-                ['id' => $id],
-                ['member_count' => DB::raw('member_count + ' . $point)]
-            );
+
+if (!function_exists('shortNumber')) {
+
+    function shortNumber($num)
+    {
+        $units = ['', 'K', 'M', 'B', 'T'];
+        for ($i = 0; $num >= 1000; $i++) {
+            $num /= 1000;
         }
+        return round($num, 1) . $units[$i];
     }
+}
 
+if (!function_exists('format_number_in_k_notation')) {
+    function format_number_in_k_notation(int $number): string
+    {
+        $suffixByNumber = function () use ($number) {
 
-    if (!function_exists('decrementMemberWithAuth')) {
-        function decrementMemberWithAuth($id,$point)
-        {
-            return Group::updateOrCreate(
-                ['id' => $id],
-                ['member_count' => DB::raw('member_count - ' . $point)]
-            );
-        }
-    }
-    if(!function_exists('filer_text')){
-        function filter_text($text){
-
-            $text = rtrim($text);
-            // Remove special characters
-            $text = preg_replace('/[^A-Za-z0-9\s]/', '', $text);
-            return  strip_tags($text);
-        }
-    }
-
-
-
-   
-    
-    if (!function_exists('increment')) {
-        function increment($tableName, $conditions, $field, $incrementBy)
-        {
-            return DB::table($tableName)
-                ->updateOrInsert(
-                    $conditions,
-                    [$field => DB::raw("$field + $incrementBy")]
-                );
-        }
-    }
-
-    if (!function_exists('decrement')) {
-        function decrement($tableName, $conditions, $field, $incrementBy)
-        {
-            return DB::table($tableName)
-                ->updateOrInsert(
-                    $conditions,
-                    [$field => DB::raw("$field - $incrementBy")]
-                );
-        }
-    }
-
-
-    if(!function_exists('shortNumber')){
-
-        function shortNumber($num) 
-        {
-            $units = ['', 'K', 'M', 'B', 'T'];
-            for ($i = 0; $num >= 1000; $i++) {
-                $num /= 1000;
+            if ($number < 1000) {
+                return sprintf('%d', $number);
             }
-            return round($num, 1) . $units[$i];
-        }
-    }
 
-    if (!function_exists('format_number_in_k_notation')) {
-        function format_number_in_k_notation(int $number): string
-        {
-            $suffixByNumber = function () use ($number) {
-                
-                if ($number < 1000) {
-                    return sprintf('%d', $number);
-                }
-    
-                if ($number < 1000000) {
-                    return sprintf('%d%s', floor($number / 1000), 'K+');
-                }
-    
-                if ($number >= 1000000 && $number < 1000000000) {
-                    return sprintf('%d%s', floor($number / 1000000), 'M+');
-                }
-    
-                if ($number >= 1000000000 && $number < 1000000000000) {
-                    return sprintf('%d%s', floor($number / 1000000000), 'B+');
-                }
-    
-                return sprintf('%d%s', floor($number / 1000000000000), 'T+');
-            };
-    
-            return $suffixByNumber();
-        }
-    }
+            if ($number < 1000000) {
+                return sprintf('%d%s', floor($number / 1000), 'K+');
+            }
 
-    
-    if (!function_exists('time_elapsed_string')) {
-        function time_elapsed_string($datetime, $full = false) {
+            if ($number >= 1000000 && $number < 1000000000) {
+                return sprintf('%d%s', floor($number / 1000000), 'M+');
+            }
+
+            if ($number >= 1000000000 && $number < 1000000000000) {
+                return sprintf('%d%s', floor($number / 1000000000), 'B+');
+            }
+
+            return sprintf('%d%s', floor($number / 1000000000000), 'T+');
+        };
+
+        return $suffixByNumber();
+    }
+}
+
+
+if (!function_exists('time_elapsed_string')) {
+    function time_elapsed_string($datetime, $full = false)
+    {
         $now = new DateTime;
         $ago = new DateTime($datetime);
         $diff = $now->diff($ago);
@@ -1007,66 +1008,101 @@ if (!function_exists('incrementByPoint')) {
             'd' => 'd',
             'h' => 'hr',
             'i' => 'min',
-            's' => '',
+            's' => 's',
         );
         foreach ($string as $k => &$v) {
             if ($diff->$k) {
-                $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? '' : '');
+                $v = $diff->$k . '' . $v . ($diff->$k > 1 ? '' : '');
             } else {
                 unset($string[$k]);
             }
         }
         if (!$full) $string = array_slice($string, 0, 1);
         return $string ? implode(', ', $string) . '' : 'just now';
-        }
     }
-    
-    if (!function_exists('getDatesBetween')) {
+}
 
-      function getDatesBetween($start_date,$end_date)
-        {   
-            $start      = Carbon::createFromFormat('Y-m-d', $start_date);
-            $end        = Carbon::createFromFormat('Y-m-d', $end_date);
+if (!function_exists('getDatesBetween')) {
 
-            $dates = [];
-            // Loop through each date from start to end (inclusive)
-            for ($date = $start; $date->lte($end); $date->addDay()) {
-                $dates[] = $date->format('Y-m-d'); // Format date as 'Y-m-d' and add to array
-            }
-            return $dates;
+    function getDatesBetween($start_date, $end_date)
+    {
+        $start      = Carbon::createFromFormat('Y-m-d', $start_date);
+        $end        = Carbon::createFromFormat('Y-m-d', $end_date);
+
+        $dates = [];
+        // Loop through each date from start to end (inclusive)
+        for ($date = $start; $date->lte($end); $date->addDay()) {
+            $dates[] = $date->format('Y-m-d'); // Format date as 'Y-m-d' and add to array
+        }
+        return $dates;
+    }
+}
+
+
+if (!function_exists('utc_time_conversion')) {
+
+    function utc_time_conversion($datetimeString)
+    {
+        // Create a Carbon instance from the datetime string
+        $datetime = Carbon::parse($datetimeString);
+        // Convert the datetime to UTC
+        $utcDatetime = $datetime->setTimezone('UTC');
+
+        // Format the UTC datetime as needed (optional)
+        return $utcDatetime->format('Y-m-d H:i:s');
+    }
+}
+
+if (!function_exists('post_category')) {
+    function post_category($type = "")
+    {
+        $categories = [
+            1 => "seeing advice",
+            2 => "giving advice",
+            3 => "sharing media"
+        ];
+        // Check if $type is a valid key in the categories array
+        return $categories[$type] ?? null;
+    }
+}
+
+if (!function_exists('post_reaction_count')) {
+    function post_reaction_count($type, $reaction, $post_id)
+    {
+        // Retrieve the post
+        $post = Post::find($post_id);
+
+        if (!$post) {
+
+            return false; // Post not found
         }
 
-    }
-
-
-    if(!function_exists('utc_time_conversion')){
-
-        function utc_time_conversion($datetimeString){
-            // Create a Carbon instance from the datetime string
-            $datetime = Carbon::parse($datetimeString);
-            // Convert the datetime to UTC
-            $utcDatetime = $datetime->setTimezone('UTC');
-
-            // Format the UTC datetime as needed (optional)
-            return $utcDatetime->format('Y-m-d H:i:s');
-
+        // Determine which column to update based on reaction type
+        $column = '';
+        switch ($reaction) {
+            case 1:
+                $column = 'support_count';
+                break;
+            case 2:
+                $column = 'helpful_count';
+                break;
+            case 3:
+                $column = 'unhelpful_count';
+                break;
+            default:
+                return false; // Invalid reaction type
         }
-    }
+        // Perform increment or decrement based on type (1 = increment, 0 = decrement)
+        $increment = ($type == 1) ? 1 : -1;
+        // Ensure the column exists and is positive when decrementing
+        if ($increment === -1 && $post->$column <= 0) {
 
-    if (!function_exists('post_category')) {
-        function post_category($type="")
-        {
-            $categories = [
-                1 => "seeing advice",
-                2 => "giving advice",
-                3 => "sharing media"
-            ];
-            // Check if $type is a valid key in the categories array
-            return $categories[$type] ?? null;
+            return false; // Cannot decrement if count is already zero
         }
+
+        // Update the column count
+        $post->$column += $increment;
+        $post->save(); // Persist the changes
+        return true;
     }
-    
-
-
-
-
+}

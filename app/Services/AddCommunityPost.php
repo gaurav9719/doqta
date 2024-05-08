@@ -451,7 +451,9 @@ class AddCommunityPost extends BaseController
             }
 
             if(isset($group) && !empty($group)){
-                $group->cover_photo =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
+
+                $group->cover_photo = isset($group->cover_photo) && isset($group->cover_photo) ?
+                (filter_var($group->cover_photo, FILTER_VALIDATE_URL) ? $group->cover_photo : asset('storage/' . $group->cover_photo)) : '';
             }
     
             return response()->json(['status' =>200,'message'=>$message,'data'=>$posts, 'group'=>$group]);
@@ -494,7 +496,7 @@ class AddCommunityPost extends BaseController
 
                 $query->select('id', 'name', 'user_name', 'profile');
 
-            }])
+            }])->withCount('totalLikes')
             ->where('post_id', $request->post_id)
 
             ->whereNull('parent_id')
@@ -515,21 +517,20 @@ class AddCommunityPost extends BaseController
                         $query->where('blocked_user_id', $authId)
                               ->whereColumn('blocked_users.user_id', 'comments.user_id');
                     });
-            })
+            })->orderByDesc('id')->paginate($limit);
 
-            ->addSelect(['is_liked' => function ($query) use ($authId) {
-
-                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = comments.post_id AND comment_id = comments.id), 1, 0)', [$authId]);
-
-            }])
-
-            ->orderByDesc('id')->simplePaginate($limit);
+        //    dd($comments->total()); 
 
             $comments->getCollection()->transform(function ($comment) use($authId) {
 
+                $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$comment->post_id,'comment_id'=>$comment->id])->first();
+                $comment->is_liked  =   (isset($isExist) && !empty($isExist))?1:0;
+                $comment->reaction  =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+
                 if ($comment->commentUser && $comment->commentUser->profile) {
 
-                    $comment->commentUser->profile = asset('storage/' . $comment->commentUser->profile);
+                    $comment->commentUser->profile      =   isset( $comment->commentUser) && isset($comment->commentUser->profile) ?(filter_var( $comment->commentUser->profile, FILTER_VALIDATE_URL) ?  $comment->commentUser->profile : asset('storage/' .  $comment->commentUser->profile)) : '';
+                    
                 }
 
                 if (isset($comment->replies[0]) && ($comment->replies[0])) {
@@ -577,14 +578,34 @@ class AddCommunityPost extends BaseController
             //     $group->cover_photo =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
             // }
             if(isset($group) && !empty($group)){
-                $group->cover_photo =  (isset($group->cover_photo) && !empty($group->cover_photo)) ? asset('storage/'.$group->cover_photo):"";
+                $group->cover_photo = isset($group->cover_photo) && isset($group->cover_photo) ?
+                            (filter_var($group->cover_photo, FILTER_VALIDATE_URL) ? $group->cover_photo : asset('storage/' . $group->cover_photo)) : '';
             }
-            return response()->json(['status' =>200,'message'=>"comments",'data'=>$comments, 'group'=>$group]);
+            $data           = $comments->items();
+            $recordsPerPage = $comments->perPage();
+            $currentPage    = $comments->currentPage();
+            $lastPage       = $comments->lastPage();
+            $totalRecords   = $comments->total();
+            $recordsLeft    =  ($totalRecords - ($recordsPerPage*$currentPage)<0?0:$totalRecords - ($recordsPerPage*$currentPage));            
+            // Merge data items with pagination information
+            // Extract pagination metadata
+            $paginationInfo = [
+                'current_page' =>  $currentPage ,
+                'last_page' => $lastPage,
+                'total' => $totalRecords,
+                'left' => $recordsLeft,
+                // Add other pagination information as needed
+            ];
+            
+            $responseData = array_merge(['data' => $data], $paginationInfo);
+
+
+         return response()->json(['status' =>200,'message'=>"comments",'data'=>$responseData, 'group'=>$group]);
 
           
         } catch (Exception $e) {
             Log::error('Error caught: "getComments" ' . $e->getMessage());
-            return $this->sendError('Error occurred while fetching post.', [], 500);
+            return $this->sendError($e->getMessage(), [], 500);
         }
 
 
@@ -781,6 +802,71 @@ class AddCommunityPost extends BaseController
 
 
 
+    #---------------- G E T         C O M M E N T      B Y      I D  --------------------#
 
+    public function getCommentById($request, $authId,$message=""){
 
+        try {
+            $comment = Comment::with(['commentUser' => function($query) {
+
+                $query->select('id', 'name', 'user_name', 'profile');
+            },
+            'replies.commentUser'=>function($query){
+
+                $query->select('id', 'name', 'user_name', 'profile');
+                
+            },'replies.replied_to'=>function($query){
+
+                $query->select('id', 'name', 'user_name', 'profile');
+
+            }])->withCount('totalLikes')
+
+            ->where('post_id', $request->post_id)
+
+            ->whereNull('parent_id')
+
+            ->whereNotExists(function ($query) use ($authId) {
+
+                $query->select(DB::raw(1))
+
+                    ->from('blocked_users')
+                    ->where(function ($query) use ($authId) {
+                        // Check if the authenticated user has blocked someone
+                        $query->where('user_id', $authId)
+                              ->whereColumn('blocked_users.blocked_user_id', 'comments.user_id');
+                    })
+                    ->orWhere(function ($query) use ($authId) {
+                        // Check if the authenticated user has been blocked by someone
+                        $query->where('blocked_user_id', $authId)
+                              ->whereColumn('blocked_users.user_id', 'comments.user_id');
+                    });
+            })
+            ->addSelect(['is_liked' => function ($query) use ($authId) {
+
+                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = comments.post_id AND comment_id = comments.id), 1, 0)', [$authId]);
+
+            }])->first();
+            if(isset($comment) && !empty($comment)){
+                if ($comment->commentUser && $comment->commentUser->profile) {
+                    $comment->commentUser->profile = asset('storage/' . $comment->commentUser->profile);
+                }
+                if (isset($comment->replies[0]) && ($comment->replies[0])) {
+                    $comment->replies->each(function($replies) use($authId){
+                        $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
+                        $replies->is_liked  = (isset($isExist) && !empty($isExist))?1:0;
+                        $replies->reaction  = (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                    });
+                }
+                // $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
+                $comment->postedAt          = time_elapsed_string($comment->created_at);;
+            }
+            return response()->json(['status' =>200,'message'=> (!empty($message)?$message:"comments"),'data'=>$comment,]);
+
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "getComments" ' . $e->getMessage());
+
+            return $this->sendError('Error occurred while fetching post.', [], 400);
+        }
+    }
 }

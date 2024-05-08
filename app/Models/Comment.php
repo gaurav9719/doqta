@@ -27,5 +27,11 @@ class Comment extends Model
         return $this->belongsTo(User::class,'mention_user_id','id');
     }
 
+    public function totalLikes(){
+
+        return $this->hasMany(PostLike::class,'comment_id','id');
+
+    }
+
 
 }
