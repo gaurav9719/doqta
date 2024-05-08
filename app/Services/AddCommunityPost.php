@@ -16,6 +16,7 @@ use App\Models\Comment;
 use App\Models\GroupMember;
 use App\Models\PostLike;
 use App\Models\GroupMemberRequest;
+use App\Models\CommentLike;
 /**
  * Class AddCommunityPost.
  */
@@ -222,8 +223,9 @@ class AddCommunityPost extends BaseController
             }
 
             $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$post->id])->first();
+            // sdd($isExist);
             $post->is_liked     =   (isset($isExist) && !empty($isExist))?1:0;
-            $post->reaction     =   (isset($isExist) && !empty($isExist))?$post->reaction:0;
+            $post->reaction     =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
             $isRepost           =   Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
             $post->is_reposted  =  ($isRepost)?1:0;
 
@@ -804,31 +806,31 @@ class AddCommunityPost extends BaseController
 
     #---------------- G E T         C O M M E N T      B Y      I D  --------------------#
 
-    public function getCommentById($request, $authId,$message=""){
+    public function getCommentById($request, $authId, $message=""){
 
         try {
-            $comment = Comment::with(['commentUser' => function($query) {
+
+            DB::enableQueryLog();
+            $comment = Comment::where(['id'=>$request->comment_id,'is_active'=>1])->with(['commentUser' => function($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
             },
+
             'replies.commentUser'=>function($query){
 
                 $query->select('id', 'name', 'user_name', 'profile');
                 
-            },'replies.replied_to'=>function($query){
+            },
+            'replies.replied_to'=>function($query){
 
                 $query->select('id', 'name', 'user_name', 'profile');
 
-            }])->withCount('totalLikes')
-
+            }])
+            ->withCount('commentsLikes')
             ->where('post_id', $request->post_id)
-
-            ->whereNull('parent_id')
-
+            // ->whereNull('parent_id')
             ->whereNotExists(function ($query) use ($authId) {
-
                 $query->select(DB::raw(1))
-
                     ->from('blocked_users')
                     ->where(function ($query) use ($authId) {
                         // Check if the authenticated user has blocked someone
@@ -840,24 +842,29 @@ class AddCommunityPost extends BaseController
                         $query->where('blocked_user_id', $authId)
                               ->whereColumn('blocked_users.user_id', 'comments.user_id');
                     });
-            })
-            ->addSelect(['is_liked' => function ($query) use ($authId) {
-
-                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = comments.post_id AND comment_id = comments.id), 1, 0)', [$authId]);
-
-            }])->first();
+            })->first();
             if(isset($comment) && !empty($comment)){
+
                 if ($comment->commentUser && $comment->commentUser->profile) {
-                    $comment->commentUser->profile = asset('storage/' . $comment->commentUser->profile);
+
+                    $comment->commentUser->profile = filter_var($comment->commentUser->profile, FILTER_VALIDATE_URL)
+                    ? $comment->commentUser->profile
+                    : asset('storage/' . $comment->commentUser->profile);
+                    
                 }
-                if (isset($comment->replies[0]) && ($comment->replies[0])) {
+                $isExist            =   CommentLike::where(['user_id'=>$authId,'post_id'=>$comment->post_id,'comment_id'=>$comment->id])->first();
+                $comment->is_liked  =   (isset($isExist) && !empty($isExist))?1:0;
+                $comment->reaction  =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+
+                if (isset($comment->replies) && ($comment->replies)) {
+                    
                     $comment->replies->each(function($replies) use($authId){
                         $isExist            =   PostLike::where(['user_id'=>$authId,'post_id'=>$replies->post_id,'comment_id'=>$replies->id])->first();
-                        $replies->is_liked  = (isset($isExist) && !empty($isExist))?1:0;
-                        $replies->reaction  = (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                        $replies->is_liked  =   (isset($isExist) && !empty($isExist))?1:0;
+                        $replies->reaction  =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+
                     });
                 }
-                // $comment->postedAt = Carbon::parse($comment->created_at)->diffForHumans();
                 $comment->postedAt          = time_elapsed_string($comment->created_at);;
             }
             return response()->json(['status' =>200,'message'=> (!empty($message)?$message:"comments"),'data'=>$comment,]);
@@ -865,8 +872,7 @@ class AddCommunityPost extends BaseController
         } catch (Exception $e) {
 
             Log::error('Error caught: "getComments" ' . $e->getMessage());
-
-            return $this->sendError('Error occurred while fetching post.', [], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
 }

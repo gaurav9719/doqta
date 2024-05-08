@@ -50,7 +50,7 @@ return [
     "hide_post_successfully"=>"Post hide successfully",
     "unhide_post_successfully"=>"Post unhide successfully",
     "hidden_post_cannot_saved"=>"You cannot save hidden post",
-
+    "updated_successfully"=>"Updated successfully",
     "saved_post_successfully"=>"Post saved successfully",
     "repost_removed_successfully"=>"Repost removed successfully",
     "report_to_post_successfully"=>"Report submitted successfully",
@@ -106,6 +106,8 @@ return [
     "remove_successfully"=>"Removed successfully",
     "owner_cannot_leave_community"=>"Owner can't leave the community",
     "Invalid_post"=>"Invalid post",
+    "comment_liked"=>"Comment liked successfully",
+    "reported_successfully_submitted"=>"Report submitted successfully",
     
 "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
 "journal_not_exist"=>"Journal not exist",

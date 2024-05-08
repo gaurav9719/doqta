@@ -1069,6 +1069,7 @@ if (!function_exists('post_category')) {
 if (!function_exists('post_reaction_count')) {
     function post_reaction_count($type, $reaction, $post_id)
     {
+       
         // Retrieve the post
         $post = Post::find($post_id);
 
