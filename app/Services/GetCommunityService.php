@@ -134,14 +134,12 @@ class GetCommunityService extends BaseController
                     }
                     $isExist                      =   PostLike::where(['user_id'=>$authId,'post_id'=>$homeScreenPost->id])->first();
                     $homeScreenPost->is_liked     =   (isset($isExist) && !empty($isExist))?1:0;
-                    $homeScreenPost->reaction     =   (isset($isExist) && !empty($isExist))?$homeScreenPost->reaction:0;
+                    $homeScreenPost->reaction     =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
                     $isRepost                     =   Post::where(['parent_id'=>$homeScreenPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
                     $homeScreenPost->is_reposted  =  ($isRepost)?1:0;
                     // $homeScreenPost->postedAt     =   Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                     $homeScreenPost->postedAt     =   time_elapsed_string($homeScreenPost->created_at);
 
-
-                    
                 });
 
 

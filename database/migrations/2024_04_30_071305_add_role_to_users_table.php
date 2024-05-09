@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreign('user_plan_id')->references('id')->on('user_plans')->onDelete('cascade');
             $table->string('stripe_customer_id')->nullable()->after('bio');
             $table->integer('is_muted')->default(0)->after('followers_count')->comment('0:not ,1: for all notication mute');
+            $table->boolean('is_document_verified')->after('is_email_verified')->default(0)->comment('1:verified,0:not');
         });
     }
 
