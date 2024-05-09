@@ -35,10 +35,16 @@ class Post extends Model
 
     public function total_likes(){
 
-        return $this->hasMany(Comment::class,'post_id','id');
+        return $this->hasMany(PostLike::class,'post_id','id');
 
     }
     public function comment(){
+
+        return $this->hasMany(Comment::class,'post_id','id');
+
+    }
+    public function total_comment(){
+
         return $this->hasMany(Comment::class,'post_id','id');
     }
 

@@ -491,7 +491,7 @@ class AddCommunityPost extends BaseController
 
                     $query->select('id', 'name', 'user_name', 'profile');
                 }
-            ])->withCount('totalLikes')
+            ])->withCount(['totalLikes','total_comment'])
                 ->where('post_id', $request->post_id)
                 ->whereNull('parent_id')
                 ->whereNotExists(function ($query) use ($authId) {
@@ -836,7 +836,7 @@ class AddCommunityPost extends BaseController
                     $query->select('id', 'name', 'user_name', 'profile');
                 }
             ])
-                ->withCount('totalLikes')
+                ->withCount(['totalLikes','total_comment'])
 
                 ->where('post_id', $request->post_id)
                 // ->whereNull('parent_id')
@@ -874,9 +874,22 @@ class AddCommunityPost extends BaseController
                         $replies->reaction  =   (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
                     });
                 }
-                $comment->postedAt          = time_elapsed_string($comment->created_at);;
+                $comment->postedAt          = time_elapsed_string($comment->created_at);
             }
-            return response()->json(['status' => 200, 'message' => (!empty($message) ? $message : "comments"), 'data' => $comment,]);
+
+            #------------- Post-comment-----------#
+            $postData       =   Post::select('id','support_count','helpful_count','unhelpful_count','is_high_confidence','share_count','share_count')->withCount(['total_likes','total_comment'])->find($request->post_id);
+            
+            if(isset($postData) && !empty($postData)){
+
+                $isExist            =   PostLike::where(['user_id' => $authId, 'post_id' => $postData->id])->first();
+
+                $postData->is_liked  =   (isset($isExist) && !empty($isExist)) ? 1 : 0;
+                $postData->reaction  =   (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
+
+            }
+
+            return response()->json(['status' => 200, 'message' => (!empty($message) ? $message : "comments"), 'data' => $comment,'post'=>$postData]);
         } catch (Exception $e) {
 
             Log::error('Error caught: "getComments" ' . $e->getMessage());

@@ -38,6 +38,10 @@ class Comment extends Model
         return $this->hasMany(CommentLike::class,'comment_id','id');
 
     }
+
+    public function total_comment(){
+        return $this->hasMany(comment::class,'parent_id','id');
+    }
     
 
 
