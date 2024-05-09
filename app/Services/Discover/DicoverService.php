@@ -746,7 +746,6 @@ class DicoverService extends BaseController
                 $limit          =   $request->limit;
             }
             $data               =    [];
-            DB::enableQueryLog();
             $discoverCommunity  =  Group::whereHas('groupMember', function ($query) use ($authId) {
 
                 $query->where('user_id', '<>', $authId);
@@ -763,9 +762,6 @@ class DicoverService extends BaseController
                     ->from('group_members')
                     ->whereRaw("group_id = groups.id AND user_id=".$authId);
             })->simplePaginate($limit);
-
-            // dd(DB::getQueryLog());
-
 
             $discoveredCommunity->each(function ($query) use ($authId) {
 
