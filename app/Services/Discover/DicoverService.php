@@ -187,7 +187,7 @@ class DicoverService extends BaseController
 
                             if (isset($suggestMember->groupUser->profile) && !empty($suggestMember->groupUser->profile)) {
 
-                                $suggestMember->groupUser->profile =   asset('storage/' . $suggestMember->groupUser->profile);
+                                $suggestMember->groupUser->profile =   $this->addBaseInImage($suggestMember->groupUser->profile);
 
                             }
                         }
@@ -408,12 +408,12 @@ class DicoverService extends BaseController
 
                         if (isset($topArticle->post_user->profile) && !empty($topArticle->post_user->profile)) {
 
-                            $topArticle->post_user->profile =   asset('storage/' . $topArticle->post_user->profile);
+                            $topArticle->post_user->profile =   $this->addBaseInImage($topArticle->post_user->profile);
                         }
                     }
                     if (isset($topArticle->media_url) && !empty($topArticle->media_url)) {
 
-                        $topArticle->media_url =   asset('storage/' . $topArticle->media_url);
+                        $topArticle->media_url =   $this->addBaseInImage($topArticle->media_url);
                     }
 
                     $hasLiked                       =   Like::where(['user_id' => $authId, 'post_id' => $topArticle->id])->whereNull('comment_id')->exists();
@@ -504,12 +504,12 @@ class DicoverService extends BaseController
 
                         if (isset($topVideo->post_user->profile) && !empty($topVideo->post_user->profile)) {
 
-                            $topVideo->post_user->profile =   asset('storage/' . $topVideo->post_user->profile);
+                            $topVideo->post_user->profile =   $this->addBaseInImage($topVideo->post_user->profile);
                         }
                     }
                     if (isset($topVideo->media_url) && !empty($topVideo->media_url)) {
 
-                        $topVideo->media_url =   asset('storage/' . $topVideo->media_url);
+                        $topVideo->media_url =   $this->addBaseInImage($topVideo->media_url);
                     }
 
                     $hasLiked                       =   Like::where(['user_id' => $authId, 'post_id' => $topVideo->id])->whereNull('comment_id')->exists();
@@ -707,16 +707,16 @@ class DicoverService extends BaseController
 
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                    $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
+                    $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
                 }
 
                 if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
-                    $homeScreenPost->parent_post->post_user->profile = asset('storage/' . $homeScreenPost->parent_post->post_user->profile);
+                    $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
                 }
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
 
-                    $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
+                    $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
                 }
                 // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                 $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
@@ -772,7 +772,7 @@ class DicoverService extends BaseController
 
                 if (isset($query->cover_photo) && !empty($query->cover_photo)) {
 
-                    $query->cover_photo    =   asset('storage/' . $query->cover_photo);
+                    $query->cover_photo    =   $this->addBaseInImage($query->cover_photo);
                 }
                 $query->isJoined         =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
             });
@@ -1017,7 +1017,7 @@ class DicoverService extends BaseController
     
                         if (isset($post->post_user->profile) && !empty($post->post_user->profile)) {
     
-                            $post->post_user->profile   =   asset('storage/' . $post->post_user->profile);
+                            $post->post_user->profile   =   $this->addBaseInImage($post->post_user->profile);
                         }
                     }
     
@@ -1037,7 +1037,7 @@ class DicoverService extends BaseController
     
                         if (isset($post->post_user->profile) && !empty($post->post_user->profile)) {
     
-                            $post->post_user->profile   =   asset('storage/' . $post->post_user->profile);
+                            $post->post_user->profile   =   $this->addBaseInImage($post->post_user->profile);
                         }
                     }
                     $post->is_supporting                =   (UserFollower::where(['user_id' => $post->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
@@ -1115,7 +1115,7 @@ class DicoverService extends BaseController
 
                 if (isset($post->post_user->profile) && !empty($post->post_user->profile)) {
 
-                    $post->post_user->profile   =   asset('storage/' . $post->post_user->profile);
+                    $post->post_user->profile   =   $this->addBaseInImage($post->post_user->profile);
                 }
             }
             $post->is_supporting                =   (UserFollower::where(['user_id' => $post->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
@@ -1157,7 +1157,7 @@ class DicoverService extends BaseController
 
             }, 'communities' => function ($query) {
 
-                $query->select('id', 'name');
+                $query->select('id', 'name','description','cover_photo');
 
             }])->whereNotExists(function ($query) use ($authId) {
 
@@ -1194,9 +1194,19 @@ class DicoverService extends BaseController
 
                     if (isset($suggestMember->groupUser) && !empty($suggestMember->groupUser)) {
                         if (isset($suggestMember->groupUser->profile) && !empty($suggestMember->groupUser->profile)) {
-                            $suggestMember->groupUser->profile =   asset('storage/' . $suggestMember->groupUser->profile);
+                            $suggestMember->groupUser->profile =   $this->addBaseInImage($suggestMember->groupUser->profile);
                         }
                     }
+
+                    if (isset($suggestMember->communities) && !empty($suggestMember->communities)) {
+                        if (isset($suggestMember->communities->cover_photo) && !empty($suggestMember->communities->cover_photo)) {
+
+                            $suggestMember->communities->cover_photo =   $this->addBaseInImage($suggestMember->communities->cover_photo);
+                        }
+                    }
+
+
+
                     $suggestMember->is_supporting                =   (UserFollower::where(['user_id' => $suggestMember->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
                 });
             }
@@ -1378,7 +1388,7 @@ class DicoverService extends BaseController
     
                             if(isset($member->user->profile) && !empty($member->user->profile)){
     
-                                $member->user->profile      =   asset('storage/'.$member->user->profile);
+                                $member->user->profile      =   $this->addBaseInImage($member->user->profile);
                             }
                         }
     
@@ -1386,7 +1396,7 @@ class DicoverService extends BaseController
     
                             if(isset($member->communities->cover_photo) && !empty($member->communities->cover_photo)){
     
-                                $member->communities->cover_photo      =   asset('storage/'.$member->communities->cover_photo);
+                                $member->communities->cover_photo      =   $this->addBaseInImage($member->communities->cover_photo);
                             }
                         }
                     });
