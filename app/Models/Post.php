@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Post extends Model
 {
@@ -30,6 +31,15 @@ class Post extends Model
     public function group(){
         
         return $this->belongsTo(Group::class,'group_id','id');
+    }
+
+    public function total_likes(){
+
+        return $this->hasMany(Comment::class,'post_id','id');
+
+    }
+    public function comment(){
+        return $this->hasMany(Comment::class,'post_id','id');
     }
 
     protected $hidden = [

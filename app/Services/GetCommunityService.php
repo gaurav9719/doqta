@@ -41,7 +41,9 @@ class GetCommunityService extends BaseController
 
             $limit          =       10;
             if (isset($request->limit) && !empty($request->limit)) {
+
                 $limit      =       $request->limit;
+
             }
             $user           = User::findOrFail($authId);
             // dd($user);
@@ -88,6 +90,7 @@ class GetCommunityService extends BaseController
 
                     },
                     'parent_post' => function ($query) {
+
                         $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
                             ->where('is_active', 1)
                             ->with([
@@ -96,7 +99,7 @@ class GetCommunityService extends BaseController
                                 }
                             ]);
                     }
-                ])
+                ])->withCount(['total_likes','comment'])
                 ->orderByDesc('id')
                 ->simplePaginate($limit);
 
