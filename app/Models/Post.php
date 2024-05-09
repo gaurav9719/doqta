@@ -38,6 +38,7 @@ class Post extends Model
         return $this->hasMany(PostLike::class,'post_id','id');
 
     }
+    
     public function comment(){
 
         return $this->hasMany(Comment::class,'post_id','id');
