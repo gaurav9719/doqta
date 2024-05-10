@@ -109,9 +109,8 @@ class ChatController extends BaseController
     public function store(ChatRequest $request)
     {
         //
+        DB::beginTransaction();
         try {
-
-            DB::beginTransaction();
 
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
@@ -149,11 +148,7 @@ class ChatController extends BaseController
 
                 $media_thumbnail                =             message_media($request->thumbnails, 10);
             }
-
-
-
             $inboxId                            =               $message->id;
-
             #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
             $sendMessage                        =                new Message();
             $sendMessage->inbox_id              =                $inboxId;
@@ -181,21 +176,18 @@ class ChatController extends BaseController
             $sendMessage->save();
             $lastMessageId                       =                $sendMessage->id;
             Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
+
+            #send notification
+            $receiver                           =               User::find($reciever);
+            $sender                             =               User::find($myId);
+            $message                            =               "New message from " . $sender->name;
+            $data                               =               ["message"=> $message];
+            $this->notification->sendNotificationNew($sender, $receiver, 18, $data);
+
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
-
-            $reciever                       =               User::find($reciever, ['id', 'name', 'profile']);
-            $section                        =               trans('notification_message.send_message_type');
-            $myName                         =               Auth::user()->first_name;
-            $message                        =               trans('notification_message.send_message') . " " . $myName;
-            $sender                         =               User::find($myId);
-            // $this->notification->pushNotificationOnly($reciever, $message,$section);
             $sent_message                        =               $this->getLastMessage($lastMessageId, $myId);
             return $this->sendResponse($sent_message, "Message send.", 200);
-
-
-
-
 
             // $last_message                   =              Message::find($chat_message->id);
             // $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
@@ -204,6 +196,7 @@ class ChatController extends BaseController
         } catch (Exception $e) {
 
             DB::rollback();
+            Log::error('Error caught: "sendMessage" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
     }

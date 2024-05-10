@@ -117,6 +117,9 @@ return [
 
 "plan_activates_successfully"=>"Plan activated successfully",
 "Plan_updated_successfully"=>"Plan updated successfully",
+"send_support_request"=>"Support request sent successfully",
+"supporting_you"=>"Supported successfully",
+
     
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",

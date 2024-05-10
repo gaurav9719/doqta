@@ -352,6 +352,19 @@ class CommunityPost extends BaseController
                             $action =   1;
                             //increment the like by one
                             increment('posts', ['id' => $parent_id], 'repost_count', 1);
+                            #send notification
+                                                        
+                            $group         =   Group::find($isExist->group_id);
+                            $sender        =   Auth::user();
+                            $receiver      =   User::find($isExist->user_id);
+                            $message       =   $sender->name." reposted your post in ".$group->name;
+                            $data          =   [
+                                "message"       =>  $message,
+                                "post_id"       =>  $rePost->id,
+                                "community_id"  =>  $isExist->group_id
+                            ];
+                            $this->notification->sendNotificationNew($sender, $receiver,trans('notification_message.reposted_post_type'), $data);
+
                             DB::commit();
                             $repost = Post::where('id', $repostId)
                             ->with(['parent_post' => function ($query) {
@@ -582,17 +595,24 @@ class CommunityPost extends BaseController
             $addActivityLog->action      =    2; //comment
             $addActivityLog->action_details =  "commented on coummunity post";
             $addActivityLog->save();
+            #send notification
+            $sender        =   Auth::user();
+            $receiver      =   User::find($post->user_id);
+            $title         =   substr($post->title, 0, 10)."...";
+            $message       =   $sender->name." ". trans('notification_message.comment_on_post')." " .$title;
+            $data          =   [
+                "message"       =>  $message,
+                "post_id"       =>  $post->id,
+                "community_id"  =>  $post->group_id,
+                "comment_id"    =>  $addComment->id
+            ];
+            if($sender->id != $receiver->id){
+
+                $this->notification->sendNotificationNew($sender, $receiver, trans('notification.comment_on_post_type'), $data);
+
+            } 
             DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
-            
-            $reciever                           =       User::select('id', 'device_type')->where("id", $group_post->user_id)->first();
-            $sender                             =       User::select('id','device_type')->where("id", $authId)->first();
-            $notification_type                  =       trans('notification_message.post_comment_message_type');
-            $notification_message               =       trans('notification_message.post_comment_message');
-            $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
-
-            #------------  S E N D           N O T I F I C A T I O N --------------#
-            DB::commit();
             return $this->addCommunityPost->getCommentById($request, $authId,trans('message.add_comment'));
 
         } catch (Exception $e) {

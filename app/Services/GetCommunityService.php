@@ -373,18 +373,20 @@ class GetCommunityService extends BaseController
                 if ($addGroupMember->save()) {
                     // increment in group member
                     incrementMemberWithAuth($request->community_id, 1);
-
-                    $reciever               =   User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
-                    $sender                 =   User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
-                    $notification_type      =   trans('notification_message.new_memeber_join_group_type');
-                    $notification_message   =   trans('notification_message.new_memeber_join_group_message');
-
-                    $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
+                    $group         =   Group::find($request->community_id);
+                    $sender        =   Auth::user();
+                    $receiver      =   User::find($group->created_by);
+                    $mesage        =   $sender->name." ".trans('notification_message')." ".$group->name;
+                    $data          =   [
+                        "message"               => $mesage,
+                        "community_member_id"   => $addGroupMember->id,
+                        "community_id"          => $group->id
+                    ];
+                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification.joined_community_type'), $data);
                     DB::commit();
                     $result                 =   $this->communityMemberCount($request->community_id,$authId);
                     return $this->sendResponse($result,trans('message.community_joined_successfully'), 200);
 
-                    
                 }
 
             } else {                              ##--------- PRVATE COMMUNITIES ------------#

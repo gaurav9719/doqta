@@ -196,8 +196,8 @@ class FollowFollowingController extends BaseController
                         }
 
                         DB::commit();
-                    } else {
-                        // follow
+                    } else {// follow
+                        
                         //check user account is public or private
                         $userData                           =   User::find($request->user_id);
                         $addFollowing                       =   new UserFollower();
@@ -207,13 +207,15 @@ class FollowFollowingController extends BaseController
                         if ($userData['is_public'] == 0) {
 
                             $addFollowing->status           =   1;
-                            $responseMessage                =  "Support request sent successfully";
-                            $type                           =  8;
+                            $responseMessage                =   trans('message.send_support_request');
+                            $type                           =   trans('notification_message.support_request_sent_type');
+                            $message                        =   trans('notification_message.support_request_sent');
                         } else {
 
                             $addFollowing->status           =   2;
-                            $responseMessage                =  "Supported successfully";
-                            $type                           =  7;
+                            $responseMessage                =   trans('message.supporting_you');
+                            $message                        =   trans('notification_message.supporting_you_message');
+                            $type                           =   trans('notification_message.supporting_you_message_type');
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
                         }
@@ -224,17 +226,19 @@ class FollowFollowingController extends BaseController
                         #send notification
                         $sender        =   Auth::user();
                         $receiver      =   User::find($request->user_id);
-                        $mesage        =   $type == 7 ? $sender->name . " Start supporting you" :  $sender->name . " Requested to support you";
+                        $mesage        =   $sender->name ." ".$message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
-
-
                         DB::commit();
                     }
-                    $count['action'] = $action;
-                    $count['supporter'] = UserFollower::where('user_id', $request->user_id)->where('status', '2')->count();
+                    $count['action']             = $action;
+
+                    $count['supporter']         = UserFollower::where('user_id', $request->user_id)->where('status', '2')->count();
+
                     return $this->sendResponse($count, $responseMessage, 200);
+
                 } elseif ($request->type == 2) {
+
                     $validation     =   Validator::make($request->all(), [
                         'action' => 'required|integer|between:1,2'
                     ]);
@@ -257,16 +261,20 @@ class FollowFollowingController extends BaseController
                             $receiver      =   User::find($request->user_id);
                             $mesage        =   $sender->name . " accepted your support request";
                             $data          =   ["message" => $mesage];
-                            $this->notification->sendNotificationNew($sender, $receiver, 7, $data);
+                            $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.supporting_you_message_type'), $data);
+                            
+                            
                             #remove notification
                             Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 8])->delete();
-
+                            
                             DB::commit();
                             return $this->sendResponsewithoutData("Resquest accepted successfully", 200);
                         } else {
                             $follow->delete();
                             #remove notification
-                            Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 8])->delete();
+                            
+                            Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => trans('notification_message.support_request_sent_type')])->delete();
+
                             DB::commit();
                             return $this->sendResponsewithoutData("Resquest rejected successfully", 200);
                         }
