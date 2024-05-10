@@ -31,11 +31,8 @@ return new class extends Migration
     {
         Schema::table('notifications', function (Blueprint $table) {
             //
-            $table->dropForeign(['like_id']);
             $table->dropColumn('like_id');
-            $table->dropForeign(['community_member_id']);
             $table->dropColumn('community_member_id');
-            $table->dropForeign(['user_plan_id']);
             $table->dropColumn('user_plan_id');
             $table->dropColumn('comment_like_id');
         });
