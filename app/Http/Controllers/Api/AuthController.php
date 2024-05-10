@@ -22,6 +22,9 @@ use App\Services\VerifyEmail as verifyEmailService;
 use App\Http\Requests\ForgotPassword;
 use App\Http\Requests\Social_login;
 use App\Services\ForgotPasswordService;
+use Laravel\Passport\Token;
+use Laravel\Passport\RefreshToken;
+
 class AuthController extends BaseController
 {
 
@@ -258,16 +261,26 @@ class AuthController extends BaseController
 
             $myuser_id                  =                Auth::id();
             $hasDeleted                 =                User::find($myuser_id);
+            
             if ($hasDeleted) {
 
-                $hasDeleted->email      =               "";
-                $hasDeleted->user_name  =               "";
-                $hasDeleted->social_id  =               "";
+                if($hasDeleted->is_active!=1){
+
+                    return $this->sendResponsewithoutData("User already Deleted!", 400);
+
+                }
+                $hasDeleted->email      =               null;
+                $hasDeleted->user_name  =               "Deleted user";
+                $hasDeleted->name       =               "Deleted user";
+                $hasDeleted->social_id  =               null;
+                $hasDeleted->is_active  =               2;
                 $hasDeleted->save();
-                $hasDeleted->tokens()->delete();
-                // Perform standard logout logic (e.g., clearing session)
-                Auth::logout();
+                $tokens =  $hasDeleted->tokens->pluck('id');
+                Token::whereIn('id', $tokens)
+                    ->update(['revoked'=> true]);
+                RefreshToken::whereIn('access_token_id', $tokens)->update(['revoked' => true]);
                 DB::commit();
+                // Perform standard logout logic (e.g., clearing session)
                 return $this->sendResponsewithoutData("User Deleted Successfully!", 200);
                 
             } else {

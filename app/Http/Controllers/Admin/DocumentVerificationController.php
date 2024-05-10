@@ -9,9 +9,16 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\UserMedicalCredentials;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Notification;
+use App\Services\NotificationService;
 
 class DocumentVerificationController extends Controller
 {
+    protected $notificationService;
+    public function __construct(NotificationService $notificationService) {
+
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -51,6 +58,19 @@ class DocumentVerificationController extends Controller
                 elseif(isset($request->verify)){
                     $document->verified_status = 1;
                     $document->save();
+
+                    #send notification
+                    $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', 2)->first();
+                    if(isset($check)){
+                        $check->delete();
+                    }
+                    $sender= User::find(1);
+                    $receiver= User::find($document->user_id);
+                    $data=["message"=> "Your document not verified"];
+                    $this->notificationService->sendNotificationNew($sender, $receiver, 2, $data);
+
+
+
                     $this->check($document->user_id);
                     return redirect()->back()->with('success', 'Document verified successfully');
                 }
@@ -65,6 +85,19 @@ class DocumentVerificationController extends Controller
                 if(isset($request->reject)){
                     $document->verified_status = 2;
                     $document->save();
+
+                    #send notification
+
+                    $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', 2)->first();
+                    if(isset($check)){
+                        $check->delete();
+                    }
+                    $sender= User::find(1);
+                    $receiver= User::find($document->user_id);
+                    $data=["message"=> "Your document not verified"];
+                    $this->notificationService->sendNotificationNew($sender, $receiver, 2, $data);
+
+
                     return redirect()->back()->with('success', 'Document rejected successfully');
                 }
                 elseif(isset($request->verify)){
@@ -91,6 +124,17 @@ class DocumentVerificationController extends Controller
             $user= User::find($user_id);
             $user-> is_document_verify = 1;
             $user->save();
+
+
+            #send notification
+            $check=Notification::where('receiver_id', $user->id)->where('notification_type', 2)->first();
+                    if(isset($check)){
+                        $check->delete();
+                    }
+            $sender= User::find(1);
+            $receiver= User::find($user->id);
+            $data=["message"=> "Your document verified successfully"];
+            $this->notificationService->sendNotificationNew($sender, $receiver, 1, $data);
         }
     }
 

@@ -59,15 +59,19 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($user->is_document_verify == 1)
+                                    @if($user->is_document_verified == 1)
                                         <span class="badge bg-success">Verified</span>
                                     @else
                                     <span class="badge bg-warning text-dark">Not Verified</span>
                                     @endif
                                 </td>
                                 <td>
+                                    @if(count($user->user_documents) > 0 || count($user->user_medical_certificate) > 0)
                                 <!-- <a href="" style="color:black;" class="text-decoration-none"><div class="nav-link-icon"><i class="material-icons">visibility</i></div></a> -->
                                     <a href="{{url('admin/document-verification/view')}}/{{$user->id}}"><button type="button" class="btn btn-sm btn-primary">&nbsp;<i class="material-icons">visibility</i>&nbsp;</button></a>
+                                    @else
+                                    Not available
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach

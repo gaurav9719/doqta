@@ -239,8 +239,7 @@ class AdminUserController extends Controller
     function documentVerification(){
         Paginator::useBootstrap();
         $auth= Auth::user();
-        $users=User::orderBy('id', 'desc')->paginate(10);
-
+        $users=User::orderBy('id', 'desc')->with('user_documents', 'user_medical_certificate')->paginate(10);
         return view('admin/document-verification', compact('users', 'auth'));
     }
 }

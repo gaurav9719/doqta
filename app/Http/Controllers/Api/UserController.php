@@ -61,16 +61,22 @@ class UserController extends BaseController
                     $new_password                     =      Hash::make($request->new_password);
                     $type                             =      trans('notification_message.password_changed_successfully');
                     User::where('id', $user_id)->update(array('password' => $new_password));
-                    $sender                           =       Auth::user();
-                    $section                          =       $type;
-                    $message                          =       trans('notification_message.password_changed_successfully_message');
-                    $status                           =       $this->notification_sent->sendNotification($sender,$sender, $message,$section);
+
+                    // $sender                           =       Auth::user();
+                    // $section                          =       $type;
+                    // $message                          =       trans('notification_message.password_changed_successfully_message');
+                    // $status                           =       $this->notification_sent->sendNotification($sender,$sender, $message,$section);
+                    #send notification
+                    $adminExist                       =       User::select('id')->where('role',3)->first();
+                    $sender                           =       (isset($adminExist) && ! empty($adminExist))?$adminExist->id:$user_id;
+                    $receiver                         =       User::find($user_id);
+                    $data                             =       ["message"=> trans('notification_message.password_changed_successfully_message')];
+                    $this->notification_sent->sendNotificationNew($sender, $receiver, trans('notification_message.password_changed_successfully_type'), $data);
                     DB::commit();
-                    
                     return $this->sendResponsewithoutData(trans('message.password_changed'), 200);
 
                 } else {
-
+                    
                     return $this->sendResponsewithoutData(trans('message.incorrect_old_password'), 422);
                 }
             }

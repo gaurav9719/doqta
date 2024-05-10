@@ -329,19 +329,6 @@ class JournalController extends BaseController
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Display the specified resource.
      */
@@ -411,7 +398,7 @@ class JournalController extends BaseController
                         return $this->sendResponsewithoutData("Invalid journal", 422);
                     }
                 }
-                return $this->sendResponsewithoutData(trans('message.deleted_successfully'), 422);
+                return $this->sendResponsewithoutData(trans('message.deleted_successfully'), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
