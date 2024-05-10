@@ -85,19 +85,19 @@ class likesService extends BaseController
 
 
                     #send notification
-                    $sender        =   Auth::user();
-                    $receiver      =   User::find($group_post->user_id);
-                    $group         =   Group::find($post->group_id, ['name']);
+                    // $sender        =   Auth::user();
+                    // $receiver      =   User::find($group_post->user_id);
+                    // $group         =   Group::find($post->group_id, ['name']);
 
-                    $message       =   $sender->name . " liked your post: " . $title;
-                    $data          =   [
-                        "message"       =>  $message,
-                        "post_id"       =>  $request->post_id,
-                        "community_id"  =>  $group_post->group_id,
-                        "like_id"       =>  $post->id
-                    ];
+                    // $message       =   $sender->name . " liked your post: " . $title;
+                    // $data          =   [
+                    //     "message"       =>  $message,
+                    //     "post_id"       =>  $request->post_id,
+                    //     "community_id"  =>  $group_post->group_id,
+                    //     "like_id"       =>  $post->id
+                    // ];
 
-                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
+                    // $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
                 } else {
                     // update like
                     $oldreact           =   $post->reaction;
