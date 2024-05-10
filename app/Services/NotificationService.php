@@ -108,7 +108,7 @@ class NotificationService
 
                 }else{
 
-                    return ['status' => 400, 'message' => "failed type 1/2/3/6/7/8/16/17/18 notification"];
+                    //return ['status' => 400, 'message' => "failed type 1/2/3/6/7/8/16/17/18 notification"];
                 }
             }
             #4=Plan activated
@@ -124,7 +124,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 4/5 notification"];
+                   // return ['status' => 400, 'message' => "failed type 4/5 notification"];
                 }
             }
             #9=Joined the community
@@ -140,7 +140,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 9 notification"];
+                   // return ['status' => 400, 'message' => "failed type 9 notification"];
                 }
             }
             #10=Posted in community
@@ -157,7 +157,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 10/15 notification"];
+                    //return ['status' => 400, 'message' => "failed type 10/15 notification"];
                 } 
             }
             #11=Post like
@@ -174,7 +174,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 11 notification"];
+                    //return ['status' => 400, 'message' => "failed type 11 notification"];
                 } 
             }
             #12=Comment 
@@ -192,7 +192,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 12/14 notification"];
+                   // return ['status' => 400, 'message' => "failed type 12/14 notification"];
                 } 
             }
             #13=Comment like
@@ -210,7 +210,7 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                    return ['status' => 400, 'message' => "failed type 13 notification"];
+                   // return ['status' => 400, 'message' => "failed type 13 notification"];
                 } 
             }
             else{

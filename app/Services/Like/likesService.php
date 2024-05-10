@@ -87,7 +87,7 @@ class likesService extends BaseController
                     #send notification
                     // $sender        =   Auth::user();
                     // $receiver      =   User::find($group_post->user_id);
-                    // $group         =   Group::find($post->group_id, ['name']);
+                    // $group         =   Group::find($post->group_id);
 
                     // $message       =   $sender->name . " liked your post: " . $title;
                     // $data          =   [

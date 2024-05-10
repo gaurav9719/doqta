@@ -183,6 +183,25 @@ if (!function_exists('sendPushNotification')) {
 
 
 
+if (!function_exists('sendPushNotificationNew')) {
+    function sendPushNotificationNew($sender, $userData, $notification)
+    {
+        
+        // $notification['sender_details']= User::select('id','first_name','profile_pic')->where(['id'=>$sender['id']])->first();
+        $notification['sender_details']= $sender;
+        
+            if(isset($userData['device_token']) && !empty($userData['device_token'])){
+                if($userData['device_type']==1){        // call ios function
 
+                    // IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+
+                }elseif ($userData['device_type']==2) {     // call andriod function
+
+                    // androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
+
+                }
+            }
+    }
+}
 
 ?>
