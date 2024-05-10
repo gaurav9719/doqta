@@ -22,7 +22,6 @@ use App\Traits\IsCommunityJoined;
 use App\Traits\postCommentLikeCount;
 use App\Models\Group;
 use App\Services\NotificationService;
-
 /**
  * Class likesService.
  */
