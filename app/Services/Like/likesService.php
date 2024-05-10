@@ -160,8 +160,8 @@ class likesService extends BaseController
                     $comment_user  =       Comment::select('user_id')->where(['id' => $request->comment_id])->first();
                     $sender        =       User::find($authId);
                     $receiver      =       User::find($comment_user->user_id);
-                    $post1         =       Post::find($comment_user->post_id, ['group_id']);
-                    $group         =       Group::find($post1->group_id, ['name']);
+                    $post1         =       Post::find($comment_user->post_id);
+                    $group         =       Group::find($post1->group_id);
                     $message       =       $sender->name . " liked your comment in: " . $group->name;
 
                     #-------  T R A C K       A C T V I T Y -----------#
