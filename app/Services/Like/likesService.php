@@ -21,6 +21,7 @@ use App\Models\Comment;
 use App\Traits\IsCommunityJoined;
 use App\Traits\postCommentLikeCount;
 use App\Models\Group;
+use App\Services\NotificationService;
 
 /**
  * Class likesService.
@@ -30,10 +31,17 @@ class likesService extends BaseController
     use IsCommunityJoined, postCommentLikeCount;
 
     protected $addCommunityPost, $notification, $getCommunityPost;
-    public function __construct(AddCommunityPost $addCommunityPost)
+    public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
     {
         $this->addCommunityPost         = $addCommunityPost;
+        $this->notification = $notification;
     }
+
+
+
+    #--------------  S I G N U P        P R O C E S S  ------------------------#
+
+   
 
     #------------ P O S T       L I K E     --------------#
     public function postLike($request, $authId)
