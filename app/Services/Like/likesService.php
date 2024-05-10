@@ -157,7 +157,7 @@ class likesService extends BaseController
                     CommentLike::create(['post_id' => $request->post_id, 'comment_id' => $request->comment_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
 
 
-                    $comment_user  =       Comment::select('user_id')->where(['id' => $request->comment_id])->first();
+                    $comment_user  =       Comment::select('user_id','post_id')->where(['id' => $request->comment_id])->first();
                     $sender        =       User::find($authId);
                     $receiver      =       User::find($comment_user->user_id);
                     $post1         =       Post::find($comment_user->post_id);
