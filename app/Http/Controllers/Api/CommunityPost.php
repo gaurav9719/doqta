@@ -71,26 +71,24 @@ class CommunityPost extends BaseController
         $authId             =   Auth::id();
         //check if you are the member of 
         //check group is active or not
-        $isGroupExist       =   Group::where(['id'=>$request->community_id,'is_active'=>1])->exists();
-        if($isGroupExist){
+        $isGroupExist       =   Group::where(['id' => $request->community_id, 'is_active' => 1])->exists();
+        if ($isGroupExist) {
 
             if (isset($request->community_id) && !empty($request->community_id)) {
-    
-                $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId,'is_active'=>1])->exists();
-                
+
+                $isExist        =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId, 'is_active' => 1])->exists();
+
                 if (!$isExist) {
-                    
+
                     return $this->sendError(trans("message.not_group_member"), [], 403);
                 }
             }
-    
+
             return $this->addCommunityPost->addPost($request, $authId);
-        }else{
+        } else {
 
             return $this->sendError(trans("message.invalid_group"), [], 403);
-
         }
-
     }
 
     /**
@@ -99,13 +97,13 @@ class CommunityPost extends BaseController
     public function show(string $id, Request $request)
     {
         $validation = Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id']);
-    
+
         if ($validation->fails()) {
 
             return $this->sendResponsewithoutData($validation->errors()->first(), 422);
         }
-    
-        return $this->addCommunityPost->getCommunityPost($id, Auth::id(),$request);
+
+        return $this->addCommunityPost->getCommunityPost($id, Auth::id(), $request);
     }
     /**
      * Show the form for editing the specified resource.
@@ -132,15 +130,13 @@ class CommunityPost extends BaseController
         //     }
         // }
 
-        $isExist        =   Post::whereHas('group_post',function($query){
-            $query->where('is_active',1);
-
+        $isExist        =   Post::whereHas('group_post', function ($query) {
+            $query->where('is_active', 1);
         })->where(['id' => $id, 'user_id' => $authId])->exists(); // check post is your or not
 
-        if($isExist) {   // edit the post
-           
-            return $this->addCommunityPost->editPost($request, $authId, $id);
+        if ($isExist) {   // edit the post
 
+            return $this->addCommunityPost->editPost($request, $authId, $id);
         } else {        //invalid post
 
             return $this->sendError(trans("message.invalid_post"), [], 403);
@@ -167,7 +163,6 @@ class CommunityPost extends BaseController
                 if (!$isExist) {
 
                     return $this->sendError(trans("message.no_post_found"), [], 422);
-
                 } else {
 
 
@@ -194,13 +189,12 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id','reaction'=>'required|integer|between:1,3','comment_id'=>'nullable|exists:comments,id'],['reaction.*'=>"invalid reaction"]);
+            $validation         =   Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id', 'reaction' => 'required|integer|between:1,3', 'comment_id' => 'nullable|exists:comments,id'], ['reaction.*' => "invalid reaction"]);
 
-            if($validation->fails()){
+            if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
-            }else{
+            } else {
 
                 $auth               =   Auth::user();
                 $authId             =   Auth::id();
@@ -209,16 +203,15 @@ class CommunityPost extends BaseController
                 if (!$isExist) {
 
                     return $this->sendError(trans("message.no_post_found"), [], 422);
-
                 } else {
 
                     $post           =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
-                    if($post) {
-                        if($post['reaction']== $request->reaction){      // same reaction then delete
+                    if ($post) {
+                        if ($post['reaction'] == $request->reaction) {      // same reaction then delete
                             // Record exists, delete it
                             $post->delete();
-                            $deleteCondition                    =   ['post_id'=>$request->post_id,'user_id'=>$authId,'action'=>1];
-                            if(isset($request->comment_id) && !empty($request->comment_id)){
+                            $deleteCondition                    =   ['post_id' => $request->post_id, 'user_id' => $authId, 'action' => 1];
+                            if (isset($request->comment_id) && !empty($request->comment_id)) {
 
                                 $deleteCondition['comment_id']  =    $request->comment_id;
                             }
@@ -226,7 +219,7 @@ class CommunityPost extends BaseController
                             $action =   0;
                             decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
                             DB::commit();
-                        }else{
+                        } else {
                             $post->reaction   = $request->reaction;
                             $post->save();
                             $action =   1;
@@ -238,26 +231,25 @@ class CommunityPost extends BaseController
                         $newPost->post_id   = $request->post_id;
                         $newPost->user_id   = $authId;
 
-                        if(isset($request->comment_id) && !empty($request->comment_id)){
+                        if (isset($request->comment_id) && !empty($request->comment_id)) {
 
                             $newPost->comment_id   = $request->comment_id;
-
                         }
                         $newPost->reaction  = $request->reaction;
                         $newPost->save();
-                        
+
                         #----------- R E C O R D        A C T I V I T Y -------------#
-                        $group_post                       =    Post::select('group_id','user_id')->where(['id' => $request->post_id])->first();
+                        $group_post                       =    Post::select('group_id', 'user_id')->where(['id' => $request->post_id])->first();
 
                         // $groupData                   =    Group::where('id', $group->group_id);
                         $addActivityLog              =    new ActivityLog();
                         $addActivityLog->user_id     =    $authId;
                         $addActivityLog->post_id     =    $request->post_id;
-                        $addActivityLog->community_id=    $group_post->group_id;
+                        $addActivityLog->community_id =    $group_post->group_id;
 
-                        if(isset($request->comment_id) && !empty($request->comment_id)){
+                        if (isset($request->comment_id) && !empty($request->comment_id)) {
 
-                            $addActivityLog->comment_id=    $request->comment_id;
+                            $addActivityLog->comment_id =    $request->comment_id;
                         }
 
                         $addActivityLog->action      =    1; //like
@@ -270,16 +262,16 @@ class CommunityPost extends BaseController
                         $sender                             =       User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
                         $notification_type                  =       trans('notification_message.post_liked_message_type');
                         $notification_message               =       trans('notification_message.post_liked_message');
-                        
-                        $this->notification->sendNotification($reciever,$sender,$notification_message,$notification_type);
+
+                        $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
 
                         #------------  S E N D           N O T I F I C A T I O N --------------#
                         $action =   1;
                         //increment the like by one
-                        increment('posts', ['id' => $request->post_id], 'like_count', 1); 
+                        increment('posts', ['id' => $request->post_id], 'like_count', 1);
                         DB::commit();
                     }
-                    return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
+                    return $this->addCommunityPost->getPost($request->post_id, $authId, trans('message.post_liked'));
                 }
             }
         } catch (Exception $e) {
@@ -296,36 +288,33 @@ class CommunityPost extends BaseController
     {
         DB::beginTransaction();
         try {
-            
-            $validation         =   Validator::make($request->all(),['post_id'=>'required|integer|exists:posts,id']);
-            if($validation->fails()){
+
+            $validation         =   Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id']);
+            if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
-            }else{
+            } else {
 
                 $auth               =   Auth::user();
                 $authId             =   Auth::id();
                 $isExist            =   Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
-    
-                if (empty($isExist) || $isExist==null) {
+
+                if (empty($isExist) || $isExist == null) {
 
                     return $this->sendError(trans("message.no_post_found"), [], 422);
-
                 } else {
 
-                    if(isset($isExist->parent_id) && !empty($isExist->parent_id)){
+                    if (isset($isExist->parent_id) && !empty($isExist->parent_id)) {
 
                         $parent_id     =   $isExist->parent_id;
+                    } else {
 
-                    }else{
-                        
                         $parent_id     =   $isExist->id;
                     }
-                 
+
                     $post       =   Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
                     //dd(DB::getQueryLog());
-                    
+
                     if (isset($post) && !empty($post)) {
                         // Record exists, delete it
                         $post->delete();
@@ -335,9 +324,9 @@ class CommunityPost extends BaseController
                         $repost               =   null;
                     } else {
                         // check i am the community member or not 
-                        $isGroupMember         =    GroupMember::where(['group_id'=>$isExist->group_id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $isGroupMember         =    GroupMember::where(['group_id' => $isExist->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
 
-                        if($isGroupMember){
+                        if ($isGroupMember) {
 
                             $rePost                =   new Post();
                             $rePost->parent_id     =   $parent_id;
@@ -348,42 +337,42 @@ class CommunityPost extends BaseController
                             $rePost->post_type     =   $isExist->post_type;
                             $rePost->group_id      =   $isExist->group_id;
                             $rePost->save();
-                            $repostId              =   $rePost->id;   
+                            $repostId              =   $rePost->id;
                             $action =   1;
                             //increment the like by one
                             increment('posts', ['id' => $parent_id], 'repost_count', 1);
                             #send notification
-                                                        
+
                             $group         =   Group::find($isExist->group_id);
                             $sender        =   Auth::user();
                             $receiver      =   User::find($isExist->user_id);
-                            $message       =   $sender->name." reposted your post in ".$group->name;
+                            $message       =   $sender->name . " reposted your post in " . $group->name;
                             $data          =   [
                                 "message"       =>  $message,
                                 "post_id"       =>  $rePost->id,
                                 "community_id"  =>  $isExist->group_id
                             ];
-                            $this->notification->sendNotificationNew($sender, $receiver,trans('notification_message.reposted_post_type'), $data);
+                            $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.reposted_post_type'), $data);
 
                             DB::commit();
                             $repost = Post::where('id', $repostId)
-                            ->with(['parent_post' => function ($query) {
-                                $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
-                                    ->where('is_active', 1)
-                                    ->with(['post_user' => function ($query) {
-                                        $query->select('id', 'name', 'profile');
-                                    }]);
-                            }])->first();
-    
+                                ->with(['parent_post' => function ($query) {
+                                    $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                                        ->where('is_active', 1)
+                                        ->with(['post_user' => function ($query) {
+                                            $query->select('id', 'name', 'profile');
+                                        }]);
+                                }])->first();
+
                             if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
-                                $repost->parent_post->post_user->profile = asset('storage/'.$repost->parent_post->post_user->profile);         
+                                $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
                             }
-                        }else{
+                        } else {
 
                             return $this->sendError(trans("message.not_community_member"), [], 403);
                         }
                     }
-                    return $this->sendResponse($repost, ($action==0)?trans('message.repost_removed_successfully'):trans('message.reposted'), 200);
+                    return $this->sendResponse($repost, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'), 200);
                 }
             }
         } catch (Exception $e) {
@@ -413,7 +402,6 @@ class CommunityPost extends BaseController
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             }
 
             $type       =       $request->type;
@@ -423,7 +411,6 @@ class CommunityPost extends BaseController
             if (!$post || !$post->is_active) {
 
                 return $this->sendResponsewithoutData(trans('message.no_post_found'), 422);
-
             }
             switch ($type) {
 
@@ -434,24 +421,22 @@ class CommunityPost extends BaseController
                 case 1: // Save the post
                     //check post is hidden for you
                     $isHide =   HiddenPost::where(['user_id' => $authId, 'post_id' => $request->post_id])->exists();
-                    if($isHide){
+                    if ($isHide) {
 
                         $message = trans('message.hidden_post_cannot_saved');
-                        
-                    }else{
-                        
+                    } else {
+
                         $message = trans('message.saved_post_successfully');
                         SavedPost::updateOrCreate(['user_id' => $authId, 'post_id' => $request->post_id]);
-
                     }
                     break;
                 case 2: // Save the post
 
                     $isHide  =  HiddenPost::where(['user_id' => $authId, 'post_id' => $request->post_id])->first();
-                    if(isset($isHide) && !empty($isHide)){
+                    if (isset($isHide) && !empty($isHide)) {
                         $message =  trans('message.unhide_post_successfully');
                         $isHide->delete();
-                    }else{
+                    } else {
                         $message =  trans('message.no_post_found');
                     }
                     break;
@@ -466,7 +451,6 @@ class CommunityPost extends BaseController
             DB::rollBack();
 
             return $this->sendResponsewithoutData($e->errors()['first'], 422);
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "hideSavePost" ' . $e->getMessage());
@@ -476,7 +460,8 @@ class CommunityPost extends BaseController
     #------------------------- *********  E N D   ******** ----------------------------#
 
     #--------------------********   R E P O R T     P O S T   ********------------------------#
-    public function reportPost(Request $request){
+    public function reportPost(Request $request)
+    {
 
         DB::beginTransaction();
 
@@ -502,25 +487,23 @@ class CommunityPost extends BaseController
                 throw new Exception(trans('message.no_post_found'), 422);
             }
             $data       =   [];
-            if(isset($request->report_title) && !empty($request->report_title)){
+            if (isset($request->report_title) && !empty($request->report_title)) {
 
-                $data   =   ['report_title'=>$request->report_title];
+                $data   =   ['report_title' => $request->report_title];
             }
 
             ReportPost::updateOrCreate(
                 ['user_id' => $authId, 'post_id' => $request->post_id],
                 [$data]
             );
-            
+
             DB::commit();
             return $this->sendResponsewithoutData(trans('message.report_to_post_successfully'), 200);
-
         } catch (ValidationException $e) {
 
             DB::rollBack();
             Log::error('Error caught: "reportPost" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "reportPost" ' . $e->getMessage());
@@ -532,22 +515,21 @@ class CommunityPost extends BaseController
 
 
     #----------------------- ############C O M M E N T     O N     P O S T############ ----------------------#
-    public function addComment(Request $request){
-
+    public function addComment(Request $request)
+    {
         DB::beginTransaction();
 
         try {
 
             $validation = Validator::make($request->all(), [
 
-                'post_id' => 'required|integer|exists:posts,id','parent_comment_id'=>'nullable|exists:comments,id','comment'=>"required",'comment_type'=>"nullable|between:1,4",'mention_user_id'=>'nullable|integer|exists:users,id'
+                'post_id' => 'required|integer|exists:posts,id', 'parent_comment_id' => 'nullable|exists:comments,id', 'comment' => "required", 'comment_type' => "nullable|between:1,4", 'mention_user_id' => 'nullable|integer|exists:users,id'
             ], [
-                'post_id.integer' => 'Invalid post','parent_id.*'=>"Invalid comment id",'comment_type.between'=>"Invalid comment type",'mention_user_id.integer'=>"Invalid mention id",
+                'post_id.integer' => 'Invalid post', 'parent_id.*' => "Invalid comment id", 'comment_type.between' => "Invalid comment type", 'mention_user_id.integer' => "Invalid mention id",
             ]);
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             }
             $authId             =   Auth::id();
             $post               =   Post::find($request->post_id);
@@ -556,8 +538,9 @@ class CommunityPost extends BaseController
                 throw new Exception(trans('message.no_post_found'), 422);
             }
             // check i am group member or not 
-            $isMember           =   GroupMember::where(['group_id'=>$post->group_id,'user_id'=>$authId,'is_active'=>1])->exists();
-            if(!$isMember){
+            $isMember           =   GroupMember::where(['group_id' => $post->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
+
+            if (!$isMember) {
 
                 return $this->sendError(trans('message.you_are_not_group_member'), [], 403);
             }
@@ -565,56 +548,62 @@ class CommunityPost extends BaseController
             $addComment->user_id         =   $authId;
             $addComment->post_id         =   $request->post_id;
 
-            if(isset($request->parent_comment_id) && !empty($request->parent_comment_id)){
+            if (isset($request->parent_comment_id) && !empty($request->parent_comment_id)) {
 
                 $addComment->parent_id   =   $request->parent_comment_id;
             }
-            if(isset($request->comment_type) && !empty($request->comment_type)){
+
+            if (isset($request->comment_type) && !empty($request->comment_type)) {
 
                 $addComment->comment_type   =   $request->comment_type;
-            }
 
-            if(isset($request->mention_user_id) && !empty($request->mention_user_id)){
+                #notification data preparation
+                $parentComment =   Comment::find($request->parent_comment_id);
+                $sender        =   Auth::user();
+                $receiver      =   User::find($parentComment->user_id);
+                $group         =   Group::find($post->group_id);
+                $message       =   $sender->name . " replied to your comment in : " . $group->name;
+            } else {
+                #notification data preparation
+                $sender        =   Auth::user();
+                $receiver      =   User::find($post->user_id);
+                $title         =   substr($post->title, 0, 10) . "...";
+                $message       =   $sender->name . " " . trans('notification_message.comment_on_post') . " " . $title;
+            }
+            if (isset($request->mention_user_id) && !empty($request->mention_user_id)) {
 
                 $addComment->mention_user_id   =   $request->mention_user_id;
             }
-
 
             $addComment->comment          = $request->comment;
             $addComment->save();
             $commentId                     =   $addComment->id;
             $request['comment_id']         = $commentId;
-              #----------- R E C O R D        A C T I V I T Y -------------#
-            $group_post                  =    Post::select('group_id','user_id')->where(['id' => $request->post_id])->first();
+            #----------- R E C O R D        A C T I V I T Y -------------#
+            $group_post                  =    Post::select('group_id', 'user_id')->where(['id' => $request->post_id])->first();
             // $groupData                =    Group::where('id', $group->group_id);
             $addActivityLog              =    new ActivityLog();
             $addActivityLog->user_id     =    $authId;
             $addActivityLog->post_id     =    $request->post_id;
-            $addActivityLog->community_id=    $group_post->group_id;
+            $addActivityLog->community_id =    $group_post->group_id;
             $addActivityLog->comment_id  =    $commentId;
             $addActivityLog->action      =    2; //comment
-            $addActivityLog->action_details =  "commented on coummunity post";
+            $addActivityLog->action_details =  $message;
             $addActivityLog->save();
             #send notification
-            $sender        =   Auth::user();
-            $receiver      =   User::find($post->user_id);
-            $title         =   substr($post->title, 0, 10)."...";
-            $message       =   $sender->name." ". trans('notification_message.comment_on_post')." " .$title;
             $data          =   [
                 "message"       =>  $message,
                 "post_id"       =>  $post->id,
                 "community_id"  =>  $post->group_id,
                 "comment_id"    =>  $addComment->id
             ];
-            if($sender->id != $receiver->id){
+            if ($sender->id != $receiver->id) {
 
                 $this->notification->sendNotificationNew($sender, $receiver, trans('notification.comment_on_post_type'), $data);
-
-            } 
+            }
             DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
-            return $this->addCommunityPost->getCommentById($request, $authId,trans('message.add_comment'));
-
+            return $this->addCommunityPost->getCommentById($request, $authId, trans('message.add_comment'));
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "addComment" ' . $e->getMessage());
@@ -625,11 +614,9 @@ class CommunityPost extends BaseController
 
     #------------------ G E T       P O S T         C O M M E N T -------------------------#
 
-    public function comments(Request $request){
-
+    public function comments(Request $request)
+    {
         try {
-            
-
             $validation = Validator::make($request->all(), [
 
                 'post_id' => 'required|integer|exists:posts,id'
@@ -638,77 +625,64 @@ class CommunityPost extends BaseController
             ]);
 
             if ($validation->fails()) {
-
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             }
-
             $authId             =   Auth::id();
-
             return $this->addCommunityPost->getComments($request, $authId);
+        } catch (Exception $e) {
 
-        }catch (Exception $e) {
-           
             Log::error('Error caught: "addComment" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
-
     }
     #------------------ G E T       P O S T         C O M M E N T -------------------------#
 
     #---------- G E T       S A V E D    P O S T  ------------------------------------#
-    public function savedPosts(Request $request){
+    public function savedPosts(Request $request)
+    {
         try {
 
             $limit              =   10;
 
-            if(isset($request->limit) && !empty($request->limit)){
+            if (isset($request->limit) && !empty($request->limit)) {
                 $limit          =   $request->limit;
             }
             $authId             =   Auth::id();
-
             $savedPosts         =   SavedPost::with([
                 'post.post_user:id,name,profile',
                 //'group:id,name,description,cover_photo,post_count',
-              
-
             ])
-            ->whereNotExists(function ($query) use ($authId) {
-                $query->select(DB::raw(1))
-                    ->from('hidden_posts')
-                    ->whereColumn('hidden_posts.post_id', '=', 'saved_posts.post_id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
-                    ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
-            })
+                ->whereNotExists(function ($query) use ($authId) {
+                    $query->select(DB::raw(1))
+                        ->from('hidden_posts')
+                        ->whereColumn('hidden_posts.post_id', '=', 'saved_posts.post_id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                        ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
+                })
 
-            ->addSelect(['is_liked' => function ($query) use ($authId) {
+                ->addSelect(['is_liked' => function ($query) use ($authId) {
 
-                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = saved_posts.post_id AND comment_id IS NULL), 1, 0)', [$authId]);
+                    $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = saved_posts.post_id AND comment_id IS NULL), 1, 0)', [$authId]);
+                }])->where(['user_id' => $authId])->orderByDesc('id')->simplePaginate($limit);
 
-            }])->where(['user_id'=>$authId])->orderByDesc('id')->simplePaginate($limit);
+            if (isset($savedPosts[0]) && !empty($savedPosts[0])) {
 
-            if(isset($savedPosts[0]) && !empty($savedPosts[0])){
+                $savedPosts->each(function ($savedPost) use ($authId) {
 
-                $savedPosts->each(function($savedPost) use($authId){
+                    if (isset($savedPost->post->media_url) && !empty($savedPost->post->media_url)) {
 
-                    if(isset($savedPost->post->media_url) && !empty($savedPost->post->media_url)){
-
-                        $savedPost->post->media_url   =   asset('storage/'.$savedPost->post->media_url);
+                        $savedPost->post->media_url   =   asset('storage/' . $savedPost->post->media_url);
                     }
-
-                    if(isset($savedPost->post->post_user) && !empty($savedPost->post->post_user)){
-
-                        if(isset($savedPost->post->post_user->profile) && !empty($savedPost->post->post_user->profile)){
-                        
-                            $savedPost->post->post_user->profile   =   asset('storage/'.$savedPost->post->post_user->profile);
+                    if (isset($savedPost->post->post_user) && !empty($savedPost->post->post_user)) {
+                        if (isset($savedPost->post->post_user->profile) && !empty($savedPost->post->post_user->profile)) {
+                            $savedPost->post->post_user->profile   =   asset('storage/' . $savedPost->post->post_user->profile);
                         }
                     }
                     //check repost or not 
-                    $isRepost                =   Post::where(['parent_id'=>$savedPost->post_id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $savedPost->is_reposted  =  ($isRepost)?1:0;
+                    $isRepost                =   Post::where(['parent_id' => $savedPost->post_id, 'user_id' => $authId, 'is_active' => 1])->exists();
+                    $savedPost->is_reposted  =  ($isRepost) ? 1 : 0;
                 });
             }
             return $this->sendResponse($savedPosts, trans('message.saved_posts'), 200);
-
         } catch (Exception $e) {
             Log::error('Error caught: "addComment" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -718,43 +692,29 @@ class CommunityPost extends BaseController
 
 
     #---------------   Delete Comment --------------------#
-    function deleteComment(Request $request){
-
-        $validate= Validator::make($request->all(),[
-
+    function deleteComment(Request $request)
+    {
+        $validate = Validator::make($request->all(), [
             'comment_id' => 'required|exists:comments,id',
-
         ]);
-        if($validate->fails()){
-
+        if ($validate->fails()) {
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
-
         $userId             =   Auth::id();
-
         $comment            =   Comment::where('id', $request->comment_id)->where('is_active', 1)->first();
-
-        if(isset($comment) && $comment->user_id == $userId) {
-
+        if (isset($comment) && $comment->user_id == $userId) {
             $comment->delete();
-
-            $commentCount       =   Post::select('comment_count')->where('id',$comment->post_id)->first();
-
-            if($commentCount->comment_count >0){
-
+            $commentCount       =   Post::select('comment_count')->where('id', $comment->post_id)->first();
+            if ($commentCount->comment_count > 0) {
                 decrement('posts', ['id' => $request->post_id], 'comment_count', 1); //decrement post
             }
             $activity       =   ActivityLog::where('post_id', $comment->post_id)->where('comment_id', $comment->id)->first();
-
-            if(isset($activity)){
-
+            if (isset($activity)) {
                 $activity->delete();
             }
-            return $this->sendResponsewithoutData("Comment Deleted Successfully", 200);
-        }
-        else{
-            return $this->sendResponsewithoutData("Comment not found", 400);
+            return $this->sendResponsewithoutData(trans('message.comment_deleted'), 200);
+        } else {
+            return $this->sendResponsewithoutData(trans('message.comment_not_found'), 400);
         }
     }
-
 }

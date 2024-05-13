@@ -35,16 +35,17 @@ use Illuminate\Support\Facades\Validator;
 class ForgotPasswordService extends BaseController
 {
 
-    protected $authId;
+    protected $authId, $notification;
 
 
-    public function __construct()
+    public function __construct(NotificationService $notification)
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
             $this->authId = Auth::id();
             return $next($request);
         });
+        $this->notification = $notification;
     }  
 
 
@@ -143,7 +144,7 @@ class ForgotPasswordService extends BaseController
     {
         DB::beginTransaction();
         try {
-            $validation     =   Validator::make($request->all(),['password'=>'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/','confirm_password'=>'required|same:password','token'=>'required|']);
+            $validation                           =   Validator::make($request->all(),['password'=>'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/','confirm_password'=>'required|same:password','token'=>'required|']);
             if($validation->fails()){
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
@@ -153,24 +154,26 @@ class ForgotPasswordService extends BaseController
                 $resetPassword                    =   PasswordResetToken::where(['email' => $request->email,'token'=>$request->token])->first();
                 if ((isset($resetPassword) && !empty($resetPassword)) && !empty($resetPassword['token'])) {
                     //check validation of expiry time of reset password
-
                     $setUserPassword              =   User::where('email',$request->email)->first();
                     $setUserPassword->password    =    Hash::make($request->password);
-
                     if ($setUserPassword->save()) {
+
                         $resetPassword->token             =  null;
                         $resetPassword->otp_expiry_time   =  null;
-                        $resetPassword->otp              =  null;
+                        $resetPassword->otp               =  null;
                         $resetPassword->save();
                         DB::commit();
-                        // Send a notification or email confirming the password change
+                        #send notification
+                        $receiver= User::find($setUserPassword->id);
+                        $sender= User::where('role', 3)->first();
+                        $sender = isset($sender) ? $sender : $receiver;
+                        $data=["message"=> trans('notification_message.password_changed_successfully_message')];
+                        $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.password_changed_successfully_type'), $data);
                         return $this->sendResponsewithoutData(trans('message.changed_password'), 200);
-
+                        
                     } else {
-
                         return $this->sendResponsewithoutData(trans('message.password_not_updated'), 200);
                     }
-                        
                 } else {
 
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 400);

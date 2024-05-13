@@ -15,7 +15,8 @@ use App\Services\NotificationService;
 class DocumentVerificationController extends Controller
 {
     protected $notificationService;
-    public function __construct(NotificationService $notificationService) {
+    public function __construct(NotificationService $notificationService)
+    {
 
         $this->notificationService = $notificationService;
     }
@@ -24,7 +25,6 @@ class DocumentVerificationController extends Controller
      */
     public function index()
     {
-        
     }
 
     /**
@@ -53,24 +53,22 @@ class DocumentVerificationController extends Controller
                 if(isset($request->reject)){
                     $document->verified_status = 2;
                     $document->save();
+                    
                     return redirect()->back()->with('success', 'Document rejected successfully');
+
                 }
                 elseif(isset($request->verify)){
+
                     $document->verified_status = 1;
                     $document->save();
-
                     #send notification
                     $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', 2)->first();
+
                     if(isset($check)){
+
                         $check->delete();
                     }
-                    $sender= User::find(1);
-                    $receiver= User::find($document->user_id);
-                    $data=["message"=> "Your document not verified"];
-                    $this->notificationService->sendNotificationNew($sender, $receiver, 2, $data);
-
-
-
+                    
                     $this->check($document->user_id);
                     return redirect()->back()->with('success', 'Document verified successfully');
                 }
@@ -92,10 +90,12 @@ class DocumentVerificationController extends Controller
                     if(isset($check)){
                         $check->delete();
                     }
-                    $sender= User::find(1);
+                    
                     $receiver= User::find($document->user_id);
-                    $data=["message"=> "Your document not verified"];
-                    $this->notificationService->sendNotificationNew($sender, $receiver, 2, $data);
+                    $sender= User::where('role', 3)->first();
+                    $sender = isset($sender) ? $sender : $receiver;
+                    $data=["message"=> trans('notification_message.document_not_verified')];
+                    $this->notificationService->sendNotificationNew($sender, $receiver, trans('notification_message.document_not_verified_type'), $data);
 
 
                     return redirect()->back()->with('success', 'Document rejected successfully');
@@ -108,6 +108,7 @@ class DocumentVerificationController extends Controller
                 }
             }
             else{
+                
                 return redirect()->back()->with('fail', 'Incorrect document');
             }
         }
@@ -122,7 +123,7 @@ class DocumentVerificationController extends Controller
         $docVerified2 = UserMedicalCredentials::where('user_id', $user_id)->where('verified_status', 1)->get();
         if(count($doc1) > 0 && count($doc2) > 0 && count($doc1) == count($docVerified1) &&  count($doc2) == count($docVerified2)){
             $user= User::find($user_id);
-            $user-> is_document_verify = 1;
+            $user-> is_document_verified = 1;
             $user->save();
 
 
@@ -131,44 +132,45 @@ class DocumentVerificationController extends Controller
                     if(isset($check)){
                         $check->delete();
                     }
-            $sender= User::find(1);
             $receiver= User::find($user->id);
-            $data=["message"=> "Your document verified successfully"];
-            $this->notificationService->sendNotificationNew($sender, $receiver, 1, $data);
+            $sender= User::where('role', 3)->first();
+            $sender = isset($sender) ? $sender : $receiver;
+            $data=["message"=>trans('notification_message.document_verified')];
+            $this->notificationService->sendNotificationNew($sender, $receiver, trans('notification_message.document_verified_type'), $data);
         }
     }
+
+
 
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-       if((int)$id ){
-            $auth=Auth::user();
-            $user= User::find($id);
-            if(isset($user)){
-                $document=array();
-                $identity=  UserDocuments::where('user_id', $user->id)->get();
-                if(count($identity) > 0){
-                    foreach($identity as $iden){
-                        if(Storage::disk('public')->exists($iden->document)){
+        if ((int)$id) {
+            $auth = Auth::user();
+            $user = User::find($id);
+            if (isset($user)) {
+                $document = array();
+                $identity =  UserDocuments::where('user_id', $user->id)->get();
+                if (count($identity) > 0) {
+                    foreach ($identity as $iden) {
+                        if (Storage::disk('public')->exists($iden->document)) {
                             $document['identity'][] = $iden;
                         }
                     }
-                    
                 }
-                $certificate= UserMedicalCredentials::where('user_id', $user->id)->get();
-                if(count($certificate) > 0){
-                    foreach($certificate as $cer){
-                        if(Storage::disk('public')->exists($cer->medicial_document)){
+                $certificate = UserMedicalCredentials::where('user_id', $user->id)->get();
+                if (count($certificate) > 0) {
+                    foreach ($certificate as $cer) {
+                        if (Storage::disk('public')->exists($cer->medicial_document)) {
                             $document['certificate'][] = $cer;
                         }
                     }
                 }
                 return view('admin/verify-document', compact('auth', 'user', 'document'));
             }
-       }
-        
+        }
     }
 
     /**
@@ -176,7 +178,6 @@ class DocumentVerificationController extends Controller
      */
     public function edit(string $id)
     {
-        
     }
 
     /**
@@ -184,7 +185,6 @@ class DocumentVerificationController extends Controller
      */
     public function update(Request $request)
     {
-        
     }
 
     /**

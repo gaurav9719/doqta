@@ -71,6 +71,12 @@ class AuthController extends BaseController
     public function logout(Request $request)
     {
         try {
+
+            if(isset($request->device_token) && !empty($request->device_token)){
+
+                UserDevice::where(['id'=>$request->device_token,'user_id'=>Auth::id()])->delete();
+            }
+
             $accessToken = Auth::user()->token();
             DB::table('oauth_refresh_tokens')
                 ->where('access_token_id', $accessToken->id)
@@ -261,13 +267,9 @@ class AuthController extends BaseController
 
             $myuser_id                  =                Auth::id();
             $hasDeleted                 =                User::find($myuser_id);
-            
             if ($hasDeleted) {
-
                 if($hasDeleted->is_active!=1){
-
                     return $this->sendResponsewithoutData("User already Deleted!", 400);
-
                 }
                 $hasDeleted->email      =               null;
                 $hasDeleted->user_name  =               "Deleted user";

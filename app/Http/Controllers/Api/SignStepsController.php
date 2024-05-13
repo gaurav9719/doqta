@@ -308,17 +308,20 @@ class SignStepsController extends BaseController
 
                     $identity_proof                 =       $request->file('identity_proof');
                     $useridentity                   =       upload_file($identity_proof, 'useridentity');
-                    $userDocument                   =       new UserDocuments();
-                    $userDocument->user_id          =       $auth_id;
-                    $userDocument->document_type    =       $request['identity_type'];
-                    $userDocument->document         =       $useridentity;
-                    $userDocument->save();
 
+                    $document                       =       UserDocuments::updateOrCreate(
 
-                    $userStep6                      =   User::find($auth_id);
-                    $userStep6->complete_step       =   6;
-                    $userStep6->save();   
-                    DB::commit();
+                        ['user_id' => $auth_id],
+                        ['document_type' => $request['identity_type'],'document'=>$useridentity]
+
+                    );
+                    if ($document->wasRecentlyCreated) {
+                        $userStep6                      =   User::find($auth_id);
+                        $userStep6->complete_step       =   6;
+                        $userStep6->save();   
+                        DB::commit();
+                    
+                    } 
                     $userData                       =   $this->getUser->getUser($auth_id);
                     return $this->sendResponse($userData, trans("message.steps_completed"), 200);
                     

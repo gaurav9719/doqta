@@ -376,13 +376,14 @@ class GetCommunityService extends BaseController
                     $group         =   Group::find($request->community_id);
                     $sender        =   Auth::user();
                     $receiver      =   User::find($group->created_by);
-                    $mesage        =   $sender->name." ".trans('notification_message')." ".$group->name;
+                    $mesage        =   $sender->name." ".trans('notification_message.joined_community')." ".$group->name;
                     $data          =   [
                         "message"               => $mesage,
                         "community_member_id"   => $addGroupMember->id,
                         "community_id"          => $group->id
                     ];
-                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification.joined_community_type'), $data);
+
+                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.joined_community_type'), $data);
                     DB::commit();
                     $result                 =   $this->communityMemberCount($request->community_id,$authId);
                     return $this->sendResponse($result,trans('message.community_joined_successfully'), 200);
@@ -403,7 +404,6 @@ class GetCommunityService extends BaseController
                     $groupRequest->user_id  =   $authId;
                     $groupRequest->group_id =   $request->community_id;
                     $groupRequest->save();
-
                     $group                  =   Group::find($request->community_id);
                     $reciever               =   User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
                     $sender                 =   User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
@@ -412,9 +412,7 @@ class GetCommunityService extends BaseController
                     $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
                     DB::commit();
                     $result                 =   $this->communityMemberCount($request->community_id,$authId);
-
                     return $this->sendResponse($result,trans('message.request_send_successfuly'), 200);
-
                 }
             }
             

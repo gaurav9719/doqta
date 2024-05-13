@@ -20,13 +20,13 @@ use App\Models\UserFollower;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-
+use App\Traits\postCommentLikeCount;
 /**
  * Class GetUserService.
  */
 class GetUserService extends BaseController
 {
-
+ use postCommentLikeCount;
     public function getAuthUser($userId)
     {
         // $userDetail =   User::where($userId);
@@ -95,11 +95,12 @@ class GetUserService extends BaseController
             },
             'user_documents'=>function($query){
 
-                $query->select('id','user_id','document_type');
+                $query->select('id','user_id','document','document_type');
 
-            },'user_documents.document'=>function($query){
+            },'user_documents.document_type'=>function($query){
 
                 $query->select('id','name');
+
             },'user_medical_certificate'=>function($query){
 
                 $query->select('id','user_id','medicial_degree_type','specialty','medicial_document','verified_status','is_active');
@@ -110,7 +111,6 @@ class GetUserService extends BaseController
                 $query->select('id', 'name', 'type');
 
             },
-
             'user_medical_certificate.speciality'=>function($query){
 
                 $query->select('id', 'name', 'type');
@@ -126,12 +126,10 @@ class GetUserService extends BaseController
                     $subQuery->update(['media_url' => asset('storage/' . $subQuery->media_url)]);
                 });
 
-            },'user_activities'
+            },'user_activities'=>function($query){
+                $query->take(10);
+            }
         ])->withCount(['userPost', 'supporter','supporting'])
-        
-        // ->selectRaw('IF(EXISTS(SELECT 1 FROM user_followers WHERE user_id = ? AND follower_user_id = ?), 1, 0) AS is_supporting', [$userId, $auth_user])->where('id', $userId)->first();
-
-        
         ->where('id', $userId)->first();
         if ($userDetail) {
 
@@ -139,7 +137,7 @@ class GetUserService extends BaseController
 
                 $userDetail->is_supporting  =   (isset($isSupporting) && !empty($isSupporting))?$isSupporting->status:0;
 
-            $userDetail->user_interest->each(function ($userInterest) {
+                $userDetail->user_interest->each(function ($userInterest) {
 
                 $interest = $userInterest->interest;
                 // Prepend asset path to the icon attribute
@@ -147,6 +145,15 @@ class GetUserService extends BaseController
 
             });
 
+
+            if(isset($userDetail->user_documents) && !empty($userDetail->user_documents[0])){
+                $userDetail->user_documents->each(function ($user_document) {
+
+                    $document                   = $user_document->document;
+                    // Prepend asset path to the icon attribute
+                    $user_document->document    = $this->addBaseInImage($document);
+                });
+            }
             $ethnicity  =    Ethnicity::where('id',$userDetail->ethnicity)->first();
             if(isset($ethnicity) && !empty($ethnicity)){
 
@@ -155,7 +162,16 @@ class GetUserService extends BaseController
             $pronouns   =   Pronouns::where('id',$userDetail->pronoun)->first();
             if(isset($pronouns) && !empty($pronouns)){
 
-                $userDetail->pronouns_name  =   $pronouns->subjective."/".$pronouns->objective;
+                // $userDetail->pronouns_name  =   $pronouns->subjective."/".$pronouns->objective."/".$pronouns->possessive;
+
+                $pronouns = (object) [
+                    'subjective' => $pronouns->subjective,
+                    'objective' => $pronouns->objective,
+                    'possessive' => $pronouns->possessive
+                ];
+                // Join non-empty pronoun parts directly with "/" separator
+                $userDetail->pronouns_name = implode('/', array_filter((array) $pronouns));
+                
 
             }
             $userDetail->userPost->each(function ($user_post) {

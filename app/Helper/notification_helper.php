@@ -6,6 +6,8 @@ use Pushok\Payload;
 use Pushok\Payload\Alert;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\UserDevice;
+
 function IosPush($devicetoken,$message,$type,$data,$mood_icon = '')
 {
     $options = [
@@ -34,6 +36,7 @@ function IosPush($devicetoken,$message,$type,$data,$mood_icon = '')
     $notifications = [];
     //print_r($payload);die;
     foreach ($deviceTokens as $deviceToken) {
+
         $notifications[] = new Notification($payload,$deviceToken);
     }
     // If you have issues with ssl-verification, you can temporarily disable it. Please see attached note.
@@ -174,6 +177,7 @@ if (!function_exists('sendPushNotification')) {
                     IosPush($userData['device_token'],$message,$message_type,[],$mood_icon = '');
 
                 }elseif ($userData['device_type']==2) {     // call andriod function
+
                     androidPushNotification($userData['device_token'],$message,$message_type,[]);
                 }
             }
@@ -186,21 +190,27 @@ if (!function_exists('sendPushNotification')) {
 if (!function_exists('sendPushNotificationNew')) {
     function sendPushNotificationNew($sender, $userData, $notification)
     {
-        
-        // $notification['sender_details']= User::select('id','first_name','profile_pic')->where(['id'=>$sender['id']])->first();
-        $notification['sender_details']= $sender;
-        
-            if(isset($userData['device_token']) && !empty($userData['device_token'])){
-                if($userData['device_type']==1){        // call ios function
 
-                    // IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+        $userDevices     =   UserDevice::where(['user_id'=>$userData['id']])->get();
 
-                }elseif ($userData['device_type']==2) {     // call andriod function
+        if(isset($userDevices) && !empty($userDevices[0])){
 
-                    // androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
+            foreach ($userDevices as $userDevice) {
+               
+                if(isset($userDevice['device_token']) && !empty($userDevice['device_token'])){
 
+                    if($userDevice['device_type']==1){        // call ios function
+    
+                     //   IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+    
+                    }elseif ($userDevice['device_type']==2) {     // call andriod function
+    
+                      //  androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
+    
+                    }
                 }
             }
+        }
     }
 }
 

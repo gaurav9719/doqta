@@ -2,6 +2,13 @@
 
 
     return [
+
+        "document_verified"=>"Your document verified successfully",
+        "document_verified_type"=>"1",
+        "document_not_verified"=>"Your document verified successfully",
+        "document__not_verified_type"=>"2",
+
+       
         "password_changed_successfully_type"=> "6",
         "password_changed_successfully_message"=> "Your password changed successfully",
         "started_supporting_you"=>"Start supporting you",
@@ -25,6 +32,8 @@
         "comment_on_post_type"=>"12",
         "comment_on_post"=>"commented on your post",
         "reposted_post_type"=>"15",
+
+        "posted_in_community"=>"10"
 
 
 

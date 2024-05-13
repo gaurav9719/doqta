@@ -25,10 +25,12 @@ class AddPostRequest extends FormRequest
         //     'link' => 'nullable|url',
         // ];
         return [
-            'title' => ['required', 'string', 'min:1', 'max:25'],
+            'title' => ['required', 'string', 'min:1'],
             'content' => ['required', 'string', 'min:10','max:200'],
             'post_type' => ['nullable', 'in:normal,community'],
             'post_category' => ['nullable', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
+            'lat' => ['nullable', 'regex:/^[-]?(([0-8]?[0-9])\.(\d+))|(90(\.0+)?)$/'],
+            'long' => ['nullable', 'regex:/^[-]?((((1[0-7][0-9])|([0-9]?[0-9]))\.(\d+))|180(\.0+)?)$/'],
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],
             'wrote_by' => ['nullable','integer'],
@@ -72,7 +74,6 @@ class AddPostRequest extends FormRequest
     {
         return [
             'title.min' => 'The title must be at least :min characters.',
-            'title.max' => 'The title may not be greater than :max characters.',
             'content.min' => 'The content must be at least :min characters.',
             // 'media_url.min' => 'The media URL must be at least :min characters.',
             'user_id.required' => 'The user ID field is required.',

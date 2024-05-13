@@ -1026,7 +1026,7 @@ if (!function_exists('getDatesBetween')) {
 
     function getDatesBetween($start_date, $end_date)
     {
-        $start      = Carbon::createFromFormat('Y-m-d', $start_date);
+        $start      = Carbon::FromFormat('Y-m-d', $start_date);
         $end        = Carbon::createFromFormat('Y-m-d', $end_date);
 
         $dates = [];

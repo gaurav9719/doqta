@@ -17,25 +17,35 @@ use App\Models\GroupMember;
 use App\Models\PostLike;
 use App\Models\GroupMemberRequest;
 use App\Models\CommentLike;
+use App\Models\User;
 use App\Traits\postCommentLikeCount;
 use App\Traits\IsCommunityJoined;
+use App\Traits\FeedPostNotification;
+use App\Jobs\FeedPostNotification as feedPostionJob;
 
 /**
  * Class AddCommunityPost.
  */
 class AddCommunityPost extends BaseController
 {
-    use postCommentLikeCount,IsCommunityJoined;
+    use postCommentLikeCount, IsCommunityJoined, FeedPostNotification;
+    private $notification;
+    public function __construct(NotificationService $notification)
+    {
+        $this->notification = $notification;
+    }
     #*********-------     A D D        P O S T     ---------------********#
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
+
         try {
 
             $post                    =      new Post();
             $post->user_id           =      $authId;
             $post->title             =      $request->title;
             $post->content           =      $request->content;
+
             if ($request->hasFile('media')) {
 
                 if (empty($request->media_type)) {
@@ -47,12 +57,15 @@ class AddCommunityPost extends BaseController
                 $post->media_url     =       $Uploaded;
                 $post->media_type    =       $request->media_type;
             }
-            // if (isset($request->group_id) && !empty($request->group_id)) {
+            if (isset($request->lat) && !empty($request->lat)) {
 
-            //     $post->group_id      =      $request->group_id;
+                $post->lat           =      $request->lat;
+            }
 
-            // }
+            if (isset($request->long) && !empty($request->long)) {
 
+                $post->long           =      $request->long;
+            }
             if (isset($request->link) && !empty($request->link)) {
 
                 $post->link      =      $request->link;
@@ -61,18 +74,16 @@ class AddCommunityPost extends BaseController
 
                 $post->wrote_by      =      $request->wrote_by;
             }
-
-
             $post->group_id          =       $request->community_id;
             $post->post_type         =       $request->post_type; //normal,community
             $post->post_category     =       $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
-            DB::commit();
+            $postId                  =      $post->id;
             // add increment to group post
             increment('groups', ['id' => $request->community_id], 'post_count', 1);
-            // add increment to group post
+            $this->feedPostNotification($request->community_id, $postId, Auth::user());
             DB::commit();
-
+            // add increment to group post
             return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);
         } catch (Exception $e) {
 
@@ -90,51 +101,40 @@ class AddCommunityPost extends BaseController
     public function editPost($request, $authId, $postId)
     {
         DB::beginTransaction();
-
         try {
-
             $editPost                    =     Post::find($postId);
-
             $editPost->user_id           =      $authId;
-
             if (isset($request->title) && !empty($request->title)) {
 
-                $editPost->title     =      $request->title;
+                $editPost->title         =      $request->title;
             }
-
             if (isset($request->content) && !empty($request->content)) {
 
-                $editPost->content     =      $request->content;
+                $editPost->content       =      $request->content;
             }
-
             if (isset($request->media_url) && !empty($request->media_url)) {
 
                 $editPost->media_url     =      $request->media_url;
             }
-
             if (isset($request->group_id) && !empty($request->group_id)) {
 
                 $editPost->group_id      =      $request->group_id;
             }
-
             if (isset($request->link) && !empty($request->link)) {
 
                 $editPost->link         =      $request->link;
             }
-
             $editPost->post_type        =       $request->post_type;
             $editPost->post_category    =       $request->post_category;
             $editPost->save();
             DB::commit();
             return $this->getPost($postId, $authId, trans('message.update_post_successfully'));
         } catch (Exception $e) {
-
             DB::rollback();
             Log::error('Error caught: "addPost" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
     ##### ********* -------   E D I T      P O S T  ------ ******** ########
 
 
@@ -491,7 +491,7 @@ class AddCommunityPost extends BaseController
 
                     $query->select('id', 'name', 'user_name', 'profile');
                 }
-            ])->withCount(['totalLikes','total_comment'])
+            ])->withCount(['totalLikes', 'total_comment'])
                 ->where('post_id', $request->post_id)
                 ->whereNull('parent_id')
                 ->whereNotExists(function ($query) use ($authId) {
@@ -581,8 +581,8 @@ class AddCommunityPost extends BaseController
             //         (filter_var($group->cover_photo, FILTER_VALIDATE_URL) ? $group->cover_photo : asset('storage/' . $group->cover_photo)) : '';
             // }
 
-            $post             =   Post::withCount(['total_likes','comment'])->with('post_user',function($q){
-                $q->select('id','name','user_name','profile');
+            $post             =   Post::withCount(['total_likes', 'comment'])->with('post_user', function ($q) {
+                $q->select('id', 'name', 'user_name', 'profile');
             })->find($request->post_id);
             // $post             =   Post::find($request->post_id)->withCount('total_like');
 
@@ -591,11 +591,10 @@ class AddCommunityPost extends BaseController
                 if (isset($post->media_url) && !empty($post->media_url)) {
 
                     $post->media_url = $this->addBaseInImage($post->media_url);
-
                 }
-                if(!empty($post->post_user)){
-                    
-                    $post->post_user->profile = (isset($post->post_user) && !empty($post->post_user->profile))?$this->addBaseInImage($post->post_user->profile):null;
+                if (!empty($post->post_user)) {
+
+                    $post->post_user->profile = (isset($post->post_user) && !empty($post->post_user->profile)) ? $this->addBaseInImage($post->post_user->profile) : null;
                 }
                 $post->is_joined    =   $this->checkCommunityJoind($post->group_id);
                 $isExist            =   PostLike::where(['user_id' => $authId, 'post_id' => $post->id])->first();
@@ -836,7 +835,7 @@ class AddCommunityPost extends BaseController
                     $query->select('id', 'name', 'user_name', 'profile');
                 }
             ])
-                ->withCount(['totalLikes','total_comment'])
+                ->withCount(['totalLikes', 'total_comment'])
 
                 ->where('post_id', $request->post_id)
                 // ->whereNull('parent_id')
@@ -878,18 +877,17 @@ class AddCommunityPost extends BaseController
             }
 
             #------------- Post-comment-----------#
-            $postData       =   Post::select('id','support_count','helpful_count','unhelpful_count','is_high_confidence','share_count','share_count')->withCount(['total_likes','total_comment'])->find($request->post_id);
-            
-            if(isset($postData) && !empty($postData)){
+            $postData       =   Post::select('id', 'support_count', 'helpful_count', 'unhelpful_count', 'is_high_confidence', 'share_count', 'share_count')->withCount(['total_likes', 'total_comment'])->find($request->post_id);
+
+            if (isset($postData) && !empty($postData)) {
 
                 $isExist            =   PostLike::where(['user_id' => $authId, 'post_id' => $postData->id])->first();
 
                 $postData->is_liked  =   (isset($isExist) && !empty($isExist)) ? 1 : 0;
                 $postData->reaction  =   (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
-
             }
 
-            return response()->json(['status' => 200, 'message' => (!empty($message) ? $message : "comments"), 'data' => $comment,'post'=>$postData]);
+            return response()->json(['status' => 200, 'message' => (!empty($message) ? $message : "comments"), 'data' => $comment, 'post' => $postData]);
         } catch (Exception $e) {
 
             Log::error('Error caught: "getComments" ' . $e->getMessage());
