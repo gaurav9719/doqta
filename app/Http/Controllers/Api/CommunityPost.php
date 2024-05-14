@@ -533,6 +533,7 @@ class CommunityPost extends BaseController
             }
             $authId             =   Auth::id();
             $post               =   Post::find($request->post_id);
+
             if (!$post || !$post->is_active) {
 
                 throw new Exception(trans('message.no_post_found'), 422);
@@ -558,6 +559,7 @@ class CommunityPost extends BaseController
                   $receiver      =   User::find($parentComment->user_id);
                   $group         =   Group::find($post->group_id);
                   $message       =   $sender->name . " replied to your comment in : " . $group->name;
+
             }else{
                 #notification data preparation
                 $sender        =   Auth::user();
@@ -577,8 +579,8 @@ class CommunityPost extends BaseController
 
             $addComment->comment          = $request->comment;
             $addComment->save();
-            $commentId                     =   $addComment->id;
-            $request['comment_id']         = $commentId;
+            $commentId                    =   $addComment->id;
+            $request['comment_id']        = $commentId;
             #----------- R E C O R D        A C T I V I T Y -------------#
             $group_post                  =    Post::select('group_id', 'user_id')->where(['id' => $request->post_id])->first();
             // $groupData                =    Group::where('id', $group->group_id);
@@ -590,6 +592,7 @@ class CommunityPost extends BaseController
             $addActivityLog->action      =    2; //comment
             $addActivityLog->action_details =  $message;
             $addActivityLog->save();
+            DB::commit();
             #send notification
             $data          =   [
                 "message"       =>  $message,
@@ -601,9 +604,9 @@ class CommunityPost extends BaseController
 
                 $this->notification->sendNotificationNew($sender, $receiver, trans('notification.comment_on_post_type'), $data);
             }
-            DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
             return $this->addCommunityPost->getCommentById($request, $authId, trans('message.add_comment'));
+
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "addComment" ' . $e->getMessage());

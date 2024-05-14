@@ -1026,12 +1026,12 @@ if (!function_exists('getDatesBetween')) {
 
     function getDatesBetween($start_date, $end_date)
     {
-        $start      = Carbon::FromFormat('Y-m-d', $start_date);
+        $start      = Carbon::createFromFormat('Y-m-d', $start_date);
         $end        = Carbon::createFromFormat('Y-m-d', $end_date);
-
-        $dates = [];
+        $dates      = [];
         // Loop through each date from start to end (inclusive)
         for ($date = $start; $date->lte($end); $date->addDay()) {
+            
             $dates[] = $date->format('Y-m-d'); // Format date as 'Y-m-d' and add to array
         }
         return $dates;

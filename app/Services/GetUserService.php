@@ -21,12 +21,13 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 
 use App\Traits\postCommentLikeCount;
+use App\Traits\IsLikedPostComment;
 /**
  * Class GetUserService.
  */
 class GetUserService extends BaseController
 {
- use postCommentLikeCount;
+ use postCommentLikeCount,IsLikedPostComment;
     public function getAuthUser($userId)
     {
         // $userDetail =   User::where($userId);
@@ -120,17 +121,18 @@ class GetUserService extends BaseController
 
                 $query->select('id', 'name', 'reason');
             },
-            'userPost' => function ($query) {
+            // 'userPost' => function ($query) {
 
-                $query->take(10)->when(isset($query->media_url), function ($subQuery) {
-                    $subQuery->update(['media_url' => asset('storage/' . $subQuery->media_url)]);
-                });
+            //     $query->take(10)->when(isset($query->media_url), function ($subQuery) {
+            //         $subQuery->update(['media_url' => asset('storage/' . $subQuery->media_url)]);
+            //     });
 
-            },'user_activities'=>function($query){
-                $query->take(10);
-            }
+            // },'user_activities'=>function($query){
+            //     $query->take(10);
+            // }
         ])->withCount(['userPost', 'supporter','supporting'])
         ->where('id', $userId)->first();
+
         if ($userDetail) {
 
                 $isSupporting               =   UserFollower::where(['user_id'=>$userId , 'follower_user_id'=>$auth_user])->first();
@@ -147,6 +149,7 @@ class GetUserService extends BaseController
 
 
             if(isset($userDetail->user_documents) && !empty($userDetail->user_documents[0])){
+
                 $userDetail->user_documents->each(function ($user_document) {
 
                     $document                   = $user_document->document;
@@ -174,13 +177,13 @@ class GetUserService extends BaseController
                 
 
             }
-            $userDetail->userPost->each(function ($user_post) {
+            // $userDetail->userPost->each(function ($user_post) {
             
-                if(isset($user_post) && !empty($user_post)){
-                    // Prepend asset path to the icon attribute
-                    $user_post->media_url = ($user_post->media_url)?asset('storage/' . $user_post->media_url):null;
-                }
-            });
+            //     if(isset($user_post) && !empty($user_post)){
+            //         // Prepend asset path to the icon attribute
+            //         $user_post->media_url = ($user_post->media_url)?asset('storage/' . $user_post->media_url):null;
+            //     }
+            // });
 
             if(isset($userDetail->user_medical_certificate) && !empty($userDetail->user_medical_certificate)){
 
@@ -225,9 +228,11 @@ class GetUserService extends BaseController
                 $query->where('is_active', 1);
             })
             ->with([
+
                 'group:id,name,description,cover_photo,post_count',
                 'post_user:id,user_name,name,profile'
-            ])
+
+            ])->withCount('total_comment')
             ->where('user_id', $userId)
             ->where('is_active', 1)
             ->whereNotExists(function ($query) use ($authId) {
@@ -250,37 +255,30 @@ class GetUserService extends BaseController
                     ->from('blocked_users')
                     ->where('user_id', '=', $authId) // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                     ->where('blocked_users.blocked_user_id','=','posts.user_id'); // Check if the current user has reported the post
-            })
-            ->addSelect(['is_liked' => function ($query) use ($authId) {
-    
-                $query->selectRaw('IF(EXISTS(SELECT 1 FROM post_likes WHERE user_id = ? AND post_id = posts.id AND comment_id IS NULL), 1, 0)', [$authId]);
-    
-            }]);
-    
-            $posts = $posts->orderByDesc('id')->simplePaginate($limit);
+            })->orderByDesc('id')->simplePaginate($limit);
     
             if (!empty($posts)) {
     
                 foreach ($posts as $groupPost) {
-    
-                    $media_url = isset($groupPost->media_url) ? asset('storage/' . $groupPost->media_url) : '';
-                    $cover_photo = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
-                        (filter_var($groupPost->group->cover_photo, FILTER_VALIDATE_URL) ? $groupPost->group->cover_photo : asset('storage/' . $groupPost->group->cover_photo)) : '';
-                    $profile = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
-                        (filter_var($groupPost->post_user->profile, FILTER_VALIDATE_URL) ? $groupPost->post_user->profile : asset('storage/' . $groupPost->post_user->profile)) : '';
-            
-                    $groupPost->media_url = $media_url;
-                    $groupPost->group->cover_photo = $cover_photo;
-                    $groupPost->post_user->profile = $profile;
-                    // $groupPost->postedAt     =   Carbon::parse($groupPost->created_at)->diffForHumans();
-                    $groupPost->postedAt     =   time_elapsed_string($groupPost->created_at);
 
+                    if(isset($groupPost->media_url) && !empty($groupPost->media_url)){
+                        $groupPost->media_url      =  $this->addBaseInImage($groupPost->media_url);
+                    }
 
-                    
-                    $isRepost                =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $groupPost->is_reposted  =   ($isRepost)?1:0;
-                    $isExist                 =   PostLike::where(['user_id'=>$authId,'post_id'=>$groupPost->id])->first();
-                    $groupPost->reaction     =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                    if(isset($groupPost->group) && !empty($groupPost->group->cover_photo)){
+                        $groupPost->group->cover_photo      =  $this->addBaseInImage($groupPost->group->cover_photo);
+                    }
+
+                    if(isset($groupPost->post_user) && !empty($groupPost->post_user->profile)){
+                        $groupPost->post_user->profile      =  $this->addBaseInImage($groupPost->post_user->profile);
+                    }
+                    $groupPost->postedAt            =   time_elapsed_string($groupPost->created_at);
+                    $isRepost                       =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                    $groupPost->is_reposted         =   ($isRepost)?1:0;
+                    $isExist                         =   $this->IsPostLiked($groupPost->id, $authId);
+                    $groupPost->is_liked             =   $isExist['is_liked'];
+                    $groupPost->reaction             =   $isExist['reaction'];
+                    $groupPost->total_likes_count    =   $isExist['total_likes_count'];
                 }
             }
             return $this->sendResponse($posts, trans("message.user.posts"), 200);

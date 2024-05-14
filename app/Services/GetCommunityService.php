@@ -17,15 +17,17 @@ use App\Services\NotificationService;
 use App\Services\AddCommunityPost;
 use App\Models\User;
 use App\Models\GroupMemberRequest;
-
+use App\Traits\IsLikedPostComment;
 use App\Models\PostLike;
+use App\Traits\postCommentLikeCount;
+
 /**
  * Class GetCommunityService.
  */
 class GetCommunityService extends BaseController
 {
 
-
+    use IsLikedPostComment,postCommentLikeCount;
     protected $addCommunityPost, $notification;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
     {
@@ -38,12 +40,9 @@ class GetCommunityService extends BaseController
     public function homeScreen($request, $authId)
     {
         try {
-
             $limit          =       10;
             if (isset($request->limit) && !empty($request->limit)) {
-
                 $limit      =       $request->limit;
-
             }
             $user           = User::findOrFail($authId);
             // dd($user);
@@ -58,7 +57,6 @@ class GetCommunityService extends BaseController
                 //           ->where('user_id', $user->id);
                 // })
                 ->whereNotExists(function ($query) use ($user) {
-
                     $query->select(DB::raw(1))
                         ->from('report_posts')
                         ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
@@ -66,28 +64,23 @@ class GetCommunityService extends BaseController
 
                 })
                 ->whereNotExists(function ($query) use ($authId) {
-
                     $query->select(DB::raw(1))
                         ->from('blocked_users')
                         ->where('user_id', '=', $authId)                              // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('blocked_users.blocked_user_id','=','posts.user_id'); // Check if the current user has reported the post
                 })
-
                 ->whereNotExists(function ($query) use ($authId) {
                     $query->select(DB::raw(1))
                         ->from('hidden_posts')
                         ->whereColumn('hidden_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
-
                 })
                 ->with(['post_user'=>function($query){
 
                     $query->select('id','name','user_name','profile');
                     },
                     'group'=>function($query){
-
                         $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
-
                     },
                     'parent_post' => function ($query) {
 
@@ -99,7 +92,7 @@ class GetCommunityService extends BaseController
                                 }
                             ]);
                     }
-                ])->withCount(['total_likes','comment'])
+                ])->withCount(['total_likes','total_comment'])
                 ->orderByDesc('id')
                 ->simplePaginate($limit);
 
@@ -107,44 +100,34 @@ class GetCommunityService extends BaseController
 
                     if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                        if (!filter_var($homeScreenPost->media_url, FILTER_VALIDATE_URL)) {
-
-                            $homeScreenPost->media_url = asset('storage/' . $homeScreenPost->media_url);
-                        }
+                        $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
                     }
                     if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
                         if (!filter_var($homeScreenPost->parent_post->post_user->profile , FILTER_VALIDATE_URL)) {
 
                             $homeScreenPost->parent_post->post_user->profile = asset('storage/' . $homeScreenPost->parent_post->post_user->profile);
-
                         }
                     }
 
                     if (isset($homeScreenPost->post_user) &&  !empty($homeScreenPost->post_user->profile)) {
 
-                        if (!filter_var($homeScreenPost->post_user->profile, FILTER_VALIDATE_URL)) {
-
-                            $homeScreenPost->post_user->profile     =   asset('storage/' . $homeScreenPost->post_user->profile);
-                        }
+                        $homeScreenPost->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_user->profile);
                     }
                     if ($homeScreenPost->group &&  $homeScreenPost->group->cover_photo) {
 
-                        if (!filter_var($homeScreenPost->group->cover_photo , FILTER_VALIDATE_URL)) {
-
-                            $homeScreenPost->group->cover_photo     = asset('storage/' . $homeScreenPost->group->cover_photo);
-                        }
+                        $homeScreenPost->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->group->cover_photo );
                     }
-                    $isExist                      =   PostLike::where(['user_id'=>$authId,'post_id'=>$homeScreenPost->id])->first();
-                    $homeScreenPost->is_liked     =   (isset($isExist) && !empty($isExist))?1:0;
-                    $homeScreenPost->reaction     =   (isset($isExist) && !empty($isExist))?$isExist->reaction:0;
+                    $isExist                         =   $this->IsPostLiked($homeScreenPost->id, $authId);
+                    $homeScreenPost->is_liked        =   $isExist['is_liked'];
+                    $homeScreenPost->reaction        =   $isExist['reaction'];
+                    $homeScreenPost->total_likes_count=   $isExist['total_likes_count'];
                     $isRepost                     =   Post::where(['parent_id'=>$homeScreenPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
                     $homeScreenPost->is_reposted  =  ($isRepost)?1:0;
                     // $homeScreenPost->postedAt     =   Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                     $homeScreenPost->postedAt     =   time_elapsed_string($homeScreenPost->created_at);
 
                 });
-
 
             return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200);
         } catch (Exception $e) {

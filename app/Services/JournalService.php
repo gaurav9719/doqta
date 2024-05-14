@@ -144,23 +144,6 @@ class JournalService extends BaseController
 
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     public function getJournal($userid,$id="",$limit="",$request="",$message=""){
         try {
 
@@ -327,11 +310,12 @@ class JournalService extends BaseController
 
             if(isset($topic) && !empty($topic)){
 
-                $journal->topic =  $topic;
+                $journal->topic_id =  $topic;
             }
 
             // Check and set 'writing_for' if provided
             if ($request->filled('writing_for')) {
+
                 $journal->writing_for = $request->writing_for;
             }
 
@@ -367,6 +351,7 @@ class JournalService extends BaseController
             $journalEntry               =    JournalEntry::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
     
             if ($request->filled('content')) {
+
                 $journalEntry->content = $request->content;
             }
     

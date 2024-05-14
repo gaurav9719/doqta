@@ -159,6 +159,7 @@ class Notifications extends BaseController
                     ->where('status', 1)
                     ->whereDate('created_at', $notificationDate)
                     ->with('sender:id,name,user_name,email,profile')
+                    ->orderBy('id', 'DESC')
                     ->get();
     
                 $dateNotifications->each(function ($notification) {

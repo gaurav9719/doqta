@@ -316,7 +316,7 @@ class SignStepsController extends BaseController
                     $useridentity                   =       upload_file($identity_proof, 'useridentity');
                     $document                       =       UserDocuments::updateOrCreate(
                         ['user_id' => $auth_id],
-                        ['document_type' => $request['identity_type'],'document'=>$useridentity]
+                        ['document_type' => $request['identity_type'],'document'=>$useridentity,'verified_status'=>0]
 
                     );
                     if ($document->wasRecentlyCreated) {
@@ -407,7 +407,7 @@ class SignStepsController extends BaseController
                 UserMedicalCredentials::updateOrCreate(
 
                     ['user_id' => $auth_id],
-                    ['medicial_degree_type' => $request['degree_type'],'medicial_document'=>$userMedicialDoc,'specialty'=>$specialty,'is_active'=>1]
+                    ['medicial_degree_type' => $request['degree_type'],'medicial_document'=>$userMedicialDoc,'specialty'=>$specialty,'is_active'=>1,'verified_status'=>0]
                 );
 
                 // $userDocument                       =       new UserMedicalCredentials();
@@ -417,7 +417,6 @@ class SignStepsController extends BaseController
                 // $userDocument->specialty            =       $specialty;
 
                 // $userDocument->save();
-
 
                 $userStep7                      =   User::find($auth_id);
                 $userStep7->complete_step       =   7;

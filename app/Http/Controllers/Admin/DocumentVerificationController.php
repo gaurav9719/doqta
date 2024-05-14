@@ -52,7 +52,7 @@ class DocumentVerificationController extends Controller
 
             if(isset($document)){
                 if(isset($request->reject)){
-                    $type       =   trans('notification_message.document_not_verified'); // 2
+                    $type       =   trans('notification_message.document_not_verified_type'); // 2
                     $document->verified_status = $type;
                     $document->save();
                     #send notification

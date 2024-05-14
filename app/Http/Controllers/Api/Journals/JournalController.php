@@ -374,7 +374,7 @@ class JournalController extends BaseController
 
             } else {
 
-                if($request->type==1){
+                if($request->type==1){      // journal thread
 
                     //check is exist and ownner of the journal 
                     $isExist        =   Journal::where(['id'=>$id,'user_id'=>$authId,'is_active'=>1])->first();
@@ -382,8 +382,11 @@ class JournalController extends BaseController
                     if(isset($isExist) && !empty($isExist)){
 
                         $isExist->delete();
+
                         DB::commit();
+
                     }else{
+
                         return $this->sendResponsewithoutData("Invalid journal", 422);
 
                     }
@@ -393,8 +396,10 @@ class JournalController extends BaseController
                     if(isset($isExist) && !empty($isExist)){
 
                         $isExist->delete();
+
                         DB::commit();
                     }else{
+
                         return $this->sendResponsewithoutData("Invalid journal", 422);
                     }
                 }
@@ -555,6 +560,7 @@ class JournalController extends BaseController
             'start_date' => ['required', 'date', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date', 'date_format:Y-m-d'],]);
             if($validation->fails()){
+                
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
             }
             $start_date                 =   $request->start_date;
@@ -588,7 +594,7 @@ class JournalController extends BaseController
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught in "insights" method: ' . $e->getMessage());
-            return $this->sendError('Failed to create journal entry.', [], 400);
+            return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #-------------------- G E N E R A L     I N S I G H T     -------------------------------#

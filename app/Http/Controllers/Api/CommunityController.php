@@ -553,6 +553,7 @@ class CommunityController extends BaseController
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
 
                 //check group member is exist or not
@@ -562,7 +563,7 @@ class CommunityController extends BaseController
 
                     return $this->sendResponsewithoutData(trans('message.Permission_denied'), 403);
                 }
-                $checkMember = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->community_id, 'is_active' => 1])->first();
+                $checkMember = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
                 if (!$checkMember) {
 
                     return $this->sendResponsewithoutData(trans('message.no_member_found_community'), 409);
