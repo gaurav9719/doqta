@@ -103,7 +103,9 @@ class VerifyEmail extends BaseController
                 $user->save();
                 $emailVerify                =          array('otp' => $otp,'email'=>$user->email);
 
-                SendVerificationEmailJob::dispatch($emailVerify);
+                // SendVerificationEmailJob::dispatch($emailVerify);
+
+                Mail::to($user->email)->send(new verify_email($emailVerify));
 
                 return $this->sendResponsewithoutData(trans('message.sent_email_verification_code'), 200);
 

@@ -24,14 +24,18 @@ use App\Http\Requests\Social_login;
 use App\Services\ForgotPasswordService;
 use Laravel\Passport\Token;
 use Laravel\Passport\RefreshToken;
+use App\Services\GetUserService;
+
 
 class AuthController extends BaseController
 {
+    protected $getUser;
 
     protected $signUpService, $verifyEmail,$forgotPassword;
 
-    public function __construct(RegisterUserService $signUpUser,verifyEmailService $verifyEmail,ForgotPasswordService $forgotPassword)
+    public function __construct(RegisterUserService $signUpUser,verifyEmailService $verifyEmail,ForgotPasswordService $forgotPassword,GetUserService $user)
     {
+        $this->getUser      =  $user;
         $this->signUpService = $signUpUser;
         $this->verifyEmail = $verifyEmail;
         $this->forgotPassword = $forgotPassword;
@@ -164,8 +168,10 @@ class AuthController extends BaseController
     {
         DB::beginTransaction();
         try {
+            // DB::enableQueryLog();
             $userCheck                     =           User::where('social_id', $request->social_id)->orwhere('email', $request->email)->first();
-
+          
+            
             if (is_null($userCheck)) {                       #---- new user login ----# 
 
                 $social_data                = new User();
@@ -173,6 +179,7 @@ class AuthController extends BaseController
                 $social_data->device_type   = $request->device_type;
                 $social_data->device_token  = $request->device_token;
                 $social_data->login_type    = $request->login_type;
+
                 if (isset($request->name) && !empty($request->name)) {
 
                     $social_data->name = $request->name;
@@ -197,8 +204,9 @@ class AuthController extends BaseController
                 
             } else {                            #--- already in database ----#
 
+               
                 // need to check account status
-                if($userCheck->status!=1){
+                if($userCheck->is_active!=1){
 
                     return $this->sendResponsewithoutData(trans('message.account_deleted_or_inactive'), 400);
                 }
@@ -228,9 +236,7 @@ class AuthController extends BaseController
 
                         $userCheck->name = $request->name;
                     }
-                    
                 }
-
                 $userCheck->device_type     = $request->device_type;
                 $userCheck->device_token    = $request->device_token;
                 $userCheck->login_type      = $request->login_type;
@@ -243,12 +249,10 @@ class AuthController extends BaseController
                 $UserDevice->device_token   =   $request->device_token;
                 $UserDevice->save();
                 //saved user token
-                
             }
             DB::commit();
-            $user                       =      User::find($userID);
-            $user->token                =      $user->createToken(env('PASSPORT_SECURITY_TOKEN'))->accessToken;
-            return response()->json(['status' => 200, 'message' => 'User Login successfully', 'data' => $user], 200);
+            $loginUser   =   $this->getUser->getAuthUser($userID);
+            return response()->json(['status' => 200, 'message' => 'User Login successfully', 'data' => $loginUser], 200);
 
         } catch (Exception $e) {
             Log::error('Error caught: "social_login" ' . $e->getMessage());

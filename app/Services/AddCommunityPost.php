@@ -737,10 +737,10 @@ class AddCommunityPost extends BaseController
                 }
                 $post->postedAt = time_elapsed_string($post->created_at);
 
-                $post->is_reposted = Post::where('parent_id', $post->id)
+                $post->is_reposted = (Post::where('parent_id', $post->id)
                     ->where('user_id', $authId)
                     ->where('is_active', 1)
-                    ->exists();
+                    ->exists())?1:0;
                 $post->post_category_name = post_category($post->post_category);
 
                 return $post;
