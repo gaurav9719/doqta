@@ -304,13 +304,17 @@ class SignStepsController extends BaseController
     
             } else {
 
+                $isVerified                         =   UserDocuments::where( ['user_id' => $auth_id,'verified_status'=>1])->exists();
+                if($isVerified){
+                   
+                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
+
+                }
                 if ($request->hasFile('identity_proof')) {
 
                     $identity_proof                 =       $request->file('identity_proof');
                     $useridentity                   =       upload_file($identity_proof, 'useridentity');
-
                     $document                       =       UserDocuments::updateOrCreate(
-
                         ['user_id' => $auth_id],
                         ['document_type' => $request['identity_type'],'document'=>$useridentity]
 
@@ -319,17 +323,18 @@ class SignStepsController extends BaseController
                         $userStep6                      =   User::find($auth_id);
                         $userStep6->complete_step       =   6;
                         $userStep6->save();   
-                        DB::commit();
-                    
+                        
                     } 
+
+                    DB::commit();
                     $userData                       =   $this->getUser->getUser($auth_id);
                     return $this->sendResponse($userData, trans("message.steps_completed"), 200);
                     
-                    } else {
+                } else {
 
-                        return $this->sendResponsewithoutData("Invalid portfolio or position", 400);
-                    }
+                    return $this->sendResponsewithoutData("Invalid", 400);
                 }
+            }
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -361,6 +366,12 @@ class SignStepsController extends BaseController
     
             } else {
 
+                $isVerified                         =   UserMedicalCredentials::where( ['user_id' => $auth_id,'verified_status'=>1])->exists();
+                if($isVerified){
+                   
+                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
+
+                }
                 $specialty          =   $request->specialty;
 
                 if (is_numeric($specialty)) {
@@ -392,7 +403,6 @@ class SignStepsController extends BaseController
                     $userMedicialDoc                    =       upload_file($identity_proof, 'medicial_document');
                    
                 }
-
 
                 UserMedicalCredentials::updateOrCreate(
 

@@ -47,13 +47,28 @@ class DocumentVerificationController extends Controller
             'verify' => 'nullable|integer',
         ]);
 
-        if($request->type == 1){
+        if($request->type == 1){ // User identity documents type=1
             $document=UserDocuments::find($request->id);
+
             if(isset($document)){
                 if(isset($request->reject)){
-                    $document->verified_status = 2;
+                    $type       =   trans('notification_message.document_not_verified'); // 2
+                    $document->verified_status = $type;
                     $document->save();
-                    
+                    #send notification
+
+                    $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', $type)->first();
+                    if(isset($check)){
+                        $check->delete();
+                    }
+
+                    $receiver= User::find($document->user_id);
+                    $sender= User::where('role', 3)->first();
+                    $sender = isset($sender) ? $sender : $receiver;
+                    $data=["message"=> "Your document not verified"];
+
+                    $this->notificationService->sendNotificationNew($sender, $receiver, $type, $data);
+
                     return redirect()->back()->with('success', 'Document rejected successfully');
 
                 }
@@ -62,7 +77,7 @@ class DocumentVerificationController extends Controller
                     $document->verified_status = 1;
                     $document->save();
                     #send notification
-                    $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', 2)->first();
+                    $check=Notification::where('receiver_id', $document->user_id)->where('notification_type', trans('notification_message.document_not_verified'))->first();
 
                     if(isset($check)){
 
@@ -70,6 +85,7 @@ class DocumentVerificationController extends Controller
                     }
                     
                     $this->check($document->user_id);
+
                     return redirect()->back()->with('success', 'Document verified successfully');
                 }
             }
@@ -77,7 +93,8 @@ class DocumentVerificationController extends Controller
                 return redirect()->back()->with('fail', 'Incorrect document');
             }
         }
-        elseif($request->type == 2){
+        elseif($request->type == 2){        // medicial credential documents type=2
+
             $document=UserMedicalCredentials::find($request->id);
             if(isset($document)){
                 if(isset($request->reject)){
@@ -125,7 +142,6 @@ class DocumentVerificationController extends Controller
             $user= User::find($user_id);
             $user-> is_document_verified = 1;
             $user->save();
-
 
             #send notification
             $check=Notification::where('receiver_id', $user->id)->where('notification_type', 2)->first();

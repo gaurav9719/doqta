@@ -551,24 +551,24 @@ class CommunityPost extends BaseController
             if (isset($request->parent_comment_id) && !empty($request->parent_comment_id)) {
 
                 $addComment->parent_id   =   $request->parent_comment_id;
-            }
 
-            if (isset($request->comment_type) && !empty($request->comment_type)) {
-
-                $addComment->comment_type   =   $request->comment_type;
-
-                #notification data preparation
-                $parentComment =   Comment::find($request->parent_comment_id);
-                $sender        =   Auth::user();
-                $receiver      =   User::find($parentComment->user_id);
-                $group         =   Group::find($post->group_id);
-                $message       =   $sender->name . " replied to your comment in : " . $group->name;
-            } else {
+                  #notification data preparation
+                  $parentComment =   Comment::find($request->parent_comment_id);
+                  $sender        =   Auth::user();
+                  $receiver      =   User::find($parentComment->user_id);
+                  $group         =   Group::find($post->group_id);
+                  $message       =   $sender->name . " replied to your comment in : " . $group->name;
+            }else{
                 #notification data preparation
                 $sender        =   Auth::user();
                 $receiver      =   User::find($post->user_id);
                 $title         =   substr($post->title, 0, 10) . "...";
                 $message       =   $sender->name . " " . trans('notification_message.comment_on_post') . " " . $title;
+            }
+
+            if (isset($request->comment_type) && !empty($request->comment_type)) {
+
+                $addComment->comment_type   =   $request->comment_type;
             }
             if (isset($request->mention_user_id) && !empty($request->mention_user_id)) {
 

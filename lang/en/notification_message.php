@@ -5,14 +5,13 @@
 
         "document_verified"=>"Your document verified successfully",
         "document_verified_type"=>"1",
-        "document_not_verified"=>"Your document verified successfully",
+        "document_not_verified"=>"Your document not verified",
         "document__not_verified_type"=>"2",
 
        
         "password_changed_successfully_type"=> "6",
         "password_changed_successfully_message"=> "Your password changed successfully",
-        "started_supporting_you"=>"Start supporting you",
-        "started_supporting_you_type"=>"2",
+        
         "send_message"=>"Your have recieved new message from",
         "send_message_type"=>"3",
         "post_liked_message"=>"Successfully liked",

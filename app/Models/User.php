@@ -75,7 +75,8 @@ class User extends Authenticatable
         'otp',
         'otp_expiry_time',
         'device_token',
-        'email_verified_at'
+        'email_verified_at',
+        'stripe_customer_id'
     ];
 
     /**

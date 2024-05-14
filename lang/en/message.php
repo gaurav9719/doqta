@@ -111,6 +111,7 @@ return [
     "notifications"=>"Notifications",
     "comment_deleted"=>"Comment Deleted Successfully",
     "comment_not_found"=>"Comment not found",
+    "document_already_verified"=>"Your documentation has already been validated, thus it cannot be changed",
     
 "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
 "journal_not_exist"=>"Journal not exist",
