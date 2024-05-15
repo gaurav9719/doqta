@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
 use App\Http\Controllers\Api\Journals\JournalController;
 use App\Http\Controllers\Api\Payments\PaymentController;
 use App\Http\Controllers\Api\Likes\LikeController;
+use App\Http\Controllers\Api\Gemini\GeniminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +64,14 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
 Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(SignStepsController::class)->group(function () {
     Route::post('completeSignUpSteps','completeSignUpSteps');
 
+    
+    
+});
+
+Route::middleware(['with_fast_api_key','auth:api'])->controller(GeniminController::class)->group(function () {
+    Route::post('summerize','summerize');
+    Route::get('summarizeImage','summarizeImage');
+    
     
     
 });

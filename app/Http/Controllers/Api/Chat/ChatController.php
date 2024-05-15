@@ -21,12 +21,14 @@ use App\Models\Inbox;
 use App\Models\Message;
 use Carbon\Carbon;
 use App\Http\Requests\ChatRequest;
+use App\Traits\postCommentLikeCount;
 
 class ChatController extends BaseController
 {
     /**
      * Display a listing of the resource.
      */
+    use postCommentLikeCount;
 
     protected $notification;
     public function __construct(NotificationService $notification)
@@ -81,8 +83,10 @@ class ChatController extends BaseController
                             $query->where('is_user1_trash','!=',$myId)->orWhere('is_user2_trash','!=',$myId);
 
                         })->where('sender_id','!=',$myId)->where('isread',0)->count();
-                       
-                             
+                       if(isset($result->profile) && !empty($result->profile)){
+
+                           $result['profile']          =       $this->addBaseInImage($result->profile);
+                       }
                         $result['last_message']        =   Message::select('id','message','sender_id','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread')->where(['id'=> $result->message_id])->first();
                         
                         $result->time_ago = time_elapsed_string($result->updated_at);
@@ -263,32 +267,32 @@ class ChatController extends BaseController
 
                                     if (isset($result->sender->profile) && !empty($result->sender->profile)) {
 
-                                        $result->sender->profile        =   asset('storage/' . $result->sender->profile);
+                                        $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
                                     }
                                 }
                                 if (isset($result->media) && !empty($result->media)) {
 
-                                    $result->media        =   asset('storage/' . $result->media);
+                                    $result->media        =   $this->addBaseInImage($result->media);
                                 }
                                 if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
 
-                                    $result->media_thumbnail        =   asset('storage/' . $result->media_thumbnail);
+                                    $result->media_thumbnail        =   $this->addBaseInImage($result->media_thumbnail);
                                 }
                                 if (isset($result->reply_to) && !empty($result->reply_to)) {
 
                                     if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
 
-                                        $result->reply_to->media        =   asset('storage/' . $result->reply_to->media);
+                                        $result->reply_to->media        =   $this->addBaseInImage($result->reply_to->media);
                                     }
                                     if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
 
-                                        $result->reply_to->media_thumbnail        =   asset('storage/' . $result->reply_to->media_thumbnail);
+                                        $result->reply_to->media_thumbnail        =   $this->addBaseInImage($result->reply_to->media_thumbnail);
                                     }
                                     if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
 
                                         if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
 
-                                            $result->reply_to->sender->profile        =   asset('storage/' . $result->reply_to->sender->profile);
+                                            $result->reply_to->sender->profile        =   $this->addBaseInImage($result->reply_to->sender->profile);
                                         }
                                     }
                                 }
@@ -384,37 +388,37 @@ class ChatController extends BaseController
 
                 if (isset($result->sender->profile) && !empty($result->sender->profile)) {
 
-                    $result->sender->profile        =   asset('storage/' . $result->sender->profile);
+                    $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
                 }
             }
 
             if (isset($result->media) && !empty($result->media)) {
 
-                $result->media        =   asset('storage/' . $result->media);
+                $result->media        =  $this->addBaseInImage($result->media);
             }
 
             if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
 
-                $result->media_thumbnail        =   asset('storage/' . $result->media_thumbnail);
+                $result->media_thumbnail        =  $this->addBaseInImage($result->media_thumbnail);
             }
 
             if (isset($result->reply_to) && !empty($result->reply_to)) {
 
                 if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
 
-                    $result->reply_to->media        =   asset('storage/' . $result->reply_to->media);
+                    $result->reply_to->media        =    $this->addBaseInImage($result->reply_to->media);
                 }
 
                 if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
 
-                    $result->reply_to->media_thumbnail        =   asset('storage/' . $result->reply_to->media_thumbnail);
+                    $result->reply_to->media_thumbnail        =   $this->addBaseInImage($result->reply_to->media_thumbnail);
                 }
 
                 if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
 
                     if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
 
-                        $result->reply_to->sender->profile        =   asset('storage/' . $result->reply_to->sender->profile);
+                        $result->reply_to->sender->profile        =   $this->addBaseInImage($result->reply_to->sender->profile);
                     }
                 }
             }

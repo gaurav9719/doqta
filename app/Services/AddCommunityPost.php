@@ -49,12 +49,8 @@ class AddCommunityPost extends BaseController
 
             if ($request->hasFile('media')) {
 
-                if (empty($request->media_type)) {
-
-                    return $this->sendError("media_type required", [], 400);
-                }
-                $post_image = $request->file('media');
-                $Uploaded = upload_file($post_image, 'post_images');
+                $post_image     = $request->file('media');
+                $Uploaded       = upload_file($post_image, 'post_images');
                 $post->media_url = $Uploaded;
                 $post->media_type = $request->media_type;
             }
@@ -75,9 +71,10 @@ class AddCommunityPost extends BaseController
 
                 $post->wrote_by = $request->wrote_by;
             }
-            $post->group_id = $request->community_id;
-            $post->post_type = $request->post_type; //normal,community
-            $post->post_category = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
+            $post->group_id             = $request->community_id;
+            $post->media_type           = $request->media_type;
+            $post->post_type            = $request->post_type; //normal,community
+            $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             $postId = $post->id;
             // add increment to group post
@@ -105,6 +102,7 @@ class AddCommunityPost extends BaseController
         try {
             $editPost = Post::find($postId);
             $editPost->user_id = $authId;
+            
             if (isset($request->title) && !empty($request->title)) {
 
                 $editPost->title = $request->title;
@@ -125,7 +123,8 @@ class AddCommunityPost extends BaseController
 
                 $editPost->link = $request->link;
             }
-            $editPost->post_type = $request->post_type;
+            $editPost->media_type      = $request->media_type;
+            $editPost->post_type        = $request->post_type;
             $editPost->post_category = $request->post_category;
             $editPost->save();
             DB::commit();
@@ -141,55 +140,7 @@ class AddCommunityPost extends BaseController
 
 
 
-
-
-
-
-
-
-
-
-
     #-------------  G E T   P O S T    B Y      I D  ------------------#
-
-    // public function getPost($id)
-    // {
-    //     try {
-    //         $post   =   Post::with('group_post', function ($group) {
-
-    //             $group->select('name', 'description', 'cover_photo', 'member_count');
-    //         }, 'post_user', function ($postUser) {
-
-    //             $postUser->select('id', 'name', 'profile');
-    //         })->where('id', $id)->first();
-
-    //         if (isset($post) && !empty($post)) {
-
-    //             if (isset($post->media_url) && !empty($post->media_url)) {
-
-    //                 $post->media_url        =   asset('storage/' . $post->media_url);
-    //             }
-
-    //             if (isset($post->post_user) && !empty($post->post_user)) {
-
-    //                 if (isset($post->post_user->profile) && !empty($post->post_user->profile)) {
-
-    //                     $post->post_user->profile    =   asset('storage/' . $post->post_user->profile);
-    //                 }
-    //             }
-
-    //             $post->postedAt            =   Carbon::parse($post->created_at)->diffForHumans();
-
-    //             return $this->sendResponse($post, trans("message.add_posted_successfully"), 200);
-    //         }
-    //     } catch (Exception $e) {
-
-    //         DB::rollback();
-    //         Log::error('Error caught: "getPost" ' . $e->getMessage());
-    //         return $this->sendError($e->getMessage(), [], 400);
-    //     }
-    // }
-
     public function getPost($id, $authId, $message)
     {
         try {

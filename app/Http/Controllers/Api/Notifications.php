@@ -153,8 +153,8 @@ class Notifications extends BaseController
 
             // Mark unread notifications as read and load sender profiles
             $notifications->each(function ($group) use ($userID ,$todayDate, $yesterdayDate)  {
+
                 $notificationDate = $group->notification_on;
-    
                 $dateNotifications = Notification::where('receiver_id', $userID)
                     ->where('status', 1)
                     ->whereDate('created_at', $notificationDate)
@@ -165,10 +165,12 @@ class Notifications extends BaseController
                 $dateNotifications->each(function ($notification) {
                     $notification->sender->profile = $this->addBaseInImage($notification->sender->profile);
                     $notification->update(['is_read' => 1]);
+                    $notification->time_ago = time_elapsed_string($notification->created_at);
                 });
     
                 $group->notification = $dateNotifications;
                 $group->notification_on = $this->formatNotificationDate($notificationDate, $todayDate, $yesterdayDate);
+                // dd($group);
             });
     
             // Get count of unread notifications

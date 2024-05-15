@@ -34,7 +34,7 @@ class AddPostRequest extends FormRequest
             'community_id' => ['required_if:post_type,community', 'integer', 'exists:groups,id'],
             'link' => ['nullable', 'url'],
             'wrote_by' => ['nullable','integer'],
-            // 'media' => ['nullable', 'file', 'mimes:jpeg,png,mp4,mpeg,wav', 'max:2048'],
+            'media_type' => 'required|between:0,4',
             'media' => [
                 'required_if:media_type,1,2,3', // Media is required if media_type is 1, 2, or 3
                 'file', // Must be a file upload
