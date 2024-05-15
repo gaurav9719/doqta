@@ -10,7 +10,7 @@
         "password_changed_successfully_type"=> "6",
         "password_changed_successfully_message"=> "Your password changed successfully",
         "send_message"=>"Your have recieved new message from",
-        "send_message_type"=>"3",
+        "send_message_type"=>"18",
         "post_liked_message"=>"Successfully liked",
         "post_liked_message_type"=>"4",
         "post_comment_message"=>"Commented on post.",
@@ -27,7 +27,8 @@
         "comment_on_post_type"=>"12",
         "comment_on_post"=>"commented on your post",
         "reposted_post_type"=>"15",
-        "posted_in_community"=>"10"
+        "posted_in_community"=>"10",
+        
     ];
 
 ?>

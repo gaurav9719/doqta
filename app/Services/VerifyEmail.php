@@ -91,26 +91,18 @@ class VerifyEmail extends BaseController
 
     #----------------  R E S E N D          C O D E     -------------------#
     public function resendCode($request){
-
         try{
-
             $user            =          User::where(['id'=>$request['user_id']])->first();
-
             if(isset($user) && !empty($user)){
                 $otp                        =          rand(100000, 999999);
                 $user->otp                  =          $otp;
                 $user->otp_expiry_time      =          Carbon::now()->addMinutes(10);
                 $user->save();
                 $emailVerify                =          array('otp' => $otp,'email'=>$user->email);
-
                 // SendVerificationEmailJob::dispatch($emailVerify);
-
                 Mail::to($user->email)->send(new verify_email($emailVerify));
-
                 return $this->sendResponsewithoutData(trans('message.sent_email_verification_code'), 200);
-
             } else {
-
                 return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
             }
         } catch (Exception $e) {

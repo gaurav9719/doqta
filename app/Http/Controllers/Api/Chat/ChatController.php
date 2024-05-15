@@ -67,23 +67,25 @@ class ChatController extends BaseController
                     $query->where('inboxes.sender_id', '=', $myId);
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
 
-                })->with('last_message',function($query){
-                    
-                    $query->select('id','message','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread');
                 })
                 ->select('inboxes.*', 'U.name', 'U.profile', 'U.id as other_user_id')
                 ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
                 ->simplePaginate($limit); // Paginate the results
 
                 if ($threads[0]) {
+
                     $threads->each(function ($result) use($myId) {
+
                         $result['unread_message_count'] =   Message::where(['inbox_id'=> $result->id])->where(function($query) use($myId){
 
                             $query->where('is_user1_trash','!=',$myId)->orWhere('is_user2_trash','!=',$myId);
 
                         })->where('sender_id','!=',$myId)->where('isread',0)->count();
-                        // dd(DB::getQueryLog());
+                       
                              
+                        $result['last_message']        =   Message::select('id','message','sender_id','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread')->where(['id'=> $result->message_id])->first();
+                        
+                        $result->time_ago = time_elapsed_string($result->updated_at);
                         
                     });
                 }
@@ -181,8 +183,8 @@ class ChatController extends BaseController
             $receiver                           =               User::find($reciever);
             $sender                             =               User::find($myId);
             $message                            =               "New message from " . $sender->name;
-            $data                               =               ["message"=> $message];
-            $this->notification->sendNotificationNew($sender, $receiver, 18, $data);
+            $data                               =               ["message"=> $message,'notification_type'=>trans('notification_message.send_message_type')];
+            sendPushNotificationNew($sender, $receiver,$data);
 
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
@@ -211,6 +213,7 @@ class ChatController extends BaseController
             if (empty($id)) {
 
                 return $this->sendError("user_id required", [], 422);
+                
             } else {
 
                 $limit                          =               10;
@@ -238,7 +241,6 @@ class ChatController extends BaseController
                         });
                     })->first();
                     
-
                     if (isset($inbox) && !empty($inbox)) {
 
                         $inboxId              =             $inbox->id;
@@ -252,6 +254,7 @@ class ChatController extends BaseController
 
                             $query->where('is_user1_trash', '!=', $myId)
                                 ->orWhere('is_user2_trash', '!=', $myId);
+
                         })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
                         if ($messages[0]) {
                             $messages->each(function ($result) {
@@ -289,6 +292,9 @@ class ChatController extends BaseController
                                         }
                                     }
                                 }
+
+                                $result->time_ago = time_elapsed_string($result->created);
+
                                 if ($result->isread == 0) {
                                     Message::where('id', $result->id)
                                         ->update([
@@ -300,9 +306,21 @@ class ChatController extends BaseController
                         }
                     } else {
 
-                        return $this->sendResponse([], "Chat History.", 200);
+                        $inbox                    =              Inbox::where(function ($query) use ($myId, $reciever) {
+                            $query->where(function ($subQuery) use ($myId, $reciever) {
+                                $subQuery->where('sender_id', $myId)
+                                    ->where('receiver_id', $reciever);
+                            })->orWhere(function ($subQuery) use ($myId, $reciever) {
+                                $subQuery->where('receiver_id', $myId)
+                                    ->where('sender_id', $reciever);
+                            });
+                        })->simplePaginate($limit);
+
+                        return $this->sendResponse($inbox, "Chat History.", 200);
                     }
+
                     $messages->setCollection($messages->getCollection()->reverse()->values());
+
                     return $this->sendResponse($messages, "Chat History.", 200);
                 }
             }

@@ -564,7 +564,7 @@ class CommunityPost extends BaseController
                 #notification data preparation
                 $sender        =   Auth::user();
                 $receiver      =   User::find($post->user_id);
-                $title         =   substr($post->title, 0, 10) . "...";
+                $title         =   $post->title;
                 $message       =   $sender->name . " " . trans('notification_message.comment_on_post') . " " . $title;
             }
 
@@ -592,7 +592,6 @@ class CommunityPost extends BaseController
             $addActivityLog->action      =    2; //comment
             $addActivityLog->action_details =  $message;
             $addActivityLog->save();
-            DB::commit();
             #send notification
             $data          =   [
                 "message"       =>  $message,
@@ -601,9 +600,10 @@ class CommunityPost extends BaseController
                 "comment_id"    =>  $addComment->id
             ];
             if ($sender->id != $receiver->id) {
-
+                
                 $this->notification->sendNotificationNew($sender, $receiver, trans('notification.comment_on_post_type'), $data);
             }
+            DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
             return $this->addCommunityPost->getCommentById($request, $authId, trans('message.add_comment'));
 

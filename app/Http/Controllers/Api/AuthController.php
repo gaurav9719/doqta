@@ -302,4 +302,67 @@ class AuthController extends BaseController
     }
     #**********-------------  D E L E T E       A C C O U N T ----------------- **********#
 
+
+    public function calculateScore(){
+
+       // Generated @ codebeautify.org
+       $curl = curl_init();
+
+       curl_setopt_array($curl, [
+           CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+           CURLOPT_RETURNTRANSFER => true,
+           CURLOPT_ENCODING => "",
+           CURLOPT_MAXREDIRS => 10,
+           CURLOPT_TIMEOUT => 30,
+           CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+           CURLOPT_CUSTOMREQUEST => "POST",
+           CURLOPT_POSTFIELDS => json_encode([
+               'model' => 'llama-3-sonar-small-32k-online',
+               'messages' => [
+                   [
+                       'role' => 'system',
+                       'content' => 'Be precise and concise. Validate the the given text providing medical advice and calculate the score out of 2 in json format in score key and text key.'
+                   ],
+                   [
+                       'role' => 'user',
+                       'content' => "Validate the the given text providing medical advice and calculate the score out of 2 in json format in (score key like score:1 and text key) and no text required the following text is: Tried using apple cider vinegar as a treatment for skin tags? I find it To be extremely effective at removing the skin tag within two weeks of applying the vinegar directly to the skin tag"
+
+                   ]
+               ]
+           ]),
+           CURLOPT_HTTPHEADER => [
+               "accept: application/json",
+               "authorization: Bearer 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",
+               "content-type: application/json"
+           ],
+       ]);
+   
+       $response = curl_exec($curl);
+       $err = curl_error($curl);
+   
+       curl_close($curl);
+   
+       if ($err) {
+           echo "cURL Error #:" . $err;
+       } else {
+        $response_data = json_decode($response, true);
+        // dd($response_data);
+        // $answer = $response_data['choices'][0]['message']['content'];
+        // echo "<p><strong>Answer:</strong> $answer</p>";
+
+        $content = $response_data['choices'][0]['message']['content'];
+        // return $this->sendResponse($response_data,"User Deleted Successfully!", 200);
+
+// Now $content contains the string you want to work with in PHP
+echo $content;
+
+        // $response_data = json_decode($response);
+
+        
+        // $score = $response_data['choices'][0]['score'] * 2;
+        // $answer = $response_data['choices'][0]['message']['content'];
+        // echo "<p><strong>Score:</strong> $score/2</p>";
+        // echo "<p><strong>Answer:</strong> $answer</p>";
+       }
+    }
 }

@@ -55,6 +55,8 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::post('forgotPassword','forgotPassword');
     Route::post('socialLogin','socialLogin');
     Route::delete('deleteAccount','deleteAccount')->middleware('auth:api');
+    Route::get('calculateScore','calculateScore');
+
     
 });
 
