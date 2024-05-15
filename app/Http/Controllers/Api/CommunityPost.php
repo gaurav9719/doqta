@@ -601,7 +601,7 @@ class CommunityPost extends BaseController
             ];
             if ($sender->id != $receiver->id) {
                 
-                $this->notification->sendNotificationNew($sender, $receiver, trans('notification.comment_on_post_type'), $data);
+                $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.comment_on_post_type'), $data);
             }
             DB::commit();
             #-----------        R E C O R D        A C T I V I T Y  -------------#
