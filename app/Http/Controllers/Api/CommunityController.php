@@ -2,26 +2,27 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Http\Requests\AddCommunity;
-use App\Http\Requests\EditCommunity;
-use App\Models\Group;
-use App\Models\GroupMember;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Api\BaseController;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-use App\Models\GroupMemberRequest;
-use App\Models\Post;
 use Exception;
+use App\Models\Post;
 use App\Models\User;
-use App\Services\NotificationService;
-use App\Services\GetCommunityService;
+use App\Models\Group;
+use App\Models\ActivityLog;
+use App\Models\GroupMember;
+use App\Models\Notification;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Models\GroupMemberRequest;
+use Illuminate\Support\Facades\DB;
+use App\Http\Requests\AddCommunity;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\EditCommunity;
+use Illuminate\Support\Facades\Auth;
+use App\Services\GetCommunityService;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\BaseController;
 
 class CommunityController extends BaseController
 {
@@ -158,6 +159,15 @@ class CommunityController extends BaseController
                 $groupMember->role = 'admin';
                 if ($groupMember->save()) {
 
+                    #-------  A C T I V I T Y -----------#
+                    $activity                       =    new ActivityLog();
+                    $activity->user_id              =    $authId;
+                    $activity->community_id         =    $addCommunity->id;
+                    $activity->community_member_id  =    $groupMember->id;
+                    $activity->action_details       =    "Created the community: " . $addCommunity->name;
+                    $activity->action               =    trans('notification_message.joined_community_type');    //Joined the community as admin
+                    $activity->save();
+                    #-------  A C T I V I T Y -----------#
                     incrementMember($authId, $addCommunity->id, 1);
                 }
             }
@@ -364,9 +374,10 @@ class CommunityController extends BaseController
                     }
 
                     $isExist = Group::where(['id' => $id, 'created_by' => $authId])->update(['is_active' => 0]);
-
                     Post::where(['group_id' => $id])->update(['is_active' => 0]);
-
+                    #delete notification & activity
+                    Notification::where('community_id', $id)->delete();
+                    ActivityLog::where('community_id', $id)->delete();
                     DB::commit();
                     return $this->sendResponsewithoutData(trans('message.community_deleted'), 200);
                 } else {      //invalid

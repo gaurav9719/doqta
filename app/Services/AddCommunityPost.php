@@ -25,13 +25,13 @@ use App\Traits\IsLikedPostComment;
 use App\Models\UserParticipantCategory;
 use App\Models\ActivityLog;
 use App\Jobs\FeedPostNotification as feedPostionJob;
-
+use App\Traits\SummarizePost;
 /**
  * Class AddCommunityPost.
  */
 class AddCommunityPost extends BaseController
 {
-    use postCommentLikeCount, IsCommunityJoined, FeedPostNotification, IsLikedPostComment;
+    use postCommentLikeCount, IsCommunityJoined, FeedPostNotification, IsLikedPostComment,SummarizePost;
     private $notification;
     public function __construct(NotificationService $notification)
     {
@@ -62,28 +62,30 @@ class AddCommunityPost extends BaseController
 
                 $post->lat = $request->lat;
             }
-
             if (isset($request->long) && !empty($request->long)) {
 
                 $post->long = $request->long;
             }
+
             if (isset($request->link) && !empty($request->link)) {
 
                 $post->link = $request->link;
             }
+
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
 
                 $post->wrote_by = $request->wrote_by;
             }
+
             $post->group_id             = $request->community_id;
             $post->media_type           = $request->media_type;
             $post->post_type            = $request->post_type; //normal,community
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
-            $postId = $post->id;
-            // add increment to group post
-            increment('groups', ['id' => $request->community_id], 'post_count', 1);
-
+            $postId                     = $post->id;
+            //Do summarize the post
+            // $this->summerize($postId);
+            increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);
             $activity                   =    new ActivityLog();
@@ -91,11 +93,10 @@ class AddCommunityPost extends BaseController
             $activity->post_id          =    $post->id;
             $activity->community_id     =    $group->id;
             $activity->action_details   =    "Posted in  " . $group->name;
-            $activity->action           =    3;    //Posted in community    
+            $activity->action           =   trans('notification_message.posted_in_community');    //Posted in community
             $activity->save();
             #-------  A C T I V I T Y -----------#
             $this->feedPostNotification($request->community_id, $postId, Auth::user());
-            
             DB::commit();
             // add increment to group post
             return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);
@@ -139,8 +140,8 @@ class AddCommunityPost extends BaseController
 
                 $editPost->link = $request->link;
             }
-            $editPost->media_type      = $request->media_type;
-            $editPost->post_type        = $request->post_type;
+            $editPost->media_type    = $request->media_type;
+            $editPost->post_type     = $request->post_type;
             $editPost->post_category = $request->post_category;
             $editPost->save();
             DB::commit();
@@ -194,17 +195,21 @@ class AddCommunityPost extends BaseController
 
             $isExist = PostLike::where(['user_id' => $authId, 'post_id' => $post->id])->first();
             // sdd($isExist);
-            $post->is_liked = (isset($isExist) && !empty($isExist)) ? 1 : 0;
-            $post->reaction = (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
+
+
+            $isExist = $this->IsPostLiked($post->id, $authId,1);
+            $post->is_liked = $isExist['is_liked'];
+            $post->reaction = $isExist['reaction'];
+            $post->total_likes_count = $isExist['total_likes_count'];
+            $post->total_comment_count = $isExist['total_comment_count'];
+            // $post->is_liked = (isset($isExist) && !empty($isExist)) ? 1 : 0;
+            // $post->reaction = (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
             $isRepost = Post::where(['parent_id' => $post->id, 'user_id' => $authId, 'is_active' => 1])->exists();
             $post->is_reposted = ($isRepost) ? 1 : 0;
 
             // $post->postedAt = Carbon::parse($post->created_at)->diffForHumans();
             $post->post_category_name = post_category($post->post_category);
             $post->postedAt = time_elapsed_string($post->created_at);
-
-
-
             return $this->sendResponse($post, $message, 200);
         } catch (Exception $e) {
 

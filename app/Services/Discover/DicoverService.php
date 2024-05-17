@@ -22,6 +22,7 @@ use App\Models\UserFollower;
 use App\Models\UserParticipantCategory;
 use GuzzleHttp\Psr7\Query;
 use App\Traits\postCommentLikeCount;
+use App\Traits\IsLikedPostComment;
 
 /**
  * Class DicoverService.
@@ -29,7 +30,7 @@ use App\Traits\postCommentLikeCount;
 class DicoverService extends BaseController
 {
 
-    use postCommentLikeCount;
+    use postCommentLikeCount,IsLikedPostComment;
     public function discover($request, $userId,$limit)
     {
         if (empty($request->type)) {
@@ -696,9 +697,7 @@ class DicoverService extends BaseController
 
             $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
                 #----------- check has liked or not------------#
-                $hasLiked                       =   Like::where(['user_id' => $authId, 'post_id' => $homeScreenPost->id])->whereNull('comment_id')->exists();
-                $homeScreenPost->is_liked      = ($hasLiked) ? 1 : 0;
-
+              
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user->profile)) {
 
                     $homeScreenPost->post_user->profile = $this->addBaseInImage($homeScreenPost->post_user->profile);
@@ -720,6 +719,11 @@ class DicoverService extends BaseController
                 }
                 // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                 $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
+                $isExist = $this->IsPostLiked($homeScreenPost->id, $authId,1);
+                $homeScreenPost->is_liked = $isExist['is_liked'];
+                $homeScreenPost->reaction = $isExist['reaction'];
+                $homeScreenPost->total_likes_count = $isExist['total_likes_count'];
+                $homeScreenPost->total_comment_count = $isExist['total_comment_count'];
             });
 
 

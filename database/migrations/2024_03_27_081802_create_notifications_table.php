@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('receiver_id')->comment("userid to whom notificaions will be shown")->nullable()->index();
             $table->unsignedBigInteger('sender_id')->comment("notification send by")->nullable();
-            $table->tinyInteger('notification_type')->comment('1:password updated,2')->nullable();
+            $table->tinyInteger('notification_type')->comment('1=document verified, 2=document rejected, 3=Profile not complete, 4=Plan activated, 5=Plan expired, 6=Password changed, 7=Started supporting / Accepted support request, 8=Requested to support, 9=Joined the community, 10=Posted in community, 11=Post like, 12=Comment , 13=Comment like, 14=Comment reply, 15=Reposted the post , 16=Post share, 17=Support new member')->nullable();
             $table->boolean('is_read')->default(0)->comment('0:no,1:read');
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');

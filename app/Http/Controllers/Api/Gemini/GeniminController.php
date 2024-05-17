@@ -82,10 +82,14 @@ class GeniminController extends Controller
         $imageUrl = 'https://img.freepik.com/free-vector/lord-ganpati-ganesh-chaturthi-beautiful-green-leaf-holiday-card-background_1035-24526.jpg?t=st=1715776671~exp=1715780271~hmac=08a96db443c0a6e982b845eceafca33fd6e06cccd81e5c55018e611735603737&w=740';
 
         try {
+
             $summary = Gemini::generateTextUsingImage('image/jpeg',base64_encode(file_get_contents($imageUrl)), 'Summrize this image in maximum 200 characters');
             echo "Summarized Text: " .$summary;
+
         } catch (Exception $e) {
+
             echo "Error: " . $e->getMessage();
+            
         }
     }
 

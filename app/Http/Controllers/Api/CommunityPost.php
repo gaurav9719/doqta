@@ -160,14 +160,30 @@ class CommunityPost extends BaseController
             if (isset($id) && !empty($id)) {
                 $isExist = Post::where(['id' => $id, 'user_id' => $authId])->exists();
                 if (!$isExist) {
+
                     return $this->sendError(trans("message.no_post_found"), [], 422);
+
                 } else {
+
                     Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+
                     #delete notification & activity
-                    $reposted_post_type = trans('notification_message.reposted_post_type');
-                    $posted_in_community = trans('notification_message.posted_in_community');
+                    $posted_in_community    = trans('notification_message.posted_in_community'); //10
+                    $like_post_type         = trans('notification_message.like_post_type'); //11
+                    $comment_on_post_type   = trans('notification_message.comment_on_post_type'); //12
+                    $like_comment_post_type = trans('notification_message.like_comment_post_type'); //13
+                    $comment_reply_type     = trans('notification_message.comment_reply_type'); //14
+                    $reposted_post_type     = trans('notification_message.reposted_post_type'); //15
+                    $nType                  = [$posted_in_community,$like_post_type,$comment_on_post_type,$like_comment_post_type,$comment_reply_type,$reposted_post_type];
+
+                    #delete notification & activity
+                    Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', $nType)->delete();
+                    ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType)->delete();
+
                     Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', [$reposted_post_type, $posted_in_community])->delete();
                     ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', [$reposted_post_type, $posted_in_community])->delete();
+
+
                     DB::commit();
                     return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
                 }
@@ -574,7 +590,9 @@ class CommunityPost extends BaseController
             $addComment->user_id = $authId;
             $addComment->post_id = $request->post_id;
             $group = Group::find($post->group_id);
+
             if (isset($request->parent_comment_id) && !empty($request->parent_comment_id)) {
+
                 $addComment->parent_id = $request->parent_comment_id;
                 #notification data preparation
                 $parentComment = Comment::find($request->parent_comment_id);
@@ -583,6 +601,7 @@ class CommunityPost extends BaseController
                 $message = $sender->name . " replied to your comment in : " . $group->name;
                 $activityLogMessage = "Replied the comment in " . $group->name;
                 $type = trans('notification_message.comment_reply_type');
+
             } else {
                 #notification data preparation
                 $sender = Auth::user();
@@ -610,7 +629,7 @@ class CommunityPost extends BaseController
             $activityType = $type;
             $addActivityLog = new ActivityLog();
             $addActivityLog->user_id = $authId;
-            $addActivityLog->post_id = $post->post_id;
+            $addActivityLog->post_id = $post->id;
             $addActivityLog->community_id = $post->group_id;
             $addActivityLog->comment_id = $commentId;
             $addActivityLog->action = $activityType;
@@ -623,7 +642,9 @@ class CommunityPost extends BaseController
                 "message" => $message,
                 "post_id" => $post->id,
                 "community_id" => $post->group_id,
-                "comment_id" => $addComment->id
+                "comment_id" => $addComment->id,
+                "parent_id"     =>  isset($request->parent_comment_id) ? $request->parent_comment_id : null
+
             ];
             if ($sender->id != $receiver->id) {
 
