@@ -47,6 +47,14 @@ class RegisterUserService extends BaseController
         DB::beginTransaction();
 
         try {
+
+            $existingUser = User::where('email', $request['email'])->lockForUpdate()->exists();
+        
+            if ($existingUser) {
+
+                return response()->json(['status' => 400, 'message' => 'This email address is already registered.']);
+
+            }
             $user = new User();
             $user->email = $request->email;
             $user->password = Hash::make($request->password);

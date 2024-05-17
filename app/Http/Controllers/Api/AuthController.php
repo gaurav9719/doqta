@@ -350,16 +350,11 @@ class AuthController extends BaseController
         // dd($response_data);
         // $answer = $response_data['choices'][0]['message']['content'];
         // echo "<p><strong>Answer:</strong> $answer</p>";
-
         $content = $response_data['choices'][0]['message']['content'];
         // return $this->sendResponse($response_data,"User Deleted Successfully!", 200);
-
-// Now $content contains the string you want to work with in PHP
-echo $content;
-
+        // Now $content contains the string you want to work with in PHP
+        echo $content;
         // $response_data = json_decode($response);
-
-        
         // $score = $response_data['choices'][0]['score'] * 2;
         // $answer = $response_data['choices'][0]['message']['content'];
         // echo "<p><strong>Score:</strong> $score/2</p>";
