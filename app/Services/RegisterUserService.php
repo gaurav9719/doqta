@@ -48,13 +48,13 @@ class RegisterUserService extends BaseController
 
         try {
 
-            $existingUser = User::where('email', $request['email'])->lockForUpdate()->exists();
+            // $existingUser = User::where('email', $request['email'])->lockForUpdate()->exists();
         
-            if ($existingUser) {
+            // if ($existingUser) {
 
-                return response()->json(['status' => 400, 'message' => 'This email address is already registered.']);
+            //     return response()->json(['status' => 400, 'message' => 'This email address is already registered.']);
 
-            }
+            // }
             $user = new User();
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
