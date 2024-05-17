@@ -192,6 +192,8 @@ class AuthController extends BaseController
                 }
 
                 $social_data->save();
+                $userId     =$social_data->id;
+                $this->createByDefaultJournal($userId); #------- create default journal ------____#
                 //saved user token
                 $userID                     =   $social_data->id;
                 UserDevice::where(["device_token" => $request->device_token])->delete();
@@ -229,7 +231,6 @@ class AuthController extends BaseController
                         }
                     }
                 }
-
                 if (empty($userCheck->name) || $userCheck->name == null) {
 
                     if (isset($request->name) && !empty($request->name)) {

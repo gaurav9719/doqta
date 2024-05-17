@@ -15,8 +15,8 @@ class EditCommunityPost extends FormRequest
     {
         return [
            
-            'title' => 'required|string|min:1|max:25',
-            'content' => 'required|string|min:10|max:200',
+            'title' => 'required|string|min:1',
+            'content' => 'required|string|min:10|max:3000',
             'media_url' => 'nullable|string|min:10',
             'post_type' => 'nullable|in:normal,community',
             'post_category' => 'nullable|integer|between:1,3',

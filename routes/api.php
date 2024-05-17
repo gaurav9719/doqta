@@ -71,6 +71,8 @@ Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->control
 Route::middleware(['with_fast_api_key','auth:api'])->controller(GeniminController::class)->group(function () {
     Route::post('summerize','summerize');
     Route::get('summarizeImage','summarizeImage');
+    Route::get('generateContentWithCurl','generateContentWithCurl');
+    
     
     
     
@@ -167,7 +169,10 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('journal/journalEntry', [JournalController::class,'journalEntry']);
     Route::get('journal/insights', [JournalController::class,'insights']);
     Route::get('journal/getJournalEntries', [JournalController::class,'getJournalEntries']);
+    Route::get('journal/symtoms', [JournalController::class,'symtoms']);
     Route::resource('journal', JournalController::class);
+
+
 });
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){

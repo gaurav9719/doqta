@@ -20,7 +20,9 @@ return new class extends Migration
             $table->string('icon');
             $table->tinyInteger('type')->default(1);
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('parent_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('parent_id')->references('id')->on('journal_topics')->onDelete('cascade');
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });

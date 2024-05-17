@@ -25,14 +25,15 @@ use App\Models\MyTeam;
 use Illuminate\Support\Str;
 use App\Services\RosterAiTrigger;
 use App\Services\VerifyEmail;
+use App\Traits\CommonTrait;
 /**
  * Class RegisterUserService.
  */
 class RegisterUserService extends BaseController
 {
+    use CommonTrait;
     protected $getUser;
     protected $user, $authId,$notification,$rosterAi,$verify_email;
-
 
     public function __construct(GetUserService $user,RosterAiTrigger $rosterAi ,VerifyEmail $verify_email)
     {
@@ -42,9 +43,10 @@ class RegisterUserService extends BaseController
     }  
 
     public function signUpUser($request){
+
         DB::beginTransaction();
+
         try {
-            
             $user = new User();
             $user->email = $request->email;
             $user->password = Hash::make($request->password);
@@ -61,9 +63,10 @@ class RegisterUserService extends BaseController
             $UserDevice->device_type = $request->device_type;
             $UserDevice->device_token = $request->device_token;
             $UserDevice->save();
+            $this->createByDefaultJournal($userID); #------- create default journal ------____#
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             $this->verify_email->sendVerificationEmail($userID);
-           #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
+            #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
             

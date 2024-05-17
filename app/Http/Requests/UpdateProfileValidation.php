@@ -19,7 +19,7 @@ class UpdateProfileValidation extends FormRequest
         $userId             =   Auth::id();
         return [
             'bio' => 'nullable|regex:/^[a-zA-Z]/|min:20|max:200',
-            'user_name' => 'nullable|unique:users,user_name,'.$userId,
+            'user_name' => 'nullable|unique:users,user_name,'.$userId.'|regex:/^\S*$/u',
             'profile'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
             'cover'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
 

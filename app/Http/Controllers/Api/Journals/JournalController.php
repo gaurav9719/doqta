@@ -22,16 +22,16 @@ use App\Models\Journal;
 use App\Models\JournalTopic;
 use App\Rules\FeelingTypeIsExist;
 use App\Rules\SymptomIsExist;
+use App\Traits\CommonTrait;
 
 class JournalController extends BaseController
 {
+    use CommonTrait;
     /**
      * Display a listing of the resource.
      */
-
     protected $journal, $authId;
     #--------------  S I G N U P        P R O C E S S  ------------------------#
-
     public function __construct(JournalService $journal)
     {
         $this->middleware('auth');
@@ -72,44 +72,45 @@ class JournalController extends BaseController
 
         try {
 
-            $userId         = Auth::id();
-           
-            if(empty($request->topic) && empty($request->other_topic)){
+            $userId = Auth::id();
+
+            if (empty($request->topic) && empty($request->other_topic)) {
 
                 return $this->sendError("topic required", [], 400);
-
             }
-            $topic          = "";
+            $topic = "";
 
+            if (isset($request->topic) && !empty($request->topic)) {
 
-            if(isset($request->topic) && !empty($request->topic)){
-
-                $topic          =   $request->topic;
-
+                $topic = $request->topic;
             }
-           
-            if(isset($request->other_topic) && !empty($request->other_topic)){
 
-                $topicString           =   $request->other_topic;
+            $action = 0;
+            if (isset($request->other_topic) && !empty($request->other_topic)) {
+
+                $topicString = $request->other_topic;
 
                 $isExist = JournalTopic::where('name', $topicString)->where(function ($query) use ($userId) {
 
-                                    $query->whereNull('user_id')->orWhere('user_id', $userId);
+                    $query->whereNull('user_id')->orWhere('user_id', $userId);
+                })->first();
+                if (empty($isExist)) {
 
-                                })->exists();
-                if(!$isExist){
-
-                    $addTopic              =   new JournalTopic();
-                    $addTopic->name        =   $topicString;
-                    $addTopic->icon        =   'interest/other.png';
-                    $addTopic->user_id     =   $userId;
+                    $addTopic = new JournalTopic();
+                    $addTopic->name = $topicString;
+                    $addTopic->icon = 'interest/other.png';
+                    $addTopic->user_id = $userId;
+                    $addTopic->type = 3; //user_defined
                     $addTopic->save();
-                    $topic                 =  $addTopic->id;
-                }
-            }
-           
+                    $topic = $addTopic->id;
+                    $action = 1;
+                } else {
 
-            $addJournal                  = Journal::create([
+                    $topic = $isExist->id;
+                }
+                //we need to add topic id
+            }
+            $addJournal = Journal::create([
                 'title' => $request->title,
                 'user_id' => $userId,
                 'topic_id' => $topic,
@@ -117,9 +118,17 @@ class JournalController extends BaseController
                 'color' => $request->color,
                 'entry_date' => Carbon::now(),
             ]);
+            $insertedId = $addJournal->id;
+            //call to AI
+            if ($action == 1) {
+
+                $this->createSymtomByTopic($insertedId, $topic);
+            }
+
+
             DB::commit();
             // Return journals with optional limit
-            $limit      =   10;
+            $limit = 10;
             return $this->journal->journals($userId, $limit, $request);
         } catch (Exception $e) {
             DB::rollback();
@@ -220,26 +229,173 @@ class JournalController extends BaseController
     // }
 
 
+    // public function journalEntry(JournalEntryValidation $request)
+    // {
+    //     DB::beginTransaction();
+    //     try {
+    //         $userId         = Auth::id();
+    //         $journalId      = $request->journal_id;
+    //         // Check if the journal with the specified ID exists
+
+    //         $journalExists  = Journal::find($journalId);
+
+    //         if (!isset($journalExists)) {
+
+    //             DB::rollback();
+
+    //             return $this->sendError(trans('message.journal_not_exist'), [], 403);
+    //         }
+    //         if($journalExists->user_id != $userId){
+
+    //             return $this->sendError('The selected journal id is invalid.', [], 400);
+    //         }
+    //         // Prepare data for creating a new journal entry
+    //         $addJournal = [
+    //             'journal_id' => $journalId,
+    //             'user_id' => $userId,
+    //             'content' => $request->content,
+    //             'feeling_id' => $request->feeling,
+    //             'pain' => $request->pain,
+    //             'journal_on' => Carbon::now(),
+    //         ];
+
+    //         // Add optional fields if provided in the request
+    //         if ($request->filled('link')) {
+    //             $addJournal['link'] = $request->link;
+    //         }
+
+    //         if ($request->hasFile('media')) {
+    //             $media = upload_file($request->file('media'), 'journals');
+    //             $addJournal['media'] = $media;
+    //         }
+
+    //         if ($request->hasFile('audio')) {
+    //             $audio = upload_file($request->file('audio'), 'journals/audio');
+    //             $addJournal['audio'] = $audio;
+    //         }
+
+    //         // Create the new journal entry
+    //         $newJournalEntry = JournalEntry::create($addJournal);
+    //         DB::commit();
+
+    //         // dd($newJournalEntry->id);
+    //         // Handle feelings associated with the journal entry
+
+    //         if ($request->filled('feeling_type')) {
+
+    //             $feelings = $request->feeling_type;
+
+    //             foreach ($feelings as $feeling) {
+
+    //                 JournalsFeeling::updateOrCreate(
+    //                     ['journal_entry_id' => $newJournalEntry->id, 'feeling_type' => $feeling],
+    //                     ['is_active' => 1]
+    //                 );
+    //                 DB::commit();
+    //             }
+    //         }
+
+    //         // Handle symptoms associated with the journal entry
+    //         if ($request->filled('symptom')) {
+    //             $symptoms       =       $request->symptom;
+    //             foreach ($symptoms as $symptom) {
+    //                 JournalSymptoms::updateOrCreate(
+    //                     ['journal_entry_id' => $newJournalEntry->id, 'symptom_id' => $symptom],
+    //                     ['is_active' => 1]
+    //                 );
+    //                 DB::commit();
+    //             }
+    //         }
+
+    //         // Handle extra symptoms associated with the journal entry
+    //         if ($request->filled('extra_symptom')) {
+    //             $extraSymptoms = $request->extra_symptom;
+    //             foreach ($extraSymptoms as $extraSymptom) {
+
+    //                 $topic_id            =       $journalExists->topic_id;
+    //                 $journalTopic        =       JournalTopic::where('id',$topic_id)->first();
+    //                 $sysmtomId           =      "";
+    //                 if ($journalTopic->type == 3) { // user defined
+
+    //                     $physicalSymptom = PhysicalSymptom::where('symptom', $extraSymptom)
+    //                         ->where(function($query) use ($journalTopic, $userId) {
+    //                             // Check for journalTopic id or parent_id with user_id being either null or matching the current user
+    //                             $query->where('id', $journalTopic->id)
+    //                                   ->orWhere(function($query) use ($journalTopic, $userId) {
+    //                                       if (!empty($journalTopic->parent_id)) {
+    //                                           $query->where('id', $journalTopic->parent_id)
+    //                                                 ->where(function($query) use ($userId) {
+    //                                                     $query->whereNull('user_id')
+    //                                                           ->orWhere('user_id', $userId);
+    //                                                 });
+    //                                       }
+    //                                   });
+    //                         })
+    //                         ->first();
+
+    //                     if(isset($physicalSymptom) && !empty($physicalSymptom)){ // exist
+
+    //                         $sysmtomId  = $physicalSymptom->id;
+
+    //                     }else{  // empty
+    //                         $physicalSymptom = PhysicalSymptom::create([
+    //                             'symptom' => $extraSymptom,
+    //                             'is_active' => 1,
+    //                             'user_id' => $userId,
+    //                             'topic_id' => $journalTopic->id,
+    //                         ]);
+    //                         DB::commit();
+    //                         $sysmtomId  =$physicalSymptom->id;
+    //                     }
+    //                 }elseif ($journalTopic->type==1) {      // bydefault
+
+    //                     $physicalSymptom =       PhysicalSymptom::where(['symptom' => $extraSymptom,'topic_id'=>$journalTopic->id,'is_active' => 1, 'user_id' => null])->first();
+
+    //                     if (!$physicalSymptom) {
+    //                         $physicalSymptom = PhysicalSymptom::create([
+    //                             'symptom' => $extraSymptom,
+    //                             'is_active' => 1,
+    //                             'user_id' => $userId,
+    //                         ]);
+    //                         DB::commit();
+    //                         $sysmtomId  =$physicalSymptom->id;
+    //                     }else{
+    //                         $sysmtomId  =$physicalSymptom->id;
+    //                     }
+    //                 }
+    //                 JournalSymptoms::updateOrCreate(
+    //                     ['journal_entry_id' => $newJournalEntry->id, 'symptom_id' => $sysmtomId],
+    //                     ['is_active' => 1]
+    //                 );
+    //                 DB::commit();
+    //             }
+    //         }
+    //         // Retrieve journals for the user after successful entry creation
+    //         $limit = 10;
+    //         return $this->journal->journalEntries($userId, $journalId, $limit, $request);
+    //     } catch (Exception $e) {
+    //         DB::rollback();
+    //         Log::error('Error caught in "journalEntry" method: ' . $e->getMessage());
+    //         return $this->sendError('Failed to create journal entry.', [], 400);
+    //     }
+    // }
+
+    #----------  N E W      F U N C T I O N --------------_____# MAY17,2024
     public function journalEntry(JournalEntryValidation $request)
     {
         DB::beginTransaction();
         try {
-            $userId         = Auth::id();
-            $journalId      = $request->journal_id;
-            // Check if the journal with the specified ID exists
+            $userId = Auth::id();
+            $journalId = $request->journal_id;
 
-            $journalExists  = Journal::find($journalId);
-
-            if (!isset($journalExists)) {
-
-                DB::rollback();
+            $journalExists = Journal::find($journalId);
+            if (!$journalExists) {
                 return $this->sendError(trans('message.journal_not_exist'), [], 403);
             }
-            if($journalExists->user_id != $userId){
-
+            if ($journalExists->user_id != $userId) {
                 return $this->sendError('The selected journal id is invalid.', [], 400);
             }
-            // Prepare data for creating a new journal entry
+
             $addJournal = [
                 'journal_id' => $journalId,
                 'user_id' => $userId,
@@ -249,43 +405,30 @@ class JournalController extends BaseController
                 'journal_on' => Carbon::now(),
             ];
 
-            // Add optional fields if provided in the request
             if ($request->filled('link')) {
                 $addJournal['link'] = $request->link;
             }
 
             if ($request->hasFile('media')) {
-                $media = upload_file($request->file('media'), 'journals');
-                $addJournal['media'] = $media;
+                $addJournal['media'] = upload_file($request->file('media'), 'journals');
             }
 
             if ($request->hasFile('audio')) {
-                $audio = upload_file($request->file('audio'), 'journals/audio');
-                $addJournal['audio'] = $audio;
+                $addJournal['audio'] = upload_file($request->file('audio'), 'journals/audio');
             }
 
-            // Create the new journal entry
             $newJournalEntry = JournalEntry::create($addJournal);
-            DB::commit();
-
-            // dd($newJournalEntry->id);
-            // Handle feelings associated with the journal entry
 
             if ($request->filled('feeling_type')) {
-
                 $feelings = $request->feeling_type;
-
                 foreach ($feelings as $feeling) {
-
                     JournalsFeeling::updateOrCreate(
                         ['journal_entry_id' => $newJournalEntry->id, 'feeling_type' => $feeling],
                         ['is_active' => 1]
                     );
-                    DB::commit();
                 }
             }
 
-            // Handle symptoms associated with the journal entry
             if ($request->filled('symptom')) {
                 $symptoms = $request->symptom;
                 foreach ($symptoms as $symptom) {
@@ -293,33 +436,15 @@ class JournalController extends BaseController
                         ['journal_entry_id' => $newJournalEntry->id, 'symptom_id' => $symptom],
                         ['is_active' => 1]
                     );
-                    DB::commit();
                 }
             }
 
-            // Handle extra symptoms associated with the journal entry
             if ($request->filled('extra_symptom')) {
-                $extraSymptoms = $request->extra_symptom;
-                foreach ($extraSymptoms as $extraSymptom) {
-                    $physicalSymptom = PhysicalSymptom::where(['symptom' => $extraSymptom, 'is_active' => 1, 'user_id' => null])->first();
-
-                    if (!$physicalSymptom) {
-                        $physicalSymptom = PhysicalSymptom::create([
-                            'symptom' => $extraSymptom,
-                            'is_active' => 1,
-                            'user_id' => $userId,
-                        ]);
-                        DB::commit();
-                    }
-
-                    JournalSymptoms::updateOrCreate(
-                        ['journal_entry_id' => $newJournalEntry->id, 'symptom_id' => $physicalSymptom->id],
-                        ['is_active' => 1]
-                    );
-                    DB::commit();
-                }
+                $this->handleExtraSymptoms($journalExists, $request->extra_symptom, $newJournalEntry->id, $userId);
             }
-            // Retrieve journals for the user after successful entry creation
+
+            DB::commit();
+
             $limit = 10;
             return $this->journal->journalEntries($userId, $journalId, $limit, $request);
         } catch (Exception $e) {
@@ -328,6 +453,66 @@ class JournalController extends BaseController
             return $this->sendError('Failed to create journal entry.', [], 400);
         }
     }
+
+    private function handleExtraSymptoms($journalExists, $extraSymptoms, $journalEntryId, $userId)
+    {
+        $topicId = $journalExists->topic_id;
+        $journalTopic = JournalTopic::find($topicId);
+
+        foreach ($extraSymptoms as $extraSymptom) {
+            $physicalSymptom = null;
+            if ($journalTopic->type == 3) { // user defined
+                $physicalSymptom = PhysicalSymptom::where('symptom', $extraSymptom)
+                    ->where(function ($query) use ($journalTopic, $userId) {
+                        $query->where('id', $journalTopic->id)
+                            ->orWhere(function ($query) use ($journalTopic, $userId) {
+                                if (!empty ($journalTopic->parent_id)) {
+                                    $query->where('id', $journalTopic->parent_id)
+                                        ->where(function ($query) use ($userId) {
+                                            $query->whereNull('user_id')
+                                                ->orWhere('user_id', $userId);
+                                        });
+                                }
+                            });
+                    })
+                    ->first();
+            } elseif ($journalTopic->type == 1) { // by default
+                $physicalSymptom = PhysicalSymptom::where([
+                    'symptom' => $extraSymptom,
+                    'topic_id' => $journalTopic->id,
+                    'is_active' => 1,
+                    'user_id' => null
+                ])->first();
+            }
+
+            if (!$physicalSymptom) {
+                $physicalSymptom = PhysicalSymptom::create([
+                    'symptom' => $extraSymptom,
+                    'is_active' => 1,
+                    'user_id' => $userId,
+                    'topic_id' => $journalTopic->id,
+                ]);
+            }
+
+            JournalSymptoms::updateOrCreate(
+                ['journal_entry_id' => $journalEntryId, 'symptom_id' => $physicalSymptom->id],
+                ['is_active' => 1]
+            );
+        }
+    }
+    #------------------------------------------------------------------------#
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Display the specified resource.
@@ -355,50 +540,47 @@ class JournalController extends BaseController
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request,string $id)
+    public function destroy(Request $request, string $id)
     {
         //
-        if(empty($id)){
+        if (empty($id)) {
 
             return $this->sendResponsewithoutData("Invalid id", 422);
         }
         DB::beginTransaction();
 
         try {
-            $authId     =   Auth::id();
-            $validation =   Validator::make($request->all(), ['type'=>'required|between:1,2']);
+            $authId = Auth::id();
+            $validation = Validator::make($request->all(), ['type' => 'required|between:1,2']);
 
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             } else {
 
-                if($request->type==1){      // journal thread
+                if ($request->type == 1) {      // journal thread
 
                     //check is exist and ownner of the journal 
-                    $isExist        =   Journal::where(['id'=>$id,'user_id'=>$authId,'is_active'=>1])->first();
+                    $isExist = Journal::where(['id' => $id, 'user_id' => $authId, 'is_active' => 1])->first();
 
-                    if(isset($isExist) && !empty($isExist)){
+                    if (isset($isExist) && !empty($isExist)) {
 
                         $isExist->delete();
 
                         DB::commit();
-
-                    }else{
+                    } else {
 
                         return $this->sendResponsewithoutData("Invalid journal", 422);
-
                     }
-                }else {
-                    
-                    $isExist        =  JournalEntry::where(['id'=>$id,'user_id'=>$authId,'is_active'=>1])->first();
-                    if(isset($isExist) && !empty($isExist)){
+                } else {
+
+                    $isExist = JournalEntry::where(['id' => $id, 'user_id' => $authId, 'is_active' => 1])->first();
+                    if (isset($isExist) && !empty($isExist)) {
 
                         $isExist->delete();
 
                         DB::commit();
-                    }else{
+                    } else {
 
                         return $this->sendResponsewithoutData("Invalid journal", 422);
                     }
@@ -418,66 +600,64 @@ class JournalController extends BaseController
         DB::beginTransaction();
 
         try {
-            $validation =   Validator::make($request->all(), ['id' => 'required|integer','type'=>'required|between:1,2']);
+            $validation = Validator::make($request->all(), ['id' => 'required|integer', 'type' => 'required|between:1,2']);
 
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             } else {
 
-                $authId =   Auth::id();
-                $type   =   $request->type;
+                $authId = Auth::id();
+                $type = $request->type;
 
-                if($type==1){       // add to journal thread
+                if ($type == 1) {       // add to journal thread
 
-                    $isExist                =   Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
-                    if(isset($isExist) && !empty($isExist)){
+                    $isExist = Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                    if (isset($isExist) && !empty($isExist)) {
 
                         if ($isExist->is_favorite == 0) {
 
-                            $favorite       =   1;
-                            $message= "Added to favorite.";
+                            $favorite = 1;
+                            $message = "Added to favorite.";
                         } else {
 
-                            $favorite       =   0;
-                            $message= "Removed from favorite.";
+                            $favorite = 0;
+                            $message = "Removed from favorite.";
                         }
 
-                        $isExist->is_favorite       =   $favorite;
+                        $isExist->is_favorite = $favorite;
                         $isExist->save();
                         DB::commit();
                         return $this->sendResponsewithoutData($message, 200);
                         // return      $this->journal->journals($authId, $request['id'],$request);
 
-                    }else{
+                    } else {
 
                         return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 422);
-
                     }
-                }else{              // add to journal entry
+                } else {              // add to journal entry
 
-                    $isExist                =    JournalEntry::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                    $isExist = JournalEntry::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
 
-                    if(isset($isExist) && !empty($isExist)){
+                    if (isset($isExist) && !empty($isExist)) {
 
                         if ($isExist->is_favorite == 0) {
 
-                            $favorite           =   1;
-                            $message= "Added to favorite.";
+                            $favorite = 1;
+                            $message = "Added to favorite.";
                         } else {
 
-                            $favorite           =   0;
-                            $message= "Removed from favorite.";
+                            $favorite = 0;
+                            $message = "Removed from favorite.";
                         }
 
-                        $isExist->is_favorite   =   $favorite;
+                        $isExist->is_favorite = $favorite;
                         $isExist->save();
                         DB::commit();
                         return $this->sendResponsewithoutData($message, 200);
                         // return      $this->journal->journalEntries($authId, $isExist['journal_id'],10,$request,$request['id']);
-                        
-                    }else{
+
+                    } else {
                         return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 422);
                     }
                 }
@@ -495,52 +675,51 @@ class JournalController extends BaseController
 
         try {
 
-            $validator      =   Validator::make($request->all(), ['type' => 'required|integer|between:1,2','id' => 'required|integer']);
+            $validator = Validator::make($request->all(), ['type' => 'required|integer|between:1,2', 'id' => 'required|integer']);
 
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
             }
-            $type       =   $request->type;
-            $authId     =   Auth::id();
+            $type = $request->type;
+            $authId = Auth::id();
             if ($type == 1) {   // edit journal thread
                 //check journal id
                 //check jurnal is active and owner of the journal
-                $journal        =   Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->exists();
+                $journal = Journal::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->exists();
 
                 if (empty($journal)) {
 
                     return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 403);
-
                 } else {
 
-                    return      $this->journal->UpdateJournalThread($request,$authId);
+                    return $this->journal->UpdateJournalThread($request, $authId);
                 }
             } else {  // edit journal entry
-               
-                    $validator      =   Validator::make($request->all(), [
-                                                'feeling'=>'nullable|integer|exists:feelings,id',
-                                                'feeling_type' => ['nullable','array'],
-                                                'pain' => 'nullable|integer|between:0,5',
-                                                'symptom'=>['nullable','array'],
-                                                'other_symptom'=>['nullable','array'],
-                                                'content' => 'nullable|string|min:3',
-                                                'link' => 'nullable|url',
-                                                'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
-                                                'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048']);
 
-            if ($validator->fails()) {
+                $validator = Validator::make($request->all(), [
+                    'feeling' => 'nullable|integer|exists:feelings,id',
+                    'feeling_type' => ['nullable', 'array'],
+                    'pain' => 'nullable|integer|between:0,5',
+                    'symptom' => ['nullable', 'array'],
+                    'other_symptom' => ['nullable', 'array'],
+                    'content' => 'nullable|string|min:3',
+                    'link' => 'nullable|url',
+                    'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
+                    'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048'
+                ]);
 
-                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-            }
-                $journalEntry        =    JournalEntry::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                if ($validator->fails()) {
+
+                    return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+                }
+                $journalEntry = JournalEntry::where(['id' => $request->id, 'user_id' => $authId, 'is_active' => 1])->first();
 
                 if (empty($journalEntry)) {
 
                     return $this->sendResponsewithoutData(trans('message.journal_not_exist'), 403);
-
-                } 
-                return      $this->journal->updateJournalEntry($request,$authId);
+                }
+                return $this->journal->updateJournalEntry($request, $authId);
             }
         } catch (Exception $e) {
 
@@ -552,44 +731,49 @@ class JournalController extends BaseController
     #------------ U P D A T E     J O U R N A L    T H R E A D     A N D     E N T R I E S ----------#
 
     #-------------------- G E N E R A L     I N S I G H T      -------------------------------#
-    public function insights(Request $request){
+    public function insights(Request $request)
+    {
 
         try {
 
-            $validation                 =   Validator::make($request->all(),['journal_id'=>'nullable|integer|exists:journals,id',
-            'start_date' => ['required', 'date', 'date_format:Y-m-d'],
-            'end_date' => ['required', 'date', 'date_format:Y-m-d'],]);
-            if($validation->fails()){
-                
+            $validation = Validator::make($request->all(), [
+                'journal_id' => 'nullable|integer|exists:journals,id',
+                'start_date' => ['required', 'date', 'date_format:Y-m-d'],
+                'end_date' => ['required', 'date', 'date_format:Y-m-d'],
+            ]);
+            if ($validation->fails()) {
+
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
             }
-            $start_date                 =   $request->start_date;
-            $end_date                   =   $request->end_date;
-            $dates                      =   getDatesBetween($start_date,$end_date);
-            if(isset($dates[0]) && !empty($dates[0])){
-                $insight                =   array();
+            $start_date = $request->start_date;
+            $end_date = $request->end_date;
+            $dates = getDatesBetween($start_date, $end_date);
+            if (isset($dates[0]) && !empty($dates[0])) {
+                $insight = array();
                 foreach ($dates as $date) {
 
-                    $insights           =   JournalEntry::with(['feeling'=>function($query){
+                    $insights = JournalEntry::with([
+                        'feeling' => function ($query) {
 
-                        $query->select('id', 'name'); // Rename 'id' and 'name'
+                            $query->select('id', 'name'); // Rename 'id' and 'name'
+    
+                        }
+                    ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
 
-                    }])->select('id','feeling_id','pain')->where('is_active',1);
-
-                    if(isset($request->journal_id) && !empty($request->journal_id)){
-                        $insights       =   $insights->where('journal_id',$request->journal_id);
+                    if (isset($request->journal_id) && !empty($request->journal_id)) {
+                        $insights = $insights->where('journal_id', $request->journal_id);
                     }
-                    $insights                           =   $insights->whereDate('journal_on', '=', $date)->get();
+                    $insights = $insights->whereDate('journal_on', '=', $date)->get();
                     if ($insights->isNotEmpty()) {
                         $insight[] = [
                             'date' => $date,
-                            'count'=>count($insights),
-                            'mood'=>$insights[0]['feeling_id'],
+                            'count' => count($insights),
+                            'mood' => $insights[0]['feeling_id'],
                             'insights' => $insights,
                         ];
                     }
                 }
-               return $this->sendResponse($insight, trans('message.insight'),200);
+                return $this->sendResponse($insight, trans('message.insight'), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
@@ -599,31 +783,61 @@ class JournalController extends BaseController
     }
     #-------------------- G E N E R A L     I N S I G H T     -------------------------------#
 
-    function getJournalEntries(Request $request){
+    function getJournalEntries(Request $request)
+    {
 
-        $limit  = $request->filled('limit') ? (int) $request->input('limit') : 10;
+        $limit = $request->filled('limit') ? (int) $request->input('limit') : 10;
         $userId = Auth::id();
 
-        $validate=Validator::make($request->all(), [
+        $validate = Validator::make($request->all(), [
             'journal_id' => 'required|integer|exists:journals,id',
             'limit' => 'nullable|integer',
         ]);
-        
-        if($validate->fails()){
-            return $this->sendError($validate->errors()->first(), [], 400); 
+
+        if ($validate->fails()) {
+            return $this->sendError($validate->errors()->first(), [], 400);
         }
 
-        $check          = Journal::find($request->journal_id);
+        $check = Journal::find($request->journal_id);
 
-        if($check->user_id == $userId){
+        if ($check->user_id == $userId) {
 
             $response = $this->journal->journalEntries($userId, $request->journal_id, $limit, $request);
             return $response;
-        }
-        else{
+        } else {
 
             return $this->sendError('The selected journal id is invalid.', [], 400);
         }
     }
+
+
+    #------------------ G E T        J O U R N A L      S Y M P T O M S -------------------#
+    public function symtoms(Request $request)
+    {
+        try {
+
+            $validate = Validator::make($request->all(), [
+                'topic_id' => 'required|integer|exists:journal_topics,id',
+            ]);
+            if ($validate->fails()) {
+                return $this->sendError($validate->errors()->first(), [], 400);
+            } else {
+                $topicId = $request->topic_id;
+                $topic = JournalTopic::where('id', $topicId)->first();
+                $where = "topic_id=" . $topicId;
+                if (isset($topic->parent_id) && !empty($topic->parent_id)) {
+
+                    $where .= " or (topic_id='" . $topic->parent_id . "' and user_id IS NULL)";
+                }
+                $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderByDesc('symptom')->get();
+                return $this->sendResponse($symptoms, trans('message.physical_symptom'), 200);
+            }
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "update journal" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #-------------------------- *********** E N D  *************---------------------------#
 
 }

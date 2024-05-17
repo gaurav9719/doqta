@@ -44,6 +44,7 @@ class JournalTopicSeeder extends Seeder
         // ];
         $topics =[
 
+            ['name' => 'Health and Wellness', 'icon' => 'interest/health.png', 'type' => 1],
             ['name' => 'Anxiety', 'icon' => 'interest/icon-anxiety.png', 'type' => 1],
             ['name' => 'Depression', 'icon' => 'interest/icon-depression.png', 'type' => 1],
             ['name' => 'Post-traumatic stress disorder', 'icon' => 'interest/icon-post-traumatic.png', 'type' => 1],
@@ -57,6 +58,7 @@ class JournalTopicSeeder extends Seeder
             ['name' => 'Other', 'icon' => 'interest/other.png', 'type' => 2],
 
         ];
+
 
         foreach ($topics as $topic) {
             DB::table('journal_topics')->insert([

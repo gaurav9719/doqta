@@ -26,7 +26,7 @@ class AddPostRequest extends FormRequest
         // ];
         return [
             'title' => ['required', 'string', 'min:1'],
-            'content' => ['required', 'string', 'min:10','max:200'],
+            'content' => ['required', 'string', 'min:10','max:3000'],
             'post_type' => ['nullable', 'in:normal,community'],
             'post_category' => ['nullable', 'integer', 'between:1,3'], //1: seeing advice, 2: giving advice, 3: sharing media	
             'lat' => ['nullable', 'regex:/^[-]?(([0-8]?[0-9])\.(\d+))|(90(\.0+)?)$/'],

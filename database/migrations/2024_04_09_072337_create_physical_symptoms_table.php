@@ -17,7 +17,10 @@ return new class extends Migration
             $table->id();
             $table->string('symptom')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('topic_id')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('topic_id')->references('id')->on('journal_topics')->onDelete('cascade');
+            $table->tinyInteger('type')->default(1)->comment('2 for other');
             $table->boolean('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
         });
