@@ -25,7 +25,7 @@ class UserRegister extends FormRequest
     {
         return [
             
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
             'device_type' => 'required|integer|between:1,2',
             'device_token' => 'required|min:10',
@@ -38,6 +38,9 @@ class UserRegister extends FormRequest
     public function messages()
     {
         return [
+            'email.required' => 'The email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email address is already registered.',
             'password.regex' => 'Password must contain at least one number and both uppercase and lowercase letters and special symbol.',
             'device_type.between' => 'Invalid device type.',
             'lat.regex' => 'Latitude value appears to be incorrect format.',
