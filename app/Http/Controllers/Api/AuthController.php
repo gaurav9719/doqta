@@ -25,10 +25,12 @@ use App\Services\ForgotPasswordService;
 use Laravel\Passport\Token;
 use Laravel\Passport\RefreshToken;
 use App\Services\GetUserService;
+use App\Traits\CommonTrait;
 
 
 class AuthController extends BaseController
 {
+    use CommonTrait;
     protected $getUser;
 
     protected $signUpService, $verifyEmail,$forgotPassword;
