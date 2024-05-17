@@ -22,6 +22,8 @@ use App\Traits\postCommentLikeCount;
 use App\Traits\IsCommunityJoined;
 use App\Traits\FeedPostNotification;
 use App\Traits\IsLikedPostComment;
+use App\Models\UserParticipantCategory;
+use App\Models\ActivityLog;
 use App\Jobs\FeedPostNotification as feedPostionJob;
 
 /**
@@ -41,11 +43,13 @@ class AddCommunityPost extends BaseController
         DB::beginTransaction();
 
         try {
+            $is_health_provider= UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
 
             $post = new Post();
             $post->user_id = $authId;
             $post->title = $request->title;
             $post->content = $request->content;
+            $post->is_health_provider = $is_health_provider; // add true is user is health provider
 
             if ($request->hasFile('media')) {
 
@@ -79,7 +83,19 @@ class AddCommunityPost extends BaseController
             $postId = $post->id;
             // add increment to group post
             increment('groups', ['id' => $request->community_id], 'post_count', 1);
+
+            #-------  A C T I V I T Y -----------#
+            $group                      =    Group::find($request->community_id);
+            $activity                   =    new ActivityLog();
+            $activity->user_id          =    $authId;
+            $activity->post_id          =    $post->id;
+            $activity->community_id     =    $group->id;
+            $activity->action_details   =    "Posted in  " . $group->name;
+            $activity->action           =    3;    //Posted in community    
+            $activity->save();
+            #-------  A C T I V I T Y -----------#
             $this->feedPostNotification($request->community_id, $postId, Auth::user());
+            
             DB::commit();
             // add increment to group post
             return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);

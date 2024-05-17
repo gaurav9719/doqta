@@ -28,6 +28,11 @@
         "comment_on_post"=>"commented on your post",
         "reposted_post_type"=>"15",
         "posted_in_community"=>"10",
+        "comment_reply_type"=>"14",
+
+
+
+
         
     ];
 

@@ -17,6 +17,7 @@ use App\Models\BlockedUser;
 use App\Models\ReportedUser;
 use App\Jobs\SendNotificaionJob;
 use App\Models\Notification;
+use App\Models\ActivityLog;
 
 class FollowFollowingController extends BaseController
 {
@@ -137,7 +138,6 @@ class FollowFollowingController extends BaseController
     {
         DB::beginTransaction();
         try {
-
             $authId         =   Auth::id();
 
             $validation     =   Validator::make($request->all(), [
@@ -149,22 +149,18 @@ class FollowFollowingController extends BaseController
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-
             } else {
-
                 $userId     =   $request->user_id;
                 //check is blocked or not
                 $isBlocked = BlockedUser::where(function ($query) use ($authId, $userId) {
                     // Check if the exact combination exists
                     $query->where(['user_id' => $authId, 'blocked_user_id' => $userId])
                         ->orWhere(['user_id' => $userId, 'blocked_user_id' => $authId]);
-
                 })->exists();
-
                 if ($isBlocked) {
-
                     return $this->sendError(trans('message.something_went_wrong'), [], 403);
                 }
+                $receiver= User::find($request->user_id);
 
                 if ($request->type == 1) {
                     //check if already follow or not 
@@ -192,7 +188,8 @@ class FollowFollowingController extends BaseController
                             #remove notification
                             Notification::where(['receiver_id' => $request->user_id, 'sender_id' => $authId, 'notification_type' => 7])->delete();
                             Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 7])->delete();
-
+                            #delete activity
+                            ActivityLog::where('user_id', $authId)->where('support_user_id', $request->user_id)->delete();
                         }
 
                         DB::commit();
@@ -218,14 +215,19 @@ class FollowFollowingController extends BaseController
                             $type                           =   trans('notification_message.supporting_you_message_type');
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
+                            #-------  A C T I V I T Y -----------#
+                            $activity                   =    new ActivityLog();
+                            $activity->user_id          =    $authId;
+                            $activity->support_user_id  =    $request->user_id;
+                            $activity->action_details   =    "Started suppoting " . $receiver->name;
+                            $activity->action           =    1;    //Started supporting
+                            $activity->save();
+                            #-------  A C T I V I T Y -----------#
                         }
-
                         $addFollowing->save();
-                        $action                             =   1;
-
+                        $action                          =   1;
                         #send notification
                         $sender        =   Auth::user();
-                        $receiver      =   User::find($request->user_id);
                         $mesage        =   $sender->name ." ".$message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
@@ -248,28 +250,32 @@ class FollowFollowingController extends BaseController
 
                     $follow = UserFollower::where(['follower_user_id' => $request->user_id, 'user_id' => $authId, 'status' => 1])->first();
                     if (isset($follow)) {
-
-                        if ($request->action == 1) {
+                        if ($request->action == 1) { #accept request
                             $follow->status = 2;
                             $follow->save();
-
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
-
                             #send notification
                             $sender        =   Auth::user();
                             $receiver      =   User::find($request->user_id);
                             $mesage        =   $sender->name . " accepted your support request";
                             $data          =   ["message" => $mesage];
                             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.supporting_you_message_type'), $data);
-                            
-                            
+                            #-------  A C T I V I T Y -----------# 17may
+                            $activity                   =    new ActivityLog();
+                            $activity->user_id          =    $request->user_id;
+                            $activity->support_user_id  =    $authId;
+                            $activity->action_details   =    "Started suppoting " . $sender->name;
+                            $activity->action           =    1;    //Started supporting
+                            $activity->save();
+                            #-------  A C T I V I T Y -----------#
+
                             #remove notification
                             Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 8])->delete();
                             
                             DB::commit();
                             return $this->sendResponsewithoutData("Resquest accepted successfully", 200);
-                        } else {
+                        } else {    #reject Request
                             $follow->delete();
                             #remove notification
                             

@@ -178,8 +178,7 @@ class NotificationService
                 } 
             }
             #12=Comment 
-            #14=Comment reply
-            elseif($type == 12 || $type == 14){
+            elseif($type == 12){
                 if(isset($data['message']) && isset($data['comment_id']) && isset($data['post_id']) && isset($data['community_id'])){
                     // Create a new notification
                     $notification                       =   new Notification();
@@ -192,7 +191,26 @@ class NotificationService
                     $notification->message              =   $data['message'];
 
                 }else{
-                   // return ['status' => 400, 'message' => "failed type 12/14 notification"];
+                // return ['status' => 400, 'message' => "failed type 12/14 notification"];
+                } 
+            }
+
+            #14=Comment reply
+            elseif($type == 14){
+                if(isset($data['message']) && isset($data['comment_id']) && isset($data['post_id']) && isset($data['community_id'] ) && isset($data['parent_id'] )){
+                    // Create a new notification
+                    $notification                       =   new Notification();
+                    $notification->receiver_id          =   $receiver['id'];
+                    $notification->sender_id            =   $sender['id'];
+                    $notification->comment_id           =   $data['comment_id'];
+                    $notification->parent_id            =   $data['parent_id'];
+                    $notification->post_id              =   $data['post_id'];
+                    $notification->community_id         =   $data['community_id'];
+                    $notification->notification_type    =   $type;
+                    $notification->message              =   $data['message'];
+
+                }else{
+                // return ['status' => 400, 'message' => "failed type 12/14 notification"];
                 } 
             }
             #13=Comment like

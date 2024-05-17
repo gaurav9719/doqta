@@ -22,9 +22,7 @@ class user_payment extends BaseController
 
     #------------  A P P        I N     P U R C H A S E     -------------------#
     public function AppInPurchase($request,$userId){
-
         try {
-
             $validator = Validator::make($request->all(), [
                 'transaction_id' =>'required|string',
                 'start_date' => 'required|date_format:Y-m-d H:i:s e',
@@ -67,7 +65,9 @@ class user_payment extends BaseController
                         $isTransExist->start_date                   =     $startdate;
                         $isTransExist->expiry_date                  =     $enddate;
                         if($request->is_trial_period) {
+
                             $isTransExist->is_trial_plan            =     $request->is_trial_period;
+
                         }
                         $isTransExist->purchased_device             =     $request->purchased_device;
 

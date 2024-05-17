@@ -73,10 +73,18 @@ class likesService extends BaseController
 
                         $addActivityLog->comment_id =    $request->comment_id;
                     }
+                    $type                         =     trans('notification_message.like_post_type');
                     $addActivityLog->action      =    1;    //like
                     $addActivityLog->action_details =  "liked coummunity post " . $title;
                     $addActivityLog->save();
-                    #----------- R E C O R D        A C T I V I T Y -------------#
+                    #----------- R E C O R D        A C T I V I T Y -------------# 17 may
+                    $addActivityLog                 =    new ActivityLog();
+                    $addActivityLog->user_id        =    $authId;
+                    $addActivityLog->post_id        =    $request->post_id;
+                    $addActivityLog->community_id   =    $group_post->group_id;
+                    $addActivityLog->action         =    $type;    //like
+                    $addActivityLog->action_details =  "Liked the coummunity post: " . $title;
+                    $addActivityLog->save();
                     #send notification
                     $sender        =   Auth::user();
                     $receiver      =   User::find($group_post->user_id);
@@ -88,7 +96,7 @@ class likesService extends BaseController
                         "community_id"  =>  $group->id,
                         "like_id"       =>  $postLike->id
                     ];
-                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
+                    $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                 } else {
                     // update like
                     $oldreact           =   $post->reaction;
@@ -157,8 +165,18 @@ class likesService extends BaseController
                     $addActivityLog->action         =    1;    //like
                     $addActivityLog->action_details =  "liked comment in " . $group->name;
                     $addActivityLog->save();
-                    #-------  T R A C K       A C T V I T Y -----------#
 
+                    #-------  T R A C K       A C T V I T Y -----------#
+                    $type                           =    trans('notification_message.like_comment_post_type');
+                    $addActivityLog                 =    new ActivityLog();
+                    $addActivityLog->user_id        =    $authId;
+                    $addActivityLog->post_id        =    $request->post_id;
+                    $addActivityLog->comment_id     =    $request->comment_id;
+                    $addActivityLog->action         =    $type;    //like
+                    $addActivityLog->action_details =  "Liked the comment in " . $group->name;
+                    $addActivityLog->save();
+
+                    #-------  T R A C K       A C T V I T Y -----------#
                    #send notification
                    $data          =   [
                     "message"               =>  $message,
@@ -168,7 +186,7 @@ class likesService extends BaseController
                     "comment_like_id"       =>  $like->id];
                     if($sender->id != $receiver->id){
 
-                        $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_comment_post_type'), $data);
+                        $this->notification->sendNotificationNew($sender,$receiver,$type,$data);
                     }
                     #send notification
     

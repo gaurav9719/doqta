@@ -20,7 +20,7 @@ use App\Models\GroupMemberRequest;
 use App\Traits\IsLikedPostComment;
 use App\Models\PostLike;
 use App\Traits\postCommentLikeCount;
-
+use App\Models\ActivityLog;
 /**
  * Class GetCommunityService.
  */
@@ -104,10 +104,7 @@ class GetCommunityService extends BaseController
                     }
                     if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
-                        if (!filter_var($homeScreenPost->parent_post->post_user->profile , FILTER_VALIDATE_URL)) {
-
-                            $homeScreenPost->parent_post->post_user->profile = asset('storage/' . $homeScreenPost->parent_post->post_user->profile);
-                        }
+                        $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
                     }
 
                     if (isset($homeScreenPost->post_user) &&  !empty($homeScreenPost->post_user->profile)) {
@@ -365,8 +362,18 @@ class GetCommunityService extends BaseController
                         "community_member_id"   => $addGroupMember->id,
                         "community_id"          => $group->id
                     ];
+                    $type           =       trans('notification_message.joined_community_type');
+                    $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
 
-                    $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.joined_community_type'), $data);
+                    #-------  A C T I V I T Y -----------#
+                    $activity                       =    new ActivityLog();
+                    $activity->user_id              =    $authId;
+                    $activity->community_id         =    $group->id;
+                    $activity->community_member_id  =    $addGroupMember->id;
+                    $activity->action_details       =    "Joined the community: " . $group->name;
+                    $activity->action               =    $type;    //Joined the community
+                    $activity->save();
+                    #-------  A C T I V I T Y -----------#
                     DB::commit();
                     $result                 =   $this->communityMemberCount($request->community_id,$authId);
                     return $this->sendResponse($result,trans('message.community_joined_successfully'), 200);
