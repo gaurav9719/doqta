@@ -83,8 +83,9 @@ class AddCommunityPost extends BaseController
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             $postId                     = $post->id;
+            DB::commit();
             //Do summarize the post
-            // $this->summerize($postId);
+            $this->summerize($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);

@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers\Api\FollowFollowing;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Api\BaseController;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Exception;
 use App\Models\User;
-use App\Services\NotificationService;
-use App\Models\UserFollower;
-use App\Models\BlockedUser;
-use App\Models\ReportedUser;
-use App\Jobs\SendNotificaionJob;
-use App\Models\Notification;
+use App\Models\Message;
 use App\Models\ActivityLog;
+use App\Models\BlockedUser;
+use App\Models\Notification;
+use App\Models\ReportedUser;
+use App\Models\UserFollower;
+use Illuminate\Http\Request;
+use App\Jobs\SendNotificaionJob;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Services\NotificationService;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\BaseController;
 
 class FollowFollowingController extends BaseController
 {
@@ -31,15 +32,71 @@ class FollowFollowingController extends BaseController
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        try {
+            $validation = Validator::make($request->all(), [
+                'type' => 'required|integer|between:1,3'
+            ], ['type.integer' => "Invalid type"]);
+    
+            if ($validation->fails()) {
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+            }
+    
+            $limit = $request->limit ?? 20;
+            $myId = Auth::id();
+            $type = $request->type;
+            $search = $request->search ?? null;
+    
+            // Common query structure
+            $query = UserFollower::leftJoin('users as U', function ($join) use ($myId) {
+                $join->on(function ($query) use ($myId) {
+                    $query->where('user_followers.user_id', '=', $myId)
+                          ->where('user_followers.follower_user_id', '=', DB::raw('U.id'));
+                })->orWhere(function ($query) use ($myId) {
+                    $query->where('user_followers.user_id', '=', DB::raw('U.id'))
+                          ->where('user_followers.follower_user_id', '=', $myId);
+                });
+            });
+    
+            if ($search) {
+                $query->where('U.name', 'LIKE', '%' . $search . '%');
+            }
+    
+            if ($type == 1) { // All
+                $query->where(function ($query) use ($myId) {
+                    $query->where('user_followers.user_id', '=', $myId)
+                          ->orWhere('user_followers.follower_user_id', '=', $myId);
+                });
+                $message = trans('message.supporters_supportings');
+    
+            } elseif ($type == 2) { // Followings
+                $query->where('user_followers.follower_user_id', '=', $myId);
+                $message = trans('message.supportings');
+    
+            } elseif ($type == 3) { // Followers
+                $query->where('user_followers.user_id', '=', $myId);
+             $message = trans('message.supporters');
+            }
+    
+            $threads = $query->select('user_followers.*', 'U.name', 'U.profile', 'U.id as other_user_id')
+                             ->orderBy('U.id', 'ASC')
+                             ->simplePaginate($limit);
 
+            if(isset($threads[0]) && !empty($threads[0])){
 
+                $threads->each(function($query) use($myId){
 
-
+                    $query['is_supporting']               =   (UserFollower::where(['user_id'=>$query->other_user_id , 'follower_user_id'=>$myId])->exists())?1:0;
+                });
+            }
+            return $this->sendResponse($threads, $message, 200);
+        } catch (Exception $e) {
+            Log::error('Error caught: "get chat history" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
     }
-
+    
     /**
      * Show the form for creating a new resource.
      */

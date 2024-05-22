@@ -50,6 +50,19 @@ return new class extends Migration
                 'email' => 'doqta@app.com',
                 'password' => Hash::make('Doqta@2024@(+)'),
                 'created_at' => now(),
+                'role'=>3,
+                'updated_at' => now()
+            ],
+
+
+            [
+                'name' => 'AI',
+                'user_name' => 'AI',
+                'email' => '',
+                'password' => '',
+                'profile' => 'app_icon/ai.png',
+                'role'=>4,
+                'created_at' => now(),
                 'updated_at' => now()
             ],
         ]);

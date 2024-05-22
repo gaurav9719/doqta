@@ -12,6 +12,7 @@ trait SummarizePost
     public function summerize($postid){
 
         $postData                       =           Post::where(['id'=>$postid])->first();
+        //dd($postData);
 
         if($postData['media_type']==0 || $postData['media_type']==2 || $postData['media_type']==3 || $postData['media_type']==2 ){                                           // text
             if(isset($postData['content']) && !empty($postData['content'])){
@@ -36,7 +37,9 @@ trait SummarizePost
             if(isset($postData['media_url']) && !empty($postData['media_url'])){
 
                 $imageUrl               =           asset('storage/'.$postData['media_url']);
+               // dd($imageUrl);
                 $extension              =           File::extension($imageUrl);
+               // dd($extension);
                 $summary                =           Gemini::generateTextUsingImage('image/'.$extension,base64_encode(file_get_contents($imageUrl)), $prompt);
             }
         }

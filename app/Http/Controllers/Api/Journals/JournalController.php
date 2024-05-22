@@ -23,6 +23,7 @@ use App\Models\JournalTopic;
 use App\Rules\FeelingTypeIsExist;
 use App\Rules\SymptomIsExist;
 use App\Traits\CommonTrait;
+use Egulias\EmailValidator\Result\Reason\EmptyReason;
 
 class JournalController extends BaseController
 {
@@ -733,9 +734,10 @@ class JournalController extends BaseController
     #-------------------- G E N E R A L     I N S I G H T      -------------------------------#
     public function insights(Request $request)
     {
-
         try {
 
+            $painScale = ["No Pain","Mild Pain", "Discomforting Pain", "Moderate Pain","Severe Pain","Very Severe Pain"];
+             
             $validation = Validator::make($request->all(), [
                 'journal_id' => 'nullable|integer|exists:journals,id',
                 'start_date' => ['required', 'date', 'date_format:Y-m-d'],
@@ -747,33 +749,99 @@ class JournalController extends BaseController
             }
             $start_date = $request->start_date;
             $end_date = $request->end_date;
-            $dates = getDatesBetween($start_date, $end_date);
-            if (isset($dates[0]) && !empty($dates[0])) {
-                $insight = array();
-                foreach ($dates as $date) {
+            // $dates = getDatesBetween($start_date, $end_date);
+            // if (isset($dates[0]) && !empty($dates[0])) {
+            //     $insight = array();
+            //     foreach ($dates as $date) {
 
-                    $insights = JournalEntry::with([
-                        'feeling' => function ($query) {
+            //         $insights = JournalEntry::with([
+            //             'feeling' => function ($query) {
 
-                            $query->select('id', 'name'); // Rename 'id' and 'name'
+            //                 $query->select('id', 'name'); // Rename 'id' and 'name'
     
-                        }
-                    ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
+            //             }
+            //         ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
 
-                    if (isset($request->journal_id) && !empty($request->journal_id)) {
-                        $insights = $insights->where('journal_id', $request->journal_id);
-                    }
-                    $insights = $insights->whereDate('journal_on', '=', $date)->get();
-                    if ($insights->isNotEmpty()) {
-                        $insight[] = [
-                            'date' => $date,
-                            'count' => count($insights),
-                            'mood' => $insights[0]['feeling_id'],
-                            'insights' => $insights,
-                        ];
-                    }
+            //         if (isset($request->journal_id) && !empty($request->journal_id)) {
+            //             $insights = $insights->where('journal_id', $request->journal_id);
+            //         }
+            //         $insights = $insights->whereDate('journal_on', '=', $date)->get();
+            //         if ($insights->isNotEmpty()) {
+            //             $insight[] = [
+            //                 'date' => $date,
+            //                 'count' => count($insights),
+            //                 'mood' => $insights[0]['feeling_id'],
+            //                 'insights' => $insights,
+            //             ];
+            //         }
+            //     }
+
+
+
+
+            $jorunal        =   Journal::where(['id'=>$request->journal_id])->first();
+
+
+            if(isset($jorunal) && !empty($jorunal)){
+
+
+                $insights       =       JournalEntry::with([
+                    'feeling'=>function($query){
+                        $query->select('id','name'); 
+                    },'feeling_types.type','symptom','symptom.journalSymtom'
+                ])->select('id','journal_id', 'feeling_id', 'pain','content','created_at')->where('is_active', 1)->where('journal_id', $request->journal_id)->whereBetween('journal_on', [$start_date,$end_date])->limit(5)->get();
+
+
+                if(isset($insights) && !empty($insights)){
+
+                    $insights->each(function($query) use($painScale){
+
+                        $query->pain =   $painScale[$query->pain];
+                    });
+
                 }
-                return $this->sendResponse($insight, trans('message.insight'), 200);
+
+                if ($insights->isNotEmpty()) {
+                    $insight[] = [
+                        'journal_name' => $jorunal->title,
+                        'insights' => $insights,
+                    ];
+                }
+
+                // return response()->json($insight);
+
+                $formattedData = [];
+                $Data['journal_name']=$jorunal->title;
+                $Data['journal_topic']=$jorunal->topic->name;
+                foreach ($insights as $entry) {
+
+                    $feelingNames     = $entry->feeling ? $entry->feeling->name : null;
+                    $feelingTypeNames = $entry->feeling_types->isEmpty() ? null : $entry->feeling_types->pluck('type.name')->implode(', ');
+                    $symptomNames = $entry->symptom->isEmpty() ? null : $entry->symptom->pluck('journalSymtom.symptom')->implode(', ');
+
+                    $formattedData['insights'][] = [
+                        'date'=>  Carbon::parse($entry->created_at)->format('Y-m-d H:i:s A'),
+                        'pain' => $entry->pain,
+                        'mood' => $feelingNames,
+                        'feeling' => $feelingTypeNames,
+                        'symptom' => $symptomNames,
+                        'content'=>$entry->content,
+                        
+
+
+                    ];
+                }
+
+                return json_encode($formattedData);
+        
+                // return response()->json($formattedData);
+
+
+
+
+
+
+                // return $this->sendResponse($insight, trans('message.insight'), 200);
             }
         } catch (Exception $e) {
             DB::rollback();
@@ -821,15 +889,19 @@ class JournalController extends BaseController
             ]);
             if ($validate->fails()) {
                 return $this->sendError($validate->errors()->first(), [], 400);
+
             } else {
                 $topicId = $request->topic_id;
                 $topic = JournalTopic::where('id', $topicId)->first();
-                $where = "topic_id=" . $topicId;
+                $where = "(topic_id=" . $topicId." or type=2)";
+
                 if (isset($topic->parent_id) && !empty($topic->parent_id)) {
 
                     $where .= " or (topic_id='" . $topic->parent_id . "' and user_id IS NULL)";
                 }
-                $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderByDesc('symptom')->get();
+
+                $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderBy('type')->orderBy('symptom')->get();
+                
                 return $this->sendResponse($symptoms, trans('message.physical_symptom'), 200);
             }
         } catch (Exception $e) {
@@ -839,5 +911,19 @@ class JournalController extends BaseController
         }
     }
     #-------------------------- *********** E N D  *************---------------------------#
+
+
+    private function categorizePain($painScore)
+    {
+        if ($painScore == 0) {
+            return 'No Pain';
+        } elseif ($painScore >= 1 && $painScore <= 3) {
+            return 'Moderate Pain';
+        } elseif ($painScore >= 4 && $painScore <= 5) {
+            return 'Severe Pain';
+        } else {
+            return 'No Pain mentioned in the journal entries';
+        }
+    }
 
 }

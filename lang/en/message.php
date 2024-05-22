@@ -63,6 +63,9 @@ return [
     "invalid_group"=>"Invalid Group",
     "community_post"=>"Community Posts",
     "community_already_deleted"=>"Community already deleted",
+    "supportings"=>"Supportings",
+    "supporters"=>"Supporters",
+    "supporters_supportings"=>"Supporters/Supporting",
 
     "not_community_member"=>"To reshare the post, please join the communit.",
     "user_profile"=>"User profile",
@@ -77,6 +80,7 @@ return [
     "discover_people"=>"Discover people",
     "discover_media"=>"Discover media",
     "deleted_successfully"=>"Deleted Successfully",
+    "saved_successfully"=>"Saved successfully",
     
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",
@@ -158,6 +162,7 @@ return [
     "same_user"=>"Team member and member both are same",
     "message_thread"=>"Message threads",
     "chat_history"=>"Chat history",
+    "chat_logs"=>"Chat logs",
     "unable_to_send_message"=>"Unable to send the message",
     "leader_board"=>"Leader board",
     "invalid_qr"=>"Invalid QR code",

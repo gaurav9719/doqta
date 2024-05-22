@@ -31,10 +31,11 @@ use Illuminate\Validation\ValidationException;
 use App\Models\Comment;
 use App\Models\Notification;
 
-
+use App\Traits\CommonTrait;
 
 class CommunityPost extends BaseController
 {
+    use CommonTrait;
     /**
      * Display a listing of the resource.
      */
@@ -760,7 +761,6 @@ class CommunityPost extends BaseController
             ActivityLog::where('action', $comment_reply_type)->where('parent_id', $comment->id)->delete();
             Notification::where('notification_type', $comment_reply_type)->where('parent_id', $comment->id)->delete();
 
-
             $comment->delete();
             $commentCount = Post::select('comment_count')->where('id', $comment->post_id)->first();
             if ($commentCount->comment_count > 0) {
@@ -775,4 +775,36 @@ class CommunityPost extends BaseController
             return $this->sendResponsewithoutData(trans('message.comment_not_found'), 400);
         }
     }
+
+
+    #---------------  S H A R E         P O S T      I N    C H A T    ----------------#
+    public function sharePost(Request $request){
+
+        $validate = Validator::make($request->all(), [
+                                            'post_id' => 'required|exists:posts,id',
+                                            'receiver_id' => 'required|exists:users,id',
+        ]);
+        if ($validate->fails()) {
+
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+
+        }else{
+
+            $postData                       =               Post::where(['id'=>$request->post_id,'is_active'=>1])->first();
+            
+            if(empty($postData)){
+
+                return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
+            }
+            $myId                           =               Auth::id();
+            $reciever                       =               $request->receiver_id;
+            if ($myId == $reciever) {
+                return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
+            }
+            return $this->sharePostInChat($request,$myId,$reciever);
+        }
+
+    }
+    #---------------  S H A R E         P O S T      I N    C H A T    ----------------#
+    
 }

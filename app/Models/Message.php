@@ -21,5 +21,11 @@ class Message extends Model
         return $this->belongsTo(Message::class, 'replied_to_message_id', 'id');
     }
 
+    public function post(){
+
+        return $this->belongsTo(Post::class,'post_id','id')->where('is_active',1);
+
+    }
+
 
 }

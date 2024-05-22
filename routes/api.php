@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Journals\JournalController;
 use App\Http\Controllers\Api\Payments\PaymentController;
 use App\Http\Controllers\Api\Likes\LikeController;
 use App\Http\Controllers\Api\Gemini\GeniminController;
+use App\Http\Controllers\Api\AiChatController\AiChat;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,6 +73,8 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(GeniminControlle
     Route::post('summerize','summerize');
     Route::get('summarizeImage','summarizeImage');
     Route::get('generateContentWithCurl','generateContentWithCurl');
+    Route::get('analyzeJournalOld','analyzeJournalOld');
+    Route::get('doqtachat','chat');
     
     
     
@@ -111,6 +114,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
     Route::post('communityPosts/addComment', [CommunityPost::class,'addComment']);
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
+    Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
     Route::resource('communityPosts', CommunityPost::class);
 
     
@@ -209,6 +213,15 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 
 });
 
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+    // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
+    // Route::post('communityPost/resharePost', [CommunityPost::class,'resharePost']);
+    // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
+    Route::get('aiChat/chatLogs', [AiChat::class,'chatLogs']);
+    Route::get('aiChat/chatLogs2', [AiChat::class,'chatLogs2']);
+    Route::resource('aiChat', AiChat::class);
+
+});
 
 
 
