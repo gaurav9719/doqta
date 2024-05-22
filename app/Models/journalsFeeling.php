@@ -25,4 +25,10 @@ class journalsFeeling extends Model
         
     }
 
+    public function feeling_type_details(){
+
+        return $this->belongsTo(FeelingType::class,'feeling_type','id');
+        
+    }
+
 }

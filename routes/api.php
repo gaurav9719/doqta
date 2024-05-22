@@ -2,27 +2,28 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\PointSystem;
+use App\Http\Controllers\Api\CommunityPost;
+use App\Http\Controllers\Api\InputsOptions;
+use App\Http\Controllers\Api\Notifications;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\JournalEntries;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\StatsController;
-use App\Http\Controllers\Api\PointSystem;
-use App\Http\Controllers\Api\Notifications;
-use App\Http\Controllers\Api\Recruiter\GhostRequestController;
-use App\Http\Controllers\Api\Dater\PortfolioController;
-use App\Http\Controllers\Api\SignStepsController;
-use App\Http\Controllers\Api\InputsOptions;
-use App\Http\Controllers\Api\CommunityController;
-use App\Http\Controllers\Api\CommunityPost;
 use App\Http\Controllers\Api\FeelingController;
-use App\Http\Controllers\Api\JournalEntries;
-use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Chat\ChatController;
-use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
+use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\SignStepsController;
+use App\Http\Controllers\Api\Likes\LikeController;
+use App\Http\Controllers\Api\AiChatController\AiChat;
+use App\Http\Controllers\Api\Gemini\GeniminController;
+use App\Http\Controllers\Api\Dater\PortfolioController;
 use App\Http\Controllers\Api\Journals\JournalController;
 use App\Http\Controllers\Api\Payments\PaymentController;
-use App\Http\Controllers\Api\Likes\LikeController;
-use App\Http\Controllers\Api\Gemini\GeniminController;
-use App\Http\Controllers\Api\AiChatController\AiChat;
+use App\Http\Controllers\Api\Discover\DiscoverController;
+use App\Http\Controllers\Api\Recruiter\GhostRequestController;
+use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
+use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,9 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+
+    Route::post('generate-report', [JournalAnalyzerController::class, 'generateReport']);
+
 
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
     Route::post('journal/addToFavorite', [JournalController::class,'addToFavorite']);
