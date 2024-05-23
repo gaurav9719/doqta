@@ -228,11 +228,12 @@ class GetUserService extends BaseController
                 $query->where('is_active', 1);
             })
             ->with([
-
                 'group:id,name,description,cover_photo,post_count',
                 'post_user:id,user_name,name,profile'
-
-            ])->withCount('total_comment')
+            ])->with(['parent_post', 'parent_post.post_user'=>function($query){
+                $query->select('id','name','user_name','profile');
+            }])
+            ->withCount('total_comment')
             ->where('user_id', $userId)
             ->where('is_active', 1)
             ->whereNotExists(function ($query) use ($authId) {
@@ -279,6 +280,29 @@ class GetUserService extends BaseController
                     $groupPost->is_liked             =   $isExist['is_liked'];
                     $groupPost->reaction             =   $isExist['reaction'];
                     $groupPost->total_likes_count    =   $isExist['total_likes_count'];
+
+
+                    #--------- parent post ----------#
+                    if(isset($groupPost->parent_post) && !empty($groupPost->parent_post)){
+
+
+                        if ($groupPost->parent_post->post_user && $groupPost->parent_post->post_user->profile) {
+        
+                            $groupPost->parent_post->post_user->profile       = $this->addBaseInImage($groupPost->parent_post->post_user->profile);
+                        }
+                        if (isset($groupPost->parent_post->media_url) && !empty($groupPost->parent_post->media_url)) {
+        
+                            $groupPost->parent_post->media_url        =       $this->addBaseInImage($groupPost->parent_post->media_url);
+                        }
+                        $isExist                                 =       $this->IsPostLiked($groupPost->id, $authId,1);
+                        $groupPost->parent_post->is_liked             =       $isExist['is_liked'];
+                        $groupPost->parent_post->reaction             =       $isExist['reaction'];
+                        $groupPost->parent_post->total_likes_count    =       $isExist['total_likes_count'];
+                        $groupPost->parent_post->total_comment_count  =       $isExist['total_comment_count'];
+                        $isRepost                                =   Post::where(['parent_id'=>$groupPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $groupPost->parent_post->is_reposted          =  ($isRepost)?1:0;
+                    }
+                    #--------- parent post ----------#
                 }
             }
             return $this->sendResponse($posts, trans("message.user.posts"), 200);
