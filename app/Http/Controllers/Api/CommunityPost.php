@@ -415,7 +415,7 @@ class CommunityPost extends BaseController
                                 $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
                             }
 
-                            $isRepost                     =   Post::where(['parent_id'=>$repostId,'user_id'=>$authId,'is_active'=>1])->exists();
+                            $isRepost                     =   Post::where(['parent_id'=>$parent_id,'user_id'=>$authId,'is_active'=>1])->exists();
                             $repost->is_reposted          =  ($isRepost)?1:0;
 
 
