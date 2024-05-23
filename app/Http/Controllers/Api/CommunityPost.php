@@ -32,11 +32,12 @@ use App\Models\Comment;
 use App\Models\Notification;
 
 use App\Traits\CommonTrait;
+use App\Traits\postCommentLikeCount;
 use App\Traits\IsCommunityJoined;
 
 class CommunityPost extends BaseController
 {
-    use CommonTrait,IsCommunityJoined;
+    use CommonTrait,IsCommunityJoined,postCommentLikeCount;
     /**
      * Display a listing of the resource.
      */
@@ -359,6 +360,7 @@ class CommunityPost extends BaseController
                             $rePost->parent_id = $parent_id;
                             $rePost->user_id = $authId;
                             $rePost->title = $isExist->title;
+                            $rePost->content = $isExist->content;
                             $rePost->media_url = $isExist->media_url;
                             $rePost->link = $isExist->link;
                             $rePost->post_type = $isExist->post_type;
@@ -395,6 +397,8 @@ class CommunityPost extends BaseController
                             return $this->sendError(trans("message.not_community_member"), [], 403);
                         }
                     }
+
+
                     $repost = Post::where('id', $repostId)
                             ->with([
                                 'parent_post' => function ($query) {
@@ -410,6 +414,10 @@ class CommunityPost extends BaseController
 
                         if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
                             $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
+                        }
+                        if ($repost->media_url) {
+
+                            $repost->media_url = $this->addBaseInImage($repost->media_url);
                         }
 
                         $isRepost                     =   Post::where(['parent_id'=>$parent_id,'user_id'=>$authId,'is_active'=>1])->exists();
