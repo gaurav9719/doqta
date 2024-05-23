@@ -355,8 +355,19 @@ class DicoverService extends BaseController
 
                 $query->select('id', 'name', 'user_name', 'profile');
 
-            }])->whereNotNull('link');
+            }])->whereHas('parent_post', function ($query) {
+                    
+                $query->where('is_active', 1);
 
+            })->with(['parent_post' => function ($query) {
+                $query->select('*')
+                    ->where('is_active', 1)
+                    ->with([
+                        'post_user' => function ($query) {
+                            $query->select('id', 'name','user_name', 'profile');
+                        }
+                    ]);
+            }])->whereNotNull('link');
 
             if (isset($request->search) && !empty($request->search)) {
 
@@ -385,7 +396,6 @@ class DicoverService extends BaseController
             })->whereNotExists(function ($query) use ($authId) {
 
                 $query->select(DB::raw(1))
-
                     ->from('report_posts')
                     ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                     ->where('report_posts.user_id', '=', $authId); // Check if the current user has reported the post
@@ -417,8 +427,27 @@ class DicoverService extends BaseController
                         $topArticle->media_url =   $this->addBaseInImage($topArticle->media_url);
                     }
 
-                    $hasLiked                       =   Like::where(['user_id' => $authId, 'post_id' => $topArticle->id])->whereNull('comment_id')->exists();
-                    $topArticle->is_liked      = ($hasLiked) ? 1 : 0;
+                    $hasLiked                                         =   Like::where(['user_id' => $authId, 'post_id' => $topArticle->id])->whereNull('comment_id')->exists();
+                    $topArticle->is_liked                             = ($hasLiked) ? 1 : 0;
+
+                    if(isset($topArticle->parent_post) && !empty($topArticle->parent_post)){
+
+                        if ($topArticle->parent_post->post_user && $topArticle->parent_post->post_user->profile) {
+        
+                            $topArticle->parent_post->post_user->profile       = $this->addBaseInImage($topArticle->parent_post->post_user->profile);
+                        }
+                        if (isset($topArticle->parent_post->media_url) && !empty($topArticle->parent_post->media_url)) {
+        
+                            $topArticle->parent_post->media_url        =       $this->addBaseInImage($topArticle->parent_post->media_url);
+                        }
+                        $isExist                                       =       $this->IsPostLiked($topArticle->id, $authId,1);
+                        $topArticle->parent_post->is_liked             =       $isExist['is_liked'];
+                        $topArticle->parent_post->reaction             =       $isExist['reaction'];
+                        $topArticle->parent_post->total_likes_count    =       $isExist['total_likes_count'];
+                        $topArticle->parent_post->total_comment_count  =       $isExist['total_comment_count'];
+                        $isRepost                                      =       Post::where(['parent_id'=>$topArticle->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $topArticle->parent_post->is_reposted          =       ($isRepost)?1:0;
+                    }
                 });
             }
             // Assign the result to the correct variable
@@ -681,10 +710,12 @@ class DicoverService extends BaseController
                     });
                 })
                 ->with(['parent_post' => function ($query) {
-                    $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
-                        ->where('is_active', 1)
+                    $query->where('is_active', 1)
+
                         ->with(['post_user' => function ($query) {
-                            $query->select('id', 'name', 'profile');
+
+                            $query->select('id', 'name', 'profile','user_name');
+
                         }]);
                 }, 'group' => function ($query) {
 
@@ -709,8 +740,27 @@ class DicoverService extends BaseController
                     $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
                 }
 
-                if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user &&      $homeScreenPost->parent_post->post_user->profile) {
-                    $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
+                if(isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)){
+
+                    if ($homeScreenPost->parent_post->post_user &&  $homeScreenPost->parent_post->post_user->profile) {
+
+                        $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
+                    }
+    
+                   
+                    if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
+    
+                        $homeScreenPost->parent_post->media_url          =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
+                    }
+
+                    $homeScreenPost->parent_post->postedAt = time_elapsed_string($homeScreenPost->parent_post->created_at);
+
+                     $isExist    = $this->IsPostLiked($homeScreenPost->parent_post['id'], $authId,1);
+                    
+                    $homeScreenPost->parent_post->is_liked = $isExist['is_liked'];
+                     $homeScreenPost->parent_post->reaction = $isExist['reaction'];
+                     $homeScreenPost->parent_post->total_likes_count = $isExist['total_likes_count'];
+                    $homeScreenPost->parent_post->total_comment_count = $isExist['total_comment_count'];
                 }
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
@@ -725,8 +775,6 @@ class DicoverService extends BaseController
                 $homeScreenPost->total_likes_count = $isExist['total_likes_count'];
                 $homeScreenPost->total_comment_count = $isExist['total_comment_count'];
             });
-
-
             return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200);
         } catch (Exception $e) {
 

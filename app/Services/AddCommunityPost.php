@@ -42,18 +42,14 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
-
         try {
             $is_health_provider= UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
-
             $post = new Post();
             $post->user_id = $authId;
             $post->title = $request->title;
             $post->content = $request->content;
             $post->is_health_provider = $is_health_provider; // add true is user is health provider
-
             if ($request->hasFile('media')) {
-
                 $post_image     = $request->file('media');
                 $Uploaded       = upload_file($post_image, 'post_images');
                 $post->media_url = $Uploaded;
@@ -64,20 +60,14 @@ class AddCommunityPost extends BaseController
                 $post->lat = $request->lat;
             }
             if (isset($request->long) && !empty($request->long)) {
-
                 $post->long = $request->long;
             }
-
             if (isset($request->link) && !empty($request->link)) {
-
                 $post->link = $request->link;
             }
-
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
-
                 $post->wrote_by = $request->wrote_by;
             }
-
             $post->group_id             = $request->community_id;
             $post->media_type           = $request->media_type;
             $post->post_type            = $request->post_type; //normal,community
@@ -88,7 +78,6 @@ class AddCommunityPost extends BaseController
             //Do summarize the post
             $this->summerize($postId);
             // $this->calculateScoreByAi($postId);
-
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);
@@ -103,9 +92,9 @@ class AddCommunityPost extends BaseController
             $this->feedPostNotification($request->community_id, $postId, Auth::user());
             DB::commit();
             // add increment to group post
-            return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);
+            return $this->sendResponsewithoutData(trans("message.add_posted_successfully"),200);
+            // return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);
         } catch (Exception $e) {
-
             DB::rollback();
             Log::error('Error caught: "addPost" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -170,10 +159,8 @@ class AddCommunityPost extends BaseController
 
                     $query->select('id', 'name', 'description', 'cover_photo', 'post_count');
                 },
-                'post_user:id,name,profile'
-            ])
-
-                ->find($id);
+                'post_user:id,name,user_name,profile'
+            ])->find($id);
 
             if (!$post) {
 
@@ -222,135 +209,7 @@ class AddCommunityPost extends BaseController
         }
     }
 
-    #--------------  G E T           C O M M U N I T Y       P O S T    ----------------------#
-
-    // public function getCommunityAndPost($community_id,$message="",$request="",){
-
-    //     try {
-    //         $limit              =    10;
-
-    //         if(isset($request['limit']) && !empty($request['limit'])){
-
-    //             $limit          =   $request['limit'];
-    //         }
-    //         // DB::enableQueryLog();
-    //         $post               =   Post::whereHas('post_user', function($query){
-
-    //                                     $query->where('is_active',1);
-
-    //                                 })->with(['group'=>function($query){
-
-    //                                     $query->select('id','name','description','cover_photo','post_count');
-
-    //                                 }, 'post_user:id,name,profile'])->where(['group_id'=>$community_id,'is_active'=>1]);
-
-    //                                 if(isset($request['post_category']) && !empty($request['post_category'])){
-
-    //                                     //1: seeing advice, 2: giving advice, 3: sharing media	 
-    //                                     $post       =   $post->where('post_category',$request['post_category']);
-    //                                 }
-    //         $post               =    $post->simplePaginate($limit);
-
-    //         //  dd(DB::getQueryLog());
-    //         if(isset($post[0]) && !empty($post[0])){
-
-    //             $post->each(function($groupPost){
-
-    //                 if ($groupPost->media_url) {
-
-    //                     $groupPost->media_url = asset('storage/' . $groupPost->media_url);
-    //                 }
-
-    //                 if (isset($groupPost->group) && !empty($groupPost->group)) {
-
-    //                     if(isset($groupPost->group->cover_photo) && !empty($groupPost->group->cover_photo)){
-
-    //                         $groupPost->group->cover_photo = asset('storage/' . $groupPost->group->cover_photo);
-    //                     }
-    //                 }
-
-    //                 if ($groupPost->post_user && $groupPost->post_user->profile) {
-
-    //                     $groupPost->post_user->profile = asset('storage/' . $groupPost->post_user->profile);
-    //                 }
-
-    //                 $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
-    //             });
-    //         }
-    //         // if (!$post) {
-
-    //         //     return $this->sendError('Post not found.', [], 404);
-    //         // }
-    //         return $this->sendResponse($post, $message, 200);
-
-
-
-    //     } catch (Exception $e) {
-
-    //         Log::error('Error caught: "getPost" ' . $e->getMessage());
-    //         return $this->sendError('Error occurred while fetching post.', [], 500);
-    //     }
-
-
-    // }
-
-    // public function getCommunityAndPost($community_id, $message = "", $request = "") {
-    //     try {
-    //         $limit = $request['limit'] ?? 10;
-
-    //         $posts = Post::where('group_id', $community_id)
-    //             ->where('is_active', 1)
-    //             ->whereHas('post_user', function ($query) {
-    //                 $query->where('is_active', 1);
-    //             })
-    //             ->when(!empty($request['post_category']), function ($query) use ($request) {
-    //                 $query->where('post_category', $request['post_category']);
-    //             })
-    //             ->with([
-    //                 'group:id,name,description,cover_photo,post_count',
-    //                 'post_user:id,name,profile'
-    //             ])
-    //             ->simplePaginate($limit);
-
-    //             if($posts[0]){
-
-    //                 $posts->each(function ($community_post) {
-    //                     $this->processPostData($community_post);
-    //                 });
-    //             }
-
-    //         return $this->sendResponse($posts, $message, 200);
-    //     } catch (Exception $e) {
-    //         Log::error('Error caught: "getPost" ' . $e->getMessage());
-    //         return $this->sendError('Error occurred while fetching post.', [], 500);
-    //     }
-    // }
-
-    // private function processPostData($community_post) {
-
-    //     if ($community_post->media_url) {
-
-    //         $community_post->media_url = $this->getAssetUrl($community_post->media_url);
-    //     }
-
-    //     if ($community_post->group && $community_post->group->cover_photo) {
-
-    //         $community_post->group->cover_photo = $this->getAssetUrl($community_post->group->cover_photo);
-    //     }
-
-    //     if ($community_post->post_user && $community_post->post_user->profile) {
-
-    //         $community_post->post_user->profile = $this->getAssetUrl($community_post->post_user->profile);
-    //     }
-
-    //     $community_post->postedAt = Carbon::parse($community_post->created_at)->diffForHumans();
-    // }
-
-    // private function getAssetUrl($path) {
-    //     return asset('storage/' . $path);
-    // }
-
-    public function getCommunityAndPost($community_id, $authId, $message = "", $request = "")
+      public function getCommunityAndPost($community_id, $authId, $message = "", $request = "")
     {
         try {
 
@@ -589,6 +448,7 @@ class AddCommunityPost extends BaseController
         try {
             // check if i have join the community or not
             $group = Group::withCount('groupMember')->find($community_id);
+
             if (isset($group) && !empty($group)) {
 
                 if ((isset($group->cover_photo) && !empty($group->cover_photo))) {
@@ -597,10 +457,12 @@ class AddCommunityPost extends BaseController
                 }
 
                 $isGroupMember = GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+
                 if (isset($isGroupMember) && !empty($isGroupMember)) {
 
                     $group->is_joined = 1; // not join the group
                     $group->role = $isGroupMember->role;
+
                 } else {
 
                     $request = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
@@ -627,7 +489,7 @@ class AddCommunityPost extends BaseController
                 $limit = $request['limit'];
             }
 
-
+            DB::enableQueryLog();
             $posts = Post::whereHas('post_user', function ($query) {
                 $query->where('is_active', 1);
             })
@@ -665,7 +527,7 @@ class AddCommunityPost extends BaseController
                 $posts->where('post_category', $request['post_category_id']);
             }
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
-
+            // dd(DB::getQueryLog());
             // if (!empty($posts)) {
 
             //     foreach ($posts as $groupPost) {
