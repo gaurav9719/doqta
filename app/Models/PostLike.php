@@ -19,4 +19,14 @@ class PostLike extends Model
         'updated_at'
 
     ];
+
+
+    public function checkUserRole(){
+        
+        return $this->hasMany(UserParticipantCategory::class,'user_id','user_id');
+    }
+
+
+
+
 }

@@ -37,9 +37,11 @@ class JournalAnalyzerController extends BaseController
         }
 
         $request_ids= JournalEntry::where('journal_id', $journal->id)->whereBetween('journal_on', [$request->start_date, $request->end_date])->pluck('id')->toArray();
+
         $reports= JournalReport::where('journal_id', $journal->id)->where('type', $request->type)->get();
         
         foreach($reports as $rep){
+            
             $ids= JournalEntry::where('journal_id', $journal->id)->whereBetween('journal_on', [$rep->start_date, $rep->end_date])->pluck('id')->toArray();
             if (empty(array_diff($request_ids, $ids)) && empty(array_diff($ids, $request_ids))) {
                 $response= json_decode($rep->report);

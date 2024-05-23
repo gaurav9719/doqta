@@ -81,7 +81,7 @@ return [
     "discover_media"=>"Discover media",
     "deleted_successfully"=>"Deleted Successfully",
     "saved_successfully"=>"Saved successfully",
-    
+    "please_join_community"=>"Please join the community",
     "updated_success_common"=>"Update successfully",
     "dicover_post"=>"Discover post",
     "dicover_community"=>"Discover communities",

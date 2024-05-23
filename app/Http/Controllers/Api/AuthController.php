@@ -320,18 +320,17 @@ class AuthController extends BaseController
            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
            CURLOPT_CUSTOMREQUEST => "POST",
            CURLOPT_POSTFIELDS => json_encode([
-               'model' => 'llama-3-sonar-small-32k-online',
-               'messages' => [
-                   [
-                       'role' => 'system',
-                       'content' => 'Be precise and concise. Validate the the given text providing medical advice and calculate the score out of 2 in json format in score key and text key.'
-                   ],
-                   [
-                       'role' => 'user',
-                       'content' => "Validate the the given text providing medical advice and calculate the score out of 2 in json format in (score key like score:1 and text key) and no text required the following text is: Tried using apple cider vinegar as a treatment for skin tags? I find it To be extremely effective at removing the skin tag within two weeks of applying the vinegar directly to the skin tag"
-
-                   ]
-               ]
+            'model' => 'llama-3-sonar-small-32k-online',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'Validate the given text for providing medical advice and calculate the score out of 2. Respond with only an integer value (0, 1, or 2) based on the quality of the medical advice in score key. No extra text or space required in response.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => "Validate the given text for providing medical advice and calculate the score out of 2 in integer format only. The following text is: Tried using apple cider vinegar as a treatment for skin tags? I find it to be extremely effective at removing the skin tag within two weeks of applying the vinegar directly to the skin tag."
+                ]
+            ]
            ]),
            CURLOPT_HTTPHEADER => [
                "accept: application/json",

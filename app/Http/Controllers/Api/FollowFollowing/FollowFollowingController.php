@@ -18,11 +18,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Validator;
+use APp\Traits\postCommentLikeCount;
 use App\Http\Controllers\Api\BaseController;
 
 class FollowFollowingController extends BaseController
 {
-
+    use postCommentLikeCount;
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(NotificationService $notification)
     {
@@ -88,6 +89,11 @@ class FollowFollowingController extends BaseController
                 $threads->each(function($query) use($myId){
 
                     $query['is_supporting']               =   (UserFollower::where(['user_id'=>$query->other_user_id , 'follower_user_id'=>$myId])->exists())?1:0;
+
+                    if(isset($query['profile']) && !empty($query['profile'])){
+
+                        $query['profile']           =   $this->addBaseInImage($query['profile']);
+                    }
                 });
             }
             return $this->sendResponse($threads, $message, 200);

@@ -96,7 +96,7 @@ class AiChat extends BaseController
         DB::beginTransaction();
         try {
             $validator                          =       Validator::make($request->all(), [
-                'messages' => 'required|array'
+                'messages' => 'required'
             ]);
             if ($validator->fails()) {
                 // Handle validation failure
@@ -136,9 +136,14 @@ class AiChat extends BaseController
                 }
                 if (isset($threadId) && !empty($threadId)) {
                     $messages                         =         $request->messages;
-                    foreach ($messages as $message) {
-                        $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
-                        AiMessage::create(['sender_id' => $senderId, 'message' => $message->message]);
+                    $messages                         =     json_decode($messages,true);
+                    if(isset($messages) && !empty($messages)){
+                        foreach ($messages as $message) {
+                           
+                            $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
+                            AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'],'inbox_id'=>$threadId]);
+
+                        }
                     }
                 }
                 DB::commit();

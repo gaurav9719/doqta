@@ -32,10 +32,11 @@ use App\Models\Comment;
 use App\Models\Notification;
 
 use App\Traits\CommonTrait;
+use App\Traits\IsCommunityJoined;
 
 class CommunityPost extends BaseController
 {
-    use CommonTrait;
+    use CommonTrait,IsCommunityJoined;
     /**
      * Display a listing of the resource.
      */
@@ -308,31 +309,42 @@ class CommunityPost extends BaseController
         try {
 
             $validation = Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id']);
+
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             } else {
 
                 $auth = Auth::user();
                 $authId = Auth::id();
                 $isExist = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
-
+                
                 if (empty($isExist) || $isExist == null) {
 
                     return $this->sendError(trans("message.no_post_found"), [], 422);
+
                 } else {
+
+                    $isJoined   =   $this->checkCommunityJoind($isExist->group_id);
+
+                    if(!$isJoined){
+
+                        return $this->sendError(trans("message.please_join_community"), [], 403);
+            
+                    }
 
                     if (isset($isExist->parent_id) && !empty($isExist->parent_id)) {
 
                         $parent_id = $isExist->parent_id;
+
                     } else {
 
                         $parent_id = $isExist->id;
                     }
 
                     $post = Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
-                    //dd(DB::getQueryLog());
-
+                  
                     if (isset($post) && !empty($post)) {
                         // Record exists, delete it
                         $post->delete();
@@ -402,6 +414,11 @@ class CommunityPost extends BaseController
                             if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
                                 $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
                             }
+
+                            $isRepost                     =   Post::where(['parent_id'=>$repostId,'user_id'=>$authId,'is_active'=>1])->exists();
+                            $repost->is_reposted          =  ($isRepost)?1:0;
+
+
                         } else {
 
                             return $this->sendError(trans("message.not_community_member"), [], 403);
@@ -799,7 +816,9 @@ class CommunityPost extends BaseController
             $myId                           =               Auth::id();
             $reciever                       =               $request->receiver_id;
             if ($myId == $reciever) {
+
                 return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
+                
             }
             return $this->sharePostInChat($request,$myId,$reciever);
         }
