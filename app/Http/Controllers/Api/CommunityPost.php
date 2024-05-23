@@ -342,7 +342,6 @@ class CommunityPost extends BaseController
 
                         $parent_id = $isExist->id;
                     }
-
                     $post = Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
                   
                     if (isset($post) && !empty($post)) {
@@ -351,13 +350,11 @@ class CommunityPost extends BaseController
                         $action = 0;
                         decrement('posts', ['id' => $request->post_id], 'repost_count', 1); //decrement post
                         DB::commit();
-                        $repost = null;
+                        $repostId = $parent_id;
                     } else {
                         // check i am the community member or not 
                         $isGroupMember = GroupMember::where(['group_id' => $isExist->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
-
                         if ($isGroupMember) {
-
                             $rePost = new Post();
                             $rePost->parent_id = $parent_id;
                             $rePost->user_id = $authId;
@@ -372,7 +369,6 @@ class CommunityPost extends BaseController
                             //increment the like by one
                             increment('posts', ['id' => $parent_id], 'repost_count', 1);
                             #send notification
-
                             $group = Group::find($isExist->group_id);
                             $sender = Auth::user();
                             $receiver = User::find($isExist->user_id);
@@ -384,7 +380,6 @@ class CommunityPost extends BaseController
                             ];
                             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.reposted_post_type'), $data);
 
-
                             #-------  A C T I V I T Y -----------# 17 may
                             $activity                       =    new ActivityLog();
                             $activity->user_id              =    $authId;
@@ -395,35 +390,30 @@ class CommunityPost extends BaseController
                             $activity->action               =   trans('notification_message.reposted_post_type');    //Reposted the post
                             $activity->save();
                             #-------  A C T I V I T Y -----------#
-
-
                             DB::commit();
-                            $repost = Post::where('id', $repostId)
-                                ->with([
-                                    'parent_post' => function ($query) {
-                                        $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
-                                            ->where('is_active', 1)
-                                            ->with([
-                                                'post_user' => function ($query) {
-                                                    $query->select('id', 'name', 'profile');
-                                                }
-                                            ]);
-                                    }
-                                ])->first();
-
-                            if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
-                                $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
-                            }
-
-                            $isRepost                     =   Post::where(['parent_id'=>$parent_id,'user_id'=>$authId,'is_active'=>1])->exists();
-                            $repost->is_reposted          =  ($isRepost)?1:0;
-
-
                         } else {
-
                             return $this->sendError(trans("message.not_community_member"), [], 403);
                         }
                     }
+                    $repost = Post::where('id', $repostId)
+                            ->with([
+                                'parent_post' => function ($query) {
+                                    $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                                        ->where('is_active', 1)
+                                        ->with([
+                                            'post_user' => function ($query) {
+                                                $query->select('id', 'name', 'user_name','profile');
+                                            }
+                                        ]);
+                                }
+                            ])->first();
+
+                        if ($repost && $repost->parent_post && $repost->parent_post->post_user && $repost->parent_post->post_user->profile) {
+                            $repost->parent_post->post_user->profile = asset('storage/' . $repost->parent_post->post_user->profile);
+                        }
+
+                        $isRepost                     =   Post::where(['parent_id'=>$parent_id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $repost->is_reposted          =  ($isRepost)?1:0;
                     return $this->sendResponse($repost, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'), 200);
                 }
             }

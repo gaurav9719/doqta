@@ -26,12 +26,13 @@ use App\Models\UserParticipantCategory;
 use App\Models\ActivityLog;
 use App\Jobs\FeedPostNotification as feedPostionJob;
 use App\Traits\SummarizePost;
+use App\Traits\CalculateScore;
 /**
  * Class AddCommunityPost.
  */
 class AddCommunityPost extends BaseController
 {
-    use postCommentLikeCount, IsCommunityJoined, FeedPostNotification, IsLikedPostComment,SummarizePost;
+    use postCommentLikeCount, IsCommunityJoined, FeedPostNotification, IsLikedPostComment,SummarizePost,CalculateScore;
     private $notification;
     public function __construct(NotificationService $notification)
     {
@@ -86,6 +87,8 @@ class AddCommunityPost extends BaseController
             DB::commit();
             //Do summarize the post
             $this->summerize($postId);
+            // $this->calculateScoreByAi($postId);
+
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);

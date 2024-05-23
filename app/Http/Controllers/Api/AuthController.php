@@ -306,9 +306,10 @@ class AuthController extends BaseController
     #**********-------------  D E L E T E       A C C O U N T ----------------- **********#
 
 
-    public function calculateScore(){
+    public function calculateScore($content){
 
        // Generated @ codebeautify.org
+      
        $curl = curl_init();
 
        curl_setopt_array($curl, [
@@ -324,11 +325,40 @@ class AuthController extends BaseController
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'Validate the given text for providing medical advice and calculate the score out of 2. Respond with only an integer value (0, 1, or 2) based on the quality of the medical advice in score key. No extra text or space required in response.'
+                    'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
+                        - 2 if the text contains 5 or more instances of medical advice.
+                        - 1.5 if the text contains 3 to 4 instances of medical advice.
+                        - 1 if the text contains 1 to 2 instances of medical advice.
+                        - 0.5 if the text contains no or minimal medical advice.
+                        -provide resonse only in integer, No text required or space
+                        Follow these rules at all times:
+                        1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
+                        2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions..
+                        3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," ,"realed to cure any disease",etc..
+                        4. Refer users to healthcare professionals for diagnosis or treatment. Always \
+                        encourage users to consult with a doctor or qualified healthcare provider \
+                        for personal health concerns.
+                        5. Avoid making predictions about health outcomes. Do not predict the course \
+                        of diseases or the effectiveness of specific treatments for individuals.
+                        6. Maintain neutrality and impartiality. Do not endorse specific healthcare \
+                        products, services, or providers unless providing a list of options based \
+                        on reputable sources.
+                        7. Comply with privacy laws and regulations. Do not request, store, or process \
+                        any personal health information (PHI).
+                        8. Provide information that is up to date and cite sources when possible. Use \
+                        only the most recent and reliable medical data and studies to inform \
+                        responses.
+                        9. Clarify that the LLM is not a substitute for professional medical advice. \
+                        Always remind users that the information provided is for informational \
+                        purposes only and not a replacement for professional judgement.
+                        10. Be culturally sensitive and avoid assumptions. Tailor responses to be \
+                            inclusive and respectful of different cultural backgrounds and health \
+                            beliefs.\n,
+                            if text is realted to any 10 give 0 only'
                 ],
                 [
                     'role' => 'user',
-                    'content' => "Validate the given text for providing medical advice and calculate the score out of 2 in integer format only. The following text is: Tried using apple cider vinegar as a treatment for skin tags? I find it to be extremely effective at removing the skin tag within two weeks of applying the vinegar directly to the skin tag."
+                    'content' => $content
                 ]
             ]
            ]),
