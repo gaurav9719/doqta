@@ -18,12 +18,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Validator;
-use APp\Traits\postCommentLikeCount;
+use App\Traits\postCommentLikeCount;
 use App\Http\Controllers\Api\BaseController;
 
 class FollowFollowingController extends BaseController
 {
     use postCommentLikeCount;
+
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(NotificationService $notification)
     {
