@@ -96,7 +96,7 @@ class AiChat extends BaseController
         DB::beginTransaction();
         try {
             $validator                          =       Validator::make($request->all(), [
-                'messages' => 'required'
+                'messages' => 'required|json'
             ]);
             if ($validator->fails()) {
                 // Handle validation failure
@@ -136,7 +136,7 @@ class AiChat extends BaseController
                 }
                 if (isset($threadId) && !empty($threadId)) {
                     $messages                         =         $request->messages;
-                    $messages                         =     json_decode($messages,true);
+                    $messages                         =         json_decode($messages,true);
                     if(isset($messages) && !empty($messages)){
                         foreach ($messages as $message) {
                            
