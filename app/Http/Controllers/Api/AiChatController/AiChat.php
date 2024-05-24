@@ -105,63 +105,64 @@ class AiChat extends BaseController
             } else {
                 $messages                         =         json_decode($request->messages,true);
 
-             
-                $validatedData = $request->validate($messages,[
+                // Validate each message
+                $validator = Validator::make($messages, [
                     '*.id' => 'required|string',
-                    '*.message' => 'required',
+                    '*.message' => 'required|string',
                     '*.participant' => 'required|string',
                 ]);
+        
                 if ($validator->fails()) {
-                    // Handle validation failure
                     return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+                }
+        
+                    $myId                               =   Auth::id();
+                    $ai                                 =   User::select('id')->where(['name' => "Ai"])->first();
+                    if (isset($ai) && !empty($ai)) {
     
-                } 
-                $myId                               =   Auth::id();
-                $ai                                 =   User::select('id')->where(['name' => "Ai"])->first();
-                if (isset($ai) && !empty($ai)) {
-
-                    $aiId                          =    $ai->id;
-                } else {
-                    //create ai
-                    $addAi                         =    new User();
-                    $addAi->name                   =    "AI";
-                    $addAi->user_name              =    "AI";
-                    $addAi->profile                =    'app_icon/ai.png';
-                    $addAi->role                   =    4;
-                    $addAi->save();
-                    $aiId                          =   $addAi->id;
-                }
-                #-------- check thread is exist or not
-                $inbox                              =               AiThread::where(function ($query) use ($myId) {
-                    $query->where('sender_id', $myId)
-                        ->orWhere('receiver_id', $myId);
-                })->first();
-
-                if (isset($inbox) && !empty($inbox)) {
-                    $threadId                     =         $inbox->id;
-                } else {                                          // create chat thread
-
-                    $newThread                    =           new AiThread();
-                    $newThread->sender_id         =           $myId;
-                    $newThread->receiver_id       =           $myId;
-                    $newThread->receiver_id       =           $myId;
-                    $newThread->save();
-                    $threadId                     =          $newThread->id;
-                }
-                if (isset($threadId) && !empty($threadId)) {
-                    $messages                         =         $request->messages;
-                    $messages                         =         json_decode($messages,true);
-                    if(isset($messages) && !empty($messages)){
-                        foreach ($messages as $message) {
-                           
-                            $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
-                            AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'],'inbox_id'=>$threadId]);
-
+                        $aiId                          =    $ai->id;
+                    } else {
+                        //create ai
+                        $addAi                         =    new User();
+                        $addAi->name                   =    "AI";
+                        $addAi->user_name              =    "AI";
+                        $addAi->profile                =    'app_icon/ai.png';
+                        $addAi->role                   =    4;
+                        $addAi->save();
+                        $aiId                          =   $addAi->id;
+                    }
+                    #-------- check thread is exist or not
+                    $inbox                              =               AiThread::where(function ($query) use ($myId) {
+                        $query->where('sender_id', $myId)
+                            ->orWhere('receiver_id', $myId);
+                    })->first();
+    
+                    if (isset($inbox) && !empty($inbox)) {
+                        $threadId                     =         $inbox->id;
+                    } else {                                          // create chat thread
+    
+                        $newThread                    =           new AiThread();
+                        $newThread->sender_id         =           $myId;
+                        $newThread->receiver_id       =           $myId;
+                        $newThread->receiver_id       =           $myId;
+                        $newThread->save();
+                        $threadId                     =          $newThread->id;
+                    }
+                    if (isset($threadId) && !empty($threadId)) {
+                        $messages                         =         $request->messages;
+                        $messages                         =         json_decode($messages,true);
+                        if(isset($messages) && !empty($messages)){
+                            foreach ($messages as $message) {
+                               
+                                $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
+                                AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'],'inbox_id'=>$threadId]);
+    
+                            }
                         }
                     }
-                }
-                DB::commit();
-                return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
+                    DB::commit();
+                    return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
+                
             }
         } catch (Exception $e) {
             Log::error('Error caught: "storeAiChat" ' . $e->getMessage());
