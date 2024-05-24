@@ -65,7 +65,7 @@ class AddCommunityPost extends BaseController
                 $post->long = $request->long;
             }
             if (isset($request->link) && !empty($request->link)) {
-                
+
                 $post->link = $request->link;
             }
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
@@ -81,9 +81,9 @@ class AddCommunityPost extends BaseController
             $postId                     = $post->id;
             DB::commit();
             //Do summarize the post
-            // $this->summerize($postId);
-            dispatch(new SummarizePostJob($postId));
-            dispatch(new scoreCalculation($postId));
+            $this->summerize($postId);
+            //dispatch(new SummarizePostJob($postId));
+            //dispatch(new scoreCalculation($postId));
             // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#

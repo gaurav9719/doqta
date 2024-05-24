@@ -113,7 +113,7 @@ class User extends Authenticatable
 
     public function userPost()
     {
-        return $this->hasMany(Post::class,'user_id','id');
+        return $this->hasMany(Post::class,'user_id','id')->where('is_active',1);
     }
 
     public function supporter()
