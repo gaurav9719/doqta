@@ -26,11 +26,13 @@ use Laravel\Passport\Token;
 use Laravel\Passport\RefreshToken;
 use App\Services\GetUserService;
 use App\Traits\CommonTrait;
+use App\Traits\CalculateScore;
+use App\Jobs\CalculateScore\scoreCalculation;
 
 
 class AuthController extends BaseController
 {
-    use CommonTrait;
+    use CommonTrait,CalculateScore;
     protected $getUser;
 
     protected $signUpService, $verifyEmail,$forgotPassword;
@@ -306,90 +308,95 @@ class AuthController extends BaseController
     #**********-------------  D E L E T E       A C C O U N T ----------------- **********#
 
 
-    public function calculateScore($content){
+    public function calculateScore(){
 
        // Generated @ codebeautify.org
+      dispatch(new scoreCalculation(233));
+    //    scoreCalculation::dispatch(233);
       
-       $curl = curl_init();
+    //    $curl = curl_init();
 
-       curl_setopt_array($curl, [
-           CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
-           CURLOPT_RETURNTRANSFER => true,
-           CURLOPT_ENCODING => "",
-           CURLOPT_MAXREDIRS => 10,
-           CURLOPT_TIMEOUT => 30,
-           CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-           CURLOPT_CUSTOMREQUEST => "POST",
-           CURLOPT_POSTFIELDS => json_encode([
-            'model' => 'llama-3-sonar-small-32k-online',
-            'messages' => [
-                [
-                    'role' => 'system',
-                    'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
-                        - 2 if the text contains 5 or more instances of medical advice.
-                        - 1.5 if the text contains 3 to 4 instances of medical advice.
-                        - 1 if the text contains 1 to 2 instances of medical advice.
-                        - 0.5 if the text contains no or minimal medical advice.
-                        -provide resonse only in integer, No text required or space
-                        Follow these rules at all times:
-                        1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
-                        2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions..
-                        3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," ,"realed to cure any disease",etc..
-                        4. Refer users to healthcare professionals for diagnosis or treatment. Always \
-                        encourage users to consult with a doctor or qualified healthcare provider \
-                        for personal health concerns.
-                        5. Avoid making predictions about health outcomes. Do not predict the course \
-                        of diseases or the effectiveness of specific treatments for individuals.
-                        6. Maintain neutrality and impartiality. Do not endorse specific healthcare \
-                        products, services, or providers unless providing a list of options based \
-                        on reputable sources.
-                        7. Comply with privacy laws and regulations. Do not request, store, or process \
-                        any personal health information (PHI).
-                        8. Provide information that is up to date and cite sources when possible. Use \
-                        only the most recent and reliable medical data and studies to inform \
-                        responses.
-                        9. Clarify that the LLM is not a substitute for professional medical advice. \
-                        Always remind users that the information provided is for informational \
-                        purposes only and not a replacement for professional judgement.
-                        10. Be culturally sensitive and avoid assumptions. Tailor responses to be \
-                            inclusive and respectful of different cultural backgrounds and health \
-                            beliefs.\n,
-                            if text is realted to any 10 give 0 only'
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $content
-                ]
-            ]
-           ]),
-           CURLOPT_HTTPHEADER => [
-               "accept: application/json",
-               "authorization: Bearer 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",
-               "content-type: application/json"
-           ],
-       ]);
+    //    curl_setopt_array($curl, [
+    //        CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+    //        CURLOPT_RETURNTRANSFER => true,
+    //        CURLOPT_ENCODING => "",
+    //        CURLOPT_MAXREDIRS => 10,
+    //        CURLOPT_TIMEOUT => 30,
+    //        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    //        CURLOPT_CUSTOMREQUEST => "POST",
+    //        CURLOPT_POSTFIELDS => json_encode([
+    //         'model' => 'llama-3-sonar-small-32k-online',
+    //         'messages' => [
+    //             [
+    //                 'role' => 'system',
+    //                 'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
+    //                     - 2 if the text contains 5 or more instances of medical advice.
+    //                     - 1.5 if the text contains 3 to 4 instances of medical advice.
+    //                     - 1 if the text contains 1 to 2 instances of medical advice.
+    //                     - 0.5 if the text contains no or minimal medical advice.
+    //                     -provide resonse only in integer, No text required or space
+    //                     Follow these rules at all times:
+    //                     1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
+    //                     2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions..
+    //                     3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," ,"realed to cure any disease",etc..
+    //                     4. Refer users to healthcare professionals for diagnosis or treatment. Always \
+    //                     encourage users to consult with a doctor or qualified healthcare provider \
+    //                     for personal health concerns.
+    //                     5. Avoid making predictions about health outcomes. Do not predict the course \
+    //                     of diseases or the effectiveness of specific treatments for individuals.
+    //                     6. Maintain neutrality and impartiality. Do not endorse specific healthcare \
+    //                     products, services, or providers unless providing a list of options based \
+    //                     on reputable sources.
+    //                     7. Comply with privacy laws and regulations. Do not request, store, or process \
+    //                     any personal health information (PHI).
+    //                     8. Provide information that is up to date and cite sources when possible. Use \
+    //                     only the most recent and reliable medical data and studies to inform \
+    //                     responses.
+    //                     9. Clarify that the LLM is not a substitute for professional medical advice. \
+    //                     Always remind users that the information provided is for informational \
+    //                     purposes only and not a replacement for professional judgement.
+    //                     10. Be culturally sensitive and avoid assumptions. Tailor responses to be \
+    //                         inclusive and respectful of different cultural backgrounds and health \
+    //                         beliefs.\n,
+    //                         if text is realted to any 10 give 0 only'
+    //             ],
+    //             [
+    //                 'role' => 'user',
+    //                 'content' => $content
+    //             ]
+    //         ]
+    //        ]),
+    //        CURLOPT_HTTPHEADER => [
+    //            "accept: application/json",
+    //            "authorization: Bearer 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",
+    //            "content-type: application/json"
+    //        ],
+    //    ]);
    
-       $response = curl_exec($curl);
-       $err = curl_error($curl);
+    //    $response = curl_exec($curl);
+    //    $err = curl_error($curl);
    
-       curl_close($curl);
+    //    curl_close($curl);
    
-       if ($err) {
-           echo "cURL Error #:" . $err;
-       } else {
-        $response_data = json_decode($response, true);
-        // dd($response_data);
-        // $answer = $response_data['choices'][0]['message']['content'];
-        // echo "<p><strong>Answer:</strong> $answer</p>";
-        $content = $response_data['choices'][0]['message']['content'];
-        // return $this->sendResponse($response_data,"User Deleted Successfully!", 200);
-        // Now $content contains the string you want to work with in PHP
-        echo $content;
-        // $response_data = json_decode($response);
-        // $score = $response_data['choices'][0]['score'] * 2;
-        // $answer = $response_data['choices'][0]['message']['content'];
-        // echo "<p><strong>Score:</strong> $score/2</p>";
-        // echo "<p><strong>Answer:</strong> $answer</p>";
-       }
+    //    if ($err) {
+    //        echo "cURL Error #:" . $err;
+    //    } else {
+    //     $response_data = json_decode($response, true);
+    //     // dd($response_data);
+    //     // $answer = $response_data['choices'][0]['message']['content'];
+    //     // echo "<p><strong>Answer:</strong> $answer</p>";
+    //     $content = $response_data['choices'][0]['message']['content'];
+    //     // return $this->sendResponse($response_data,"User Deleted Successfully!", 200);
+    //     // Now $content contains the string you want to work with in PHP
+    //     echo $content;
+    //     // $response_data = json_decode($response);
+    //     // $score = $response_data['choices'][0]['score'] * 2;
+    //     // $answer = $response_data['choices'][0]['message']['content'];
+    //     // echo "<p><strong>Score:</strong> $score/2</p>";
+    //     // echo "<p><strong>Answer:</strong> $answer</p>";
+    //    }
     }
+
+
+    
 }

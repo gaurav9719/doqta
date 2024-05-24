@@ -217,10 +217,15 @@ class GetUserService extends BaseController
 
     #--------------------  G E T        U S E R         P O S T  ----------------------#
     public function getUserPosts($userId,$authId,$limit){
+        
         try {
+
             if($userId!=$authId){
+
                 $isSupporting   =   UserFollower::where(['user_id'=>$userId,'follower_user_id'=>$authId])->exists();
+
                 if(!$isSupporting){
+
                     return $this->sendError(trans('message.you_are_not_supporting'), [], 403);
                 }
             }
@@ -294,12 +299,12 @@ class GetUserService extends BaseController
         
                             $groupPost->parent_post->media_url        =       $this->addBaseInImage($groupPost->parent_post->media_url);
                         }
-                        $isExist                                 =       $this->IsPostLiked($groupPost->id, $authId,1);
+                        $isExist                                      =       $this->IsPostLiked($groupPost->id, $authId,1);
                         $groupPost->parent_post->is_liked             =       $isExist['is_liked'];
                         $groupPost->parent_post->reaction             =       $isExist['reaction'];
                         $groupPost->parent_post->total_likes_count    =       $isExist['total_likes_count'];
                         $groupPost->parent_post->total_comment_count  =       $isExist['total_comment_count'];
-                        $isRepost                                =   Post::where(['parent_id'=>$groupPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $isRepost                                     =   Post::where(['parent_id'=>$groupPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
                         $groupPost->parent_post->is_reposted          =  ($isRepost)?1:0;
                     }
                     #--------- parent post ----------#

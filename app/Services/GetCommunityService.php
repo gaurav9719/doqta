@@ -21,6 +21,8 @@ use App\Traits\IsLikedPostComment;
 use App\Models\PostLike;
 use App\Traits\postCommentLikeCount;
 use App\Models\ActivityLog;
+use App\Models\Comment;
+
 /**
  * Class GetCommunityService.
  */
@@ -122,6 +124,8 @@ class GetCommunityService extends BaseController
                         $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
                         $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
                         $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
+                        $homeScreenPost->parent_post->total_likes_count =   $isExist['total_likes_count'];
+                        $homeScreenPost->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->parent_post->id)->count();
                         $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
                         $homeScreenPost->parent_post->is_reposted     =  ($isRepost)?1:0;
                         $homeScreenPost->postedAt                     =  time_elapsed_string($homeScreenPost->parent_post->created_at);

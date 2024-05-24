@@ -183,7 +183,7 @@ use IsLikedPostComment;
             if (isset($request['limit']) && !empty($request['limit'])) {
                 $limit           = $request['limit'];
             }
-
+            DB::enableQueryLog();
             $posts = Post::whereHas('post_user', function ($query) {
 
                 $query->where('is_active', 1);
@@ -192,11 +192,7 @@ use IsLikedPostComment;
                     'group:id,name,description,cover_photo,post_count',
                     'post_user:id,user_name,name,profile'
 
-                ])->whereHas('parent_post', function ($query) {
-                    
-                    $query->where('is_active', 1);
-
-                })->with(['parent_post' => function ($query) {
+                ])->with(['parent_post' => function ($query) {
                     $query->select('*')
                         ->where('is_active', 1)
                         ->with([
@@ -235,7 +231,7 @@ use IsLikedPostComment;
             }
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
        
-
+            //dd(DB::getQueryLog());
             $posts->getCollection()->transform(function ($post) use ($authId) {
 
                 if(isset($post->parent_post) && !empty($post->parent_post)){

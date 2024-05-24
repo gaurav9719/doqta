@@ -111,66 +111,77 @@ trait CommonTrait
     }
 
 
-    public function sharePostInChat($request,$myId,$reciever){
+    public function sharePostInChat($request,$myId,$recievers){
 
         DB::beginTransaction();
         try {
-            $message_type                   =               5;
-            $postData                       =               Post::where(['id'=>$request->post_id,'is_active'=>1])->first();
-            $postTitle                      =               $postData->title;
-            $message                        =               Inbox::where(function ($query) use ($myId, $reciever) {
+            
+            $userIDs                            =               explode(',',$recievers);
+          
+            if(isset($userIDs) && !empty($userIDs)){
                 
-                $query->where(function ($subQuery) use ($myId, $reciever) {
+                $message_type                   =               5;
+                $postData                       =               Post::where(['id'=>$request->post_id,'is_active'=>1])->first();
+                $postTitle                      =               $postData->title;
+                foreach ($userIDs as $reciever) {
+                   
+                    $message                    =               Inbox::where(function ($query) use ($myId, $reciever) {
+                        
+                        $query->where(function ($subQuery) use ($myId, $reciever) {
+        
+                            $subQuery->where('sender_id', $myId)
+                                ->where('receiver_id', $reciever);
+        
+                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
+        
+                            $subQuery->where('receiver_id', $myId)
+                                ->where('sender_id', $reciever);
+                        });
+                    })->first();
+        
+                    if (empty($message)) {
+                        // create new thread
+                        $message                       =               new Inbox();
+                        $message->sender_id            =               $myId;
+                        $message->receiver_id          =               $reciever;
+                        $message->save();
+                    }
+        
+                    $inboxId                            =               $message->id;
+                    #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
+                    $sendMessage                        =                new Message();
+                    $sendMessage->inbox_id              =                $inboxId;
+                    $sendMessage->sender_id             =                $myId;
+                    $sendMessage->message               =                $postTitle;
+                    $sendMessage->message_type          =                $message_type;
+                    $sendMessage->post_id               =                $postData->id;
+                    $sendMessage->save();
+                    $lastMessageId                      =               $sendMessage->id;
+                    Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
+                    #----- share Post with user -----#
+                    $isCreated                           =              SharePost::updateOrCreate(['user_id'=>$myId,'send_to'=>$reciever,'post_id'=>$postData->id],['message_id'=>$lastMessageId]);
+                    if ($isCreated->wasRecentlyCreated) {
+                        // The record was just created
+                        increment('posts',['id'=>$postData->id],'share_count',1);
+                    }
+                    #----- share Post with user -----#
+                    #send notification
+                    $receiver                           =               User::find($reciever);
+                    $sender                             =               User::find($myId);
+                    $message                            =               "New message from " . $sender->name;
+                    $data                               =               ["message"=> $message,'notification_type'=>trans('notification_message.send_message_type')];
+                    sendPushNotificationNew($sender, $receiver,$data);
+                    DB::commit();
+                }
+                return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
+            }else{
 
-                    $subQuery->where('sender_id', $myId)
-                        ->where('receiver_id', $reciever);
+                return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
 
-                })->orWhere(function ($subQuery) use ($myId, $reciever) {
-
-                    $subQuery->where('receiver_id', $myId)
-                        ->where('sender_id', $reciever);
-                });
-            })->first();
-
-            if (empty($message)) {
-                // create new thread
-                $message                       =               new Inbox();
-                $message->sender_id            =               $myId;
-                $message->receiver_id          =               $reciever;
-                $message->save();
             }
-
-            $inboxId                            =               $message->id;
-            #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
-            $sendMessage                        =                new Message();
-            $sendMessage->inbox_id              =                $inboxId;
-            $sendMessage->sender_id             =                $myId;
-            $sendMessage->message               =                $postTitle;
-            $sendMessage->message_type          =                $message_type;
-            $sendMessage->post_id               =                $postData->id;
-            $sendMessage->save();
-            $lastMessageId                      =               $sendMessage->id;
-            Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
-            #----- share Post with user -----#
-            $isCreated                           =              SharePost::updateOrCreate(['user_id'=>$myId,'send_to'=>$reciever,'post_id'=>$postData->id],['message_id'=>$lastMessageId]);
-            if ($isCreated->wasRecentlyCreated) {
-                // The record was just created
-                increment('posts',['id'=>$postData->id],'share_count',1);
-            }
-            #----- share Post with user -----#
-            #send notification
-            $receiver                           =               User::find($reciever);
-            $sender                             =               User::find($myId);
-            $message                            =               "New message from " . $sender->name;
-            $data                               =               ["message"=> $message,'notification_type'=>trans('notification_message.send_message_type')];
-            sendPushNotificationNew($sender, $receiver,$data);
-            DB::commit();
-            // SEND PUSH AND NOTIFICATION TO RECEIVER
-            $sent_message                        =               $this->getLastMessage($lastMessageId, $myId);
-            return $this->sendResponse($sent_message, "Message send.", 200);
         } catch (Exception $e) {
             DB::rollback();
-            Log::error('Error caught: "sendMessage" ' . $e->getMessage());
+            Log::error('Error caught: "sharePostWithMessage" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
         

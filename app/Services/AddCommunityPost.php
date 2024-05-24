@@ -27,6 +27,8 @@ use App\Models\ActivityLog;
 use App\Jobs\FeedPostNotification as feedPostionJob;
 use App\Traits\SummarizePost;
 use App\Traits\CalculateScore;
+use App\Jobs\CalculateScore\scoreCalculation;
+use App\Jobs\Summarize\SummarizePost as SummarizePostJob;
 /**
  * Class AddCommunityPost.
  */
@@ -63,10 +65,13 @@ class AddCommunityPost extends BaseController
                 $post->long = $request->long;
             }
             if (isset($request->link) && !empty($request->link)) {
+                
                 $post->link = $request->link;
             }
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
+
                 $post->wrote_by = $request->wrote_by;
+
             }
             $post->group_id             = $request->community_id;
             $post->media_type           = $request->media_type;
@@ -76,7 +81,9 @@ class AddCommunityPost extends BaseController
             $postId                     = $post->id;
             DB::commit();
             //Do summarize the post
-            $this->summerize($postId);
+            // $this->summerize($postId);
+            dispatch(new SummarizePostJob($postId));
+            dispatch(new scoreCalculation($postId));
             // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
@@ -489,8 +496,9 @@ class AddCommunityPost extends BaseController
                 $limit = $request['limit'];
             }
 
-            DB::enableQueryLog();
+         
             $posts = Post::whereHas('post_user', function ($query) {
+
                 $query->where('is_active', 1);
             })
                 ->with([
@@ -527,7 +535,7 @@ class AddCommunityPost extends BaseController
                 $posts->where('post_category', $request['post_category_id']);
             }
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
-            // dd(DB::getQueryLog());
+          
             // if (!empty($posts)) {
 
             //     foreach ($posts as $groupPost) {

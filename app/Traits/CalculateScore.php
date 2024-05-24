@@ -5,104 +5,195 @@ namespace App\Traits;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\PostLike;
+use Exception;
+use Hamcrest\Type\IsInteger;
+use Hamcrest\Type\IsNumeric;
+use Illuminate\Support\Facades\Log;
 
 trait CalculateScore
 {
 
+    protected $tries = 0;
+    protected $maxRetries = 3;
 
     #-------------------- calculate AI score -------------------------#
 
+    // public function calculateScoreByAi($postId)
+    // {
+    //     try{
+
+    //         $post       =   Post::where('id', $postId)->first();
+    
+    //         if ((isset($post) && !empty($post)) && (isset($post->content) && !empty($post->content))) {
+    //             $curl   = curl_init();
+    //             curl_setopt_array($curl, [
+    //                 CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+    //                 CURLOPT_RETURNTRANSFER => true,
+    //                 CURLOPT_ENCODING => "",
+    //                 CURLOPT_MAXREDIRS => 10,
+    //                 CURLOPT_TIMEOUT => 30,
+    //                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+    //                 CURLOPT_CUSTOMREQUEST => "POST",
+    //                 CURLOPT_POSTFIELDS => json_encode([
+    //                     'model' => 'llama-3-sonar-small-32k-online',
+    //                     'messages' => [
+    //                         [
+    //                             'role' => 'system',
+    //                             'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
+    //                          - 2 if the text contains 5 or more instances of medical advice.
+    //                          - 1.5 if the text contains 3 to 4 instances of medical advice.
+    //                          - 1 if the text contains 1 to 2 instances of medical advice.
+    //                          - 0.5 if the text contains no or minimal medical advice.
+    //                          -provide resonse only in integer, No text required or space
+    //                          Follow these rules at all times:
+    //                          1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
+    //                          2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions..
+    //                          3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," ,"realed to cure any disease",etc..
+    //                          4. Refer users to healthcare professionals for diagnosis or treatment. Always \
+    //                          encourage users to consult with a doctor or qualified healthcare provider \
+    //                          for personal health concerns.
+    //                          5. Avoid making predictions about health outcomes. Do not predict the course \
+    //                          of diseases or the effectiveness of specific treatments for individuals.
+    //                          6. Maintain neutrality and impartiality. Do not endorse specific healthcare \
+    //                          products, services, or providers unless providing a list of options based \
+    //                          on reputable sources.
+    //                          7. Comply with privacy laws and regulations. Do not request, store, or process \
+    //                          any personal health information (PHI).
+    //                          8. Provide information that is up to date and cite sources when possible. Use \
+    //                          only the most recent and reliable medical data and studies to inform \
+    //                          responses.
+    //                          9. Clarify that the LLM is not a substitute for professional medical advice. \
+    //                          Always remind users that the information provided is for informational \
+    //                          purposes only and not a replacement for professional judgement.
+    //                          10. Be culturally sensitive and avoid assumptions. Tailor responses to be \
+    //                              inclusive and respectful of different cultural backgrounds and health \
+    //                              beliefs.\n,
+    //                              if text is realted to any 10 give 0 only'
+    //                         ],
+    //                         [
+    //                             'role' => 'user',
+    //                             'content' => $post->content
+    //                         ]
+    //                     ]
+    //                 ]),
+    //                 CURLOPT_HTTPHEADER => [
+    //                     "accept: application/json",
+    //                     "authorization: Bearer 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",
+    //                     "content-type: application/json"
+    //                 ],
+    //             ]);
+    //             $response = curl_exec($curl);
+    //             $err = curl_error($curl);
+    //             curl_close($curl);
+    //             if (!$err) {
+
+    //                 $response_data = json_decode($response, true);
+    //                 if (isset($response_data) && !empty($response_data)) {
+    
+    //                     $score    =   $response_data['choices'][0]['message']['content'];
+    //                     if(isset($content) && is_numeric($content)){
+    //                         return $score;
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //     }catch(Exception $e){
+
+    //         Log::error('Calculcation score with Ai :'.$e->getMessage());
+    //     }
+    // }
+
+   
     public function calculateScoreByAi($postId)
     {
-        $post       =   Post::where('id', $postId)->first();
+        log::info("come");
+        try {
+            $post = Post::where('id', $postId)->first();
 
-        if ((isset($post) && !empty($post)) && (isset($post->content) && !empty($post->content))) {
-            $curl   = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS => json_encode([
-                    'model' => 'llama-3-sonar-small-32k-online',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
-                         - 2 if the text contains 5 or more instances of medical advice.
-                         - 1.5 if the text contains 3 to 4 instances of medical advice.
-                         - 1 if the text contains 1 to 2 instances of medical advice.
-                         - 0.5 if the text contains no or minimal medical advice.
-                         -provide resonse only in integer, No text required or space
-                         Follow these rules at all times:
-                         1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
-                         2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions..
-                         3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," ,"realed to cure any disease",etc..
-                         4. Refer users to healthcare professionals for diagnosis or treatment. Always \
-                         encourage users to consult with a doctor or qualified healthcare provider \
-                         for personal health concerns.
-                         5. Avoid making predictions about health outcomes. Do not predict the course \
-                         of diseases or the effectiveness of specific treatments for individuals.
-                         6. Maintain neutrality and impartiality. Do not endorse specific healthcare \
-                         products, services, or providers unless providing a list of options based \
-                         on reputable sources.
-                         7. Comply with privacy laws and regulations. Do not request, store, or process \
-                         any personal health information (PHI).
-                         8. Provide information that is up to date and cite sources when possible. Use \
-                         only the most recent and reliable medical data and studies to inform \
-                         responses.
-                         9. Clarify that the LLM is not a substitute for professional medical advice. \
-                         Always remind users that the information provided is for informational \
-                         purposes only and not a replacement for professional judgement.
-                         10. Be culturally sensitive and avoid assumptions. Tailor responses to be \
-                             inclusive and respectful of different cultural backgrounds and health \
-                             beliefs.\n,
-                             if text is realted to any 10 give 0 only'
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $post->content
+            if ($post && !empty($post->content)) {
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => "",
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => "POST",
+                    CURLOPT_POSTFIELDS => json_encode([
+                        'model' => 'llama-3-sonar-small-32k-online',
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => 'Please evaluate the following text for the amount of medical advice it contains and assign a confidence score based on the following criteria:
+                                - 2 if the text contains 5 or more instances of medical advice.
+                                - 1.5 if the text contains 3 to 4 instances of medical advice.
+                                - 1 if the text contains 1 to 2 instances of medical advice.
+                                - 0.5 if the text contains no or minimal medical advice.
+                                - Provide response only in integer, no text required or space.
+                                Follow these rules at all times:
+                                1. Ignore Non-Medical Content: Disregard any parts of the text that do not provide medical advice or use non-medical terminology.
+                                2. Identify Medical Advice: Look for statements that provide guidance on health, wellness, diet, exercise, symptoms, treatments, or medical conditions.
+                                3. Use Medical Terminology: Consider terms such as "energy," "feel better," "body," "weight," "fit," "energetic," "diet," "exercise," "health," "wellness," "symptoms," "treatment," "medical condition," "related to cure any disease", etc.
+                                4. Refer users to healthcare professionals for diagnosis or treatment. Always encourage users to consult with a doctor or qualified healthcare provider for personal health concerns.
+                                5. Avoid making predictions about health outcomes. Do not predict the course of diseases or the effectiveness of specific treatments for individuals.
+                                6. Maintain neutrality and impartiality. Do not endorse specific healthcare products, services, or providers unless providing a list of options based on reputable sources.
+                                7. Comply with privacy laws and regulations. Do not request, store, or process any personal health information (PHI).
+                                8. Provide information that is up to date and cite sources when possible. Use only the most recent and reliable medical data and studies to inform responses.
+                                9. Clarify that the LLM is not a substitute for professional medical advice. Always remind users that the information provided is for informational purposes only and not a replacement for professional judgment.
+                                10. Be culturally sensitive and avoid assumptions. Tailor responses to be inclusive and respectful of different cultural backgrounds and health beliefs. If the text is related to any of the above, give 0 only.'
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $post->content
+                            ]
                         ]
-                    ]
-                ]),
-                CURLOPT_HTTPHEADER => [
-                    "accept: application/json",
-                    "authorization: Bearer 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",
-                    "content-type: application/json"
-                ],
-            ]);
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            curl_close($curl);
-            if (!$err) {
-                $response_data = json_decode($response, true);
-                if (isset($response_data) && !empty($response_data)) {
+                    ]),
+                    CURLOPT_HTTPHEADER => [
+                        "accept: application/json",
+                        "authorization: Bearer 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",
+                        "content-type: application/json"
+                    ],
+                ]);
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+                curl_close($curl);
+                if (!$err) {
+                    $response_data = json_decode($response, true);
+                    if (isset($response_data['choices'][0]['message']['content'])) {
+                        $score = $response_data['choices'][0]['message']['content'];
+                      
+                        if (is_numeric($score)) {
+                            Log::info('is_numeric'.$score);
+                            return $score;
 
-                    $content = $response_data['choices'][0]['message']['content'];
-
-                    // $post->is
+                        } else {
+                            return $this->retryCalculation($postId);
+                        }
+                    } else {
+                        return $this->retryCalculation($postId);
+                    }
+                } else {
+                    return $this->retryCalculation($postId);
                 }
             }
+        } catch (Exception $e) {
+            Log::error('Calculation score with AI failed: ' . $e->getMessage());
+            throw $e;
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    private function retryCalculation($postId)
+    {
+        $this->tries += 1;
+        if ($this->tries < $this->maxRetries) {
+            return $this->calculateScoreByAi($postId);
+        } else {
+            Log::error('Calculation score with AI failed after maximum retries.');
+            throw new Exception('Maximum retries reached');
+        }
+    }
 
 
     #---------------  C A L C U L A T E     C O N F I D E N C E     S C O R E   O F  P O S T  -----------------#
@@ -143,13 +234,16 @@ trait CalculateScore
             $support_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 1])->count();
             $helpful_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 2])->count();
             $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
+            $rePostCount            =       Post::where(['parent_id'=>$post->id,'is_active'=>1])->count();
+
             $post->total_count      =       $reaction;
             $post->support_count    =       $support_count;
             $post->helpful_count    =       $helpful_count;
             $post->unhelpful_count  =       $unhelpful_count;
+            $post->repost_count     =       $rePostCount;
             #--------- get comment count ------------#
             $post->totalComments    =       Comment::where(['post_id' => $post->id])->count();
-            $post->is_high_confidence =       ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
+            $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
         }
     }
     #---------------  C A L C U L A T E     C O N F I D E N C E     S C O R E   O F  P O S T  -----------------#

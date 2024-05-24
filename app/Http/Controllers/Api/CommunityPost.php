@@ -289,6 +289,7 @@ class CommunityPost extends BaseController
     public function resharePost(Request $request)
     {
         DB::beginTransaction();
+
         try {
 
             $validation = Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id']);
@@ -756,6 +757,7 @@ class CommunityPost extends BaseController
         if ($validate->fails()) {
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+
         } else {
 
             $postData = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
@@ -765,11 +767,12 @@ class CommunityPost extends BaseController
                 return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
             }
             $myId = Auth::id();
-            $reciever = $request->receiver_id;
-            if ($myId == $reciever) {
 
-                return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
-            }
+            $reciever = $request->receiver_id;
+            // if ($myId == $reciever) {
+
+            //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
+            // }
             return $this->sharePostInChat($request, $myId, $reciever);
         }
     }

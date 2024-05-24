@@ -116,17 +116,17 @@ return [
     "comment_deleted"=>"Comment Deleted Successfully",
     "comment_not_found"=>"Comment not found",
     "document_already_verified"=>"Your documentation has already been validated, thus it cannot be changed",
-    
-"account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
-"journal_not_exist"=>"Journal not exist",
-"insight"=>"Insights",
-"trail_already_used"=>"You have already used trail",
-"this_payment_account_already_used"=>"This account is already used by other user",
+    "shared_successfully"=>"Shared successfully",
+    "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
+    "journal_not_exist"=>"Journal not exist",
+    "insight"=>"Insights",
+    "trail_already_used"=>"You have already used trail",
+    "this_payment_account_already_used"=>"This account is already used by other user",
 
-"plan_activates_successfully"=>"Plan activated successfully",
-"Plan_updated_successfully"=>"Plan updated successfully",
-"send_support_request"=>"Support request sent successfully",
-"supporting_you"=>"Supported successfully",
+    "plan_activates_successfully"=>"Plan activated successfully",
+    "Plan_updated_successfully"=>"Plan updated successfully",
+    "send_support_request"=>"Support request sent successfully",
+    "supporting_you"=>"Supported successfully",
 
     
     'updatePrefences'=>"Prefences updated successfully",
