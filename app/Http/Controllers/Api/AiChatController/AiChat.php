@@ -101,7 +101,21 @@ class AiChat extends BaseController
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
+                $messages                         =         json_decode($request->messages,true);
+
+             
+                $validatedData = $request->validate($messages,[
+                    '*.id' => 'required|string',
+                    '*.message' => 'required',
+                    '*.participant' => 'required|string',
+                ]);
+                if ($validator->fails()) {
+                    // Handle validation failure
+                    return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+    
+                } 
                 $myId                               =   Auth::id();
                 $ai                                 =   User::select('id')->where(['name' => "Ai"])->first();
                 if (isset($ai) && !empty($ai)) {
