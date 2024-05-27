@@ -27,7 +27,7 @@ class AdminUserController extends Controller
         
         if($request->ajax()){
             
-            $data=User::orderBy('id', 'desc')->where('role', '!=' , 3);
+            $data=User::orderBy('id', 'desc')->where('role',1);
             return DataTables::of($data)
             ->addIndexColumn()
             ->addColumn('gender1', function($row){
@@ -41,9 +41,12 @@ class AdminUserController extends Controller
             }
                 return $gender;
             })
+            
             ->addColumn('registration_date', function($row){
-                $date=$row->created_at->format('d-m-Y');
-                return $date;
+                if(isset($row->created_at)){
+                    $date=$row->created_at->format('d-m-Y');
+                    return $date;
+                }
             })
             ->addColumn('logo', function($row){
                 if(isset($row->profile) && !empty($row->profile)){

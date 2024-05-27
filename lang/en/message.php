@@ -66,7 +66,7 @@ return [
     "supportings"=>"Supportings",
     "supporters"=>"Supporters",
     "supporters_supportings"=>"Supporters/Supporting",
-
+"invalid_message"=>"Invalid message",
     "not_community_member"=>"To reshare the post, please join the communit.",
     "user_profile"=>"User profile",
     "invalid_community"=>"Invalid community",
@@ -120,13 +120,16 @@ return [
     "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
     "journal_not_exist"=>"Journal not exist",
     "insight"=>"Insights",
-    "trail_already_used"=>"You have already used trail",
+    "trail_already_used"=>"You have already used trial.",
     "this_payment_account_already_used"=>"This account is already used by other user",
-
     "plan_activates_successfully"=>"Plan activated successfully",
     "Plan_updated_successfully"=>"Plan updated successfully",
     "send_support_request"=>"Support request sent successfully",
     "supporting_you"=>"Supported successfully",
+    "pinned_message"=>"Message pinned successfully",
+    "unpinned_message"=>"Message unpinned successfully",
+"all_pinned_message"=>"Pinned message",
+"email_changed_successfully"=>"Email changed successfully",
 
     
     'updatePrefences'=>"Prefences updated successfully",

@@ -51,8 +51,8 @@ class LikeController extends BaseController
         try {
            
             $validation = Validator::make($request->all(), [
-                'like_type' => 'required|integer|between:1,2',
-                'action' => 'required|integer|between:0,1',
+                'like_type' => 'required|integer|between:1,4',
+                'action' => 'required|integer|between:0,1', // 0: remove, 1 add 
                 'post_id' => 'required|integer|exists:posts,id',
                 'reaction' => 'required|integer|between:1,3',
                 'comment_id' => $request->input('like_type') == 2 ? 'required|integer|exists:comments,id' : 'nullable|integer|exists:comments,id',
@@ -88,10 +88,16 @@ class LikeController extends BaseController
     
                             return $this->likeService->postLike($request,$authId);
     
-                        }else{                      #------------ C O M M E N T         L I K E     ---------------#
-    
+                        }elseif ($likeType==2) {
+                         
+                            #------------ C O M M E N T         L I K E     ---------------#
                             return $this->likeService->commentLike($request,$authId);
     
+                        }elseif ($likeType==3 || $likeType==4 ) {
+
+                           #-------------------- T H R E A D    S U M M A R Y    L I K E --------------------#
+
+                           return $this->likeService->likeSummary($request,$authId);
                         }
                     }else{
 

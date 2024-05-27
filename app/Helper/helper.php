@@ -1,32 +1,35 @@
 <?php
 
-use App\Models\Notification;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Carbon\Carbon;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\DB;
+use App\Models\Post;
+use App\Models\Group;
+use BaconQrCode\Writer;
 use App\Models\UserRole;
 use Illuminate\Support\Str;
-use BaconQrCode\Renderer\Image\Png;
-use BaconQrCode\Writer;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use App\Models\Notification;
+use Illuminate\Http\Response;
+use PHPUnit\Framework\TestCase;
+use Illuminate\Support\Facades\DB;
 use BaconQrCode\Renderer\Color\Rgb;
+use BaconQrCode\Renderer\Image\Png;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Crypt;
+use Spatie\Snapshots\MatchesSnapshots;
 use BaconQrCode\Renderer\Eye\SquareEye;
+use BaconQrCode\Renderer\ImageRenderer;
+use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\Module\SquareModule;
 use BaconQrCode\Renderer\RendererStyle\EyeFill;
-use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\RendererStyle\Gradient;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\GradientType;
-use PHPUnit\Framework\TestCase;
-use Spatie\Snapshots\MatchesSnapshots;
-use App\Models\Group;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Renderer\RendererStyle\Gradient\HorizontalGradient;
-use App\Models\Post;
+
+
 function getErrorAsStringsasa($messagearr)
 {
     $message = '';
@@ -187,7 +190,7 @@ if (!function_exists('upload_file')) {
             // Check if the directory exists, if not, create it
             if (!Storage::disk('public')->exists($directory)) {
 
-                Storage::disk('public')->makeDirectory($directory, 0755, true); // Recursive create directory
+                Storage::disk('public')->makeDirectory($directory);
             }
             // return Storage::disk('public')->put($directory, $file);
             $filePath = Storage::disk('public')->putFile($directory, $file);
@@ -197,10 +200,12 @@ if (!function_exists('upload_file')) {
             return $filePath;
         } catch (Exception $e) {
 
-            dd($e);
+            dd($e->getMessage());
         }
     }
 }
+
+
 
 if (!function_exists('qr_code_generator')) {
     // function qr_code_generator($qr_code)

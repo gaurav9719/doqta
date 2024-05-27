@@ -23,6 +23,7 @@ use App\Models\PartnerMatch;
 use App\Models\UserRole;
 use App\Models\UserPortfolio;
 use App\Models\UserPreference;
+use NunoMaduro\Collision\Adapters\Phpunit\State;
 
 class DaterPicksController extends BaseController
 {
@@ -278,7 +279,7 @@ class DaterPicksController extends BaseController
                 });
     
                 $myPicker->member->user_states->each(function ($userStats) {
-                    $stat = Stat::find($userStats->id);
+                    $stat = State::find($userStats->id);
                     $userStats->question = $stat ? $stat->question : null;
                     $userStats->min_value = $stat ? $stat->min_value : 0;
                     $userStats->max_value = $stat ? $stat->max_value : 0;

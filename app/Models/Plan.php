@@ -12,4 +12,9 @@ class Plan extends Model
     protected $fillable = ['id',
         'type', 'name', 'price', 'currency', 'currency_symbol', 'duration', 'is_active','created_at','updated_at'
     ];
+
+    function features(){
+        
+        return $this->hasMany(PlanFeature::class, 'plan_id', 'id');
+    }
 }

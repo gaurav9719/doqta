@@ -38,7 +38,7 @@ class AdminDashboardController extends Controller
         
         if($request->ajax()){
             
-            $data=User::where('is_active',1)->where('role', '!=' , 3)
+            $data=User::where('is_active',1)->where('role', 1)
             ->orderBy('id', 'desc')->limit(20);
             return DataTables::of($data)
             ->addIndexColumn()
@@ -53,9 +53,13 @@ class AdminDashboardController extends Controller
             }
                 return $gender;
             })
+           
+
             ->addColumn('registration_date', function($row){
-                $date=$row->created_at->format('d-m-Y');
-                return $date;
+                if(isset($row->created_at)){
+                    $date=$row->created_at->format('d-m-Y');
+                    return $date;
+                }
             })
             ->addColumn('logo', function($row){
                 if(isset($row->profile) && !empty($row->profile)){

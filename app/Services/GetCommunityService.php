@@ -128,7 +128,7 @@ class GetCommunityService extends BaseController
                         $homeScreenPost->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->parent_post->id)->count();
                         $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
                         $homeScreenPost->parent_post->is_reposted     =  ($isRepost)?1:0;
-                        $homeScreenPost->postedAt                     =  time_elapsed_string($homeScreenPost->parent_post->created_at);
+                        $homeScreenPost->parent_post->postedAt                     =  time_elapsed_string($homeScreenPost->parent_post->created_at);
                     }
                     $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
                 });

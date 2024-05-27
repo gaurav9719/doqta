@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\User;
 use App\Models\Domain;
 use App\Models\Employee;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
+use App\Models\CorporativePlanUser;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -96,7 +97,8 @@ class AdminPartnersDomainController extends Controller
         elseif(isset($request->type) && $request->type == 2){
             $domain=Domain::findOrFail($id);
             if(isset($domain)){
-                $employees= Employee::where('domain_id', $domain->id)->where('is_verified', 1)->get();
+
+                $employees= CorporativePlanUser::where('domain_id', $domain->id)->where('is_verified', 1)->get();
                 if(count($employees) > 0){
                     for($i=0; $i < count($employees); $i++){
                         $name = User::findOrFail($employees[$i]['user_id'])->name;
@@ -179,7 +181,7 @@ class AdminPartnersDomainController extends Controller
             }
         }
         elseif(isset($request->type) && $request->type == 2){
-             $employee= Employee::findOrFail($id);
+             $employee= CorporativePlanUser::findOrFail($id);
              if(isset($employee)){
                 if($employee->is_active == 1){
                     $employee->is_active = 0;

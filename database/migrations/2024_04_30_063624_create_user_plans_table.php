@@ -22,6 +22,7 @@ return new class extends Migration
             $table->tinyInteger('purchased_device')->default(1)->comment('1:ios,2:andriod');
             $table->dateTime('cancelled_period_end')->nullable();
             $table->dateTime('cancelled_period_at_end')->nullable();
+            $table->dateTime('cancelled_at')->nullable();
             $table->tinyInteger('is_active')->default(0)->comment('0:expire|inactive,1:active,2:cancelled')->index();
             $table->integer('payment_status')->comment('0=not, 1=done')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

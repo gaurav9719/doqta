@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreign('inbox_id')->references('id')->on('ai_threads')->onDelete('cascade')->onUpdate('cascade');
             $table->unsignedBigInteger('sender_id')->nullable();
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->string('participant')->nullable();
             $table->text('message')->nullable();
             $table->text('media')->nullable();
             $table->integer('message_type')->default(1)->comment('1:text,2image');
@@ -34,4 +35,5 @@ return new class extends Migration
     {
         Schema::dropIfExists('ai_messages');
     }
+    
 };

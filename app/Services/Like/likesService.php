@@ -21,7 +21,10 @@ use App\Models\Comment;
 use App\Traits\IsCommunityJoined;
 use App\Traits\postCommentLikeCount;
 use App\Models\Group;
+use App\Models\SummaryLike;
 use App\Services\NotificationService;
+use Gemini\Foundation\Request;
+
 /**
  * Class likesService.
  */
@@ -209,6 +212,70 @@ class likesService extends BaseController
         }
     }
     #------------ C O M M E N T       L I K E      --------------#
+
+
+
+    #---------------- L I K E       P O S T     S U M M A R Y   -------------------#
+    public function likeSummary($request, $authId)
+    {
+        DB::beginTransaction();
+        try {
+
+            $likeType = $request->like_type;
+            $action = $request->action;
+            $postId = $request->post_id;
+            $userId = $authId;
+            $reaction = $request->reaction;
+            $commentId = $request->comment_id;
+    
+            // Determine type based on like_type
+            $type = ($likeType == 3) ? 1 : 2;
+    
+            // Retrieve existing like
+            $post = SummaryLike::where(['post_id' => $postId, 'user_id' => $userId, 'type' => $type])->first();
+    
+            if ($action == 0) { // Remove like
+                if (empty($post)) {
+                    return $this->sendError(trans('message.something_went_wrong'), [], 400);
+                } else {
+                    $post->delete();
+                    return $this->sendResponse([], trans('message.updated_successfully'), 200);
+                }
+            } else { // Add or update like
+                if (empty($post)) { // Insert new like
+                    $data = [
+                        'post_id' => $postId,
+                        'user_id' => $userId,
+                        'reaction' => $reaction,
+                        'type' => $type
+                    ];
+    
+                    if ($likeType != 3) {
+                        $data['comment_id'] = $commentId;
+                    }
+    
+                    $like = SummaryLike::create($data);
+                    $likeId = $like->id;
+                } else { // Update existing like
+                    $post->reaction = $reaction;
+                    $post->save();
+                    $likeId = $post->id;
+                }
+    
+                $threadSummary = SummaryLike::find($likeId);
+                return $this->sendResponse($threadSummary, trans('message.updated_successfully'), 200);
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "summary like" ' . $e->getLine());
+            return $this->sendError($e->getMessage(), [], 400);
+        } finally {
+            DB::commit();
+        }
+    }
+    
+    #---------------- L I K E       P O S T     S U M M A R Y   -------------------#
+
 
 
 

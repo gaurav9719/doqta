@@ -21,14 +21,14 @@ return new class extends Migration
             $table->string('currency_symbol')->nullable();
             $table->string('payment_method')->nullable();
             $table->boolean('is_trial_plan')->default(0);
-            $table->boolean('purchased_device')->default(0);
-            $table->tinyInteger('payment_by')->nullable()->comment('1=stripe, 2=paypal, 3=google_pay');
+            $table->boolean('purchased_device')->default(0)->comment('1=IOS, 2=Android');
+            $table->tinyInteger('payment_by')->nullable()->comment('1=app_in_purchage, 2=stripe, 3=paypal, 4=google_pay');
             $table->tinyInteger('status')->nullable()->comment('1=pending, 2=completed, 3=canceled, 4=failed, 5=refunded');
+            $table->longText('signature')->nullable();
             $table->string('failed_reason')->nullable();
             $table->foreign('user_plan_id')->references('id')->on('user_plans')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->boolean('is_active')->default(0)->index();
-
             $table->timestamps();
         });
     }

@@ -188,7 +188,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
    
     
-    Route::resource('payment', PaymentController::class);
+    Route::resource('planSubscription', PaymentController::class);
 
     
 });
@@ -223,6 +223,9 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     // Route::patch('communityPost/hideSavePost', [CommunityPost::class,'hideSavePost']);
     Route::get('aiChat/chatLogs', [AiChat::class,'chatLogs']);
     Route::get('aiChat/chatLogs2', [AiChat::class,'chatLogs2']);
+    Route::post('aiChat/pinUnpinMessage', [AiChat::class,'pinUnpinMessage']);
+    Route::get('aiChat/pinnedMessage', [AiChat::class,'pinnedMessage']);
+    Route::post('aiChat/storeMessage', [AiChat::class,'storeMessage']);
     Route::resource('aiChat', AiChat::class);
 
 });
@@ -242,8 +245,7 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     Route::get('getUserPost','getUserPost');
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
-
-
+    Route::post('requestEmailChange','requestEmailChange');
 });
 
 

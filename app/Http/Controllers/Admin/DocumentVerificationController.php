@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Models\UserDocuments;
+use App\Models\MedicalCredential;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\UserMedicalCredentials;
-use Illuminate\Support\Facades\Storage;
-use App\Models\Notification;
 use App\Services\NotificationService;
+use App\Models\UserMedicalCredentials;
+use App\Models\UserParticipantCategory;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentVerificationController extends Controller
 {
@@ -142,6 +144,26 @@ class DocumentVerificationController extends Controller
             $user= User::find($user_id);
             $user-> is_document_verified = 1;
             $user->save();
+
+            #update User tag and verify 
+            if(isset($docVerified2[0]['medicial_degree_type'])){
+
+                $MedicalCredential=MedicalCredential::find($docVerified2[0]['medicial_degree_type']);
+                if(isset($MedicalCredential)){
+                    $pattern = "/\((.*?)\)/";
+                    preg_match($pattern, $MedicalCredential->name, $matches);
+                    if (!empty($matches)) {
+                        $tag = $matches[1];
+                        if(isset($tag)){
+                            UserParticipantCategory::where('user_id', $user_id)->update([
+                                'is_verify' => 1,
+                                'tag_id'    => $MedicalCredential->id,
+                                'tag'       => $tag
+                            ]);
+                        }
+                    }
+                }
+            }
 
             #send notification
             $check=Notification::where('receiver_id', $user->id)->where('notification_type', 2)->first();
