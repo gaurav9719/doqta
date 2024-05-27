@@ -157,6 +157,7 @@ class CommunityController extends BaseController
                 $groupMember->group_id = $addCommunity->id;
                 $groupMember->user_id = $authId;
                 $groupMember->role = 'admin';
+                
                 if ($groupMember->save()) {
 
                     #-------  A C T I V I T Y -----------#

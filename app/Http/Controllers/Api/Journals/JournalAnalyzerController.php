@@ -72,7 +72,10 @@ class JournalAnalyzerController extends BaseController
 
             #symptoms
             $symptoms= $entry->symptom->pluck('journalSymtom.symptom')->implode(", ");
-            $details = $details.". Symptoms: $felling_types";
+
+            $details = $details.". Symptoms: $symptoms";
+
+            // $details = $details.". Symptoms: $felling_types";
 
             #pain
             $painScale = [
@@ -183,7 +186,7 @@ class JournalAnalyzerController extends BaseController
                 $finalResponse = $this->convertIntoJson($result);
                 $finalResponse = json_decode($finalResponse, true);
                 
-                if($type == 1){
+                if($type == 1 || $type=3){
                     if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
                         // return ($finalResponse['insights']);
                         return [

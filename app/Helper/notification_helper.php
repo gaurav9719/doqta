@@ -11,8 +11,8 @@ use App\Models\UserDevice;
 function IosPush($devicetoken,$message,$type,$data,$mood_icon = '')
 {
     $options = [
-        'app_bundle_id' => 'com.NIghtclubpool.FoodUs', // The bundle ID for app obtained from Apple developer account
-        'certificate_path' =>storage_path('app/notification_pem/FoodPush.pem'), // Path to private key
+        'app_bundle_id' => 'com.Jubilant.Innerworkout', // The bundle ID for app obtained from Apple developer account
+        'certificate_path' =>storage_path('app/notification_pem/IWPush.pem'), // Path to private key
         'certificate_secret' => null // Private key secret
     ];		
     // storage_path('app/notification_pem/bossapp.pem');

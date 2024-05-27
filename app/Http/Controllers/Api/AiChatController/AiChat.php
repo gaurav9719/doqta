@@ -8,14 +8,15 @@ use App\Models\User;
 use App\Models\AiThread;
 use App\Models\AiMessage;
 use Illuminate\Http\Request;
+use App\Models\JournalReport;
+use App\Models\PinnedMessage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
-use App\Traits\postCommentLikeCount;
-use App\Models\PinnedMessage;
 
 class AiChat extends BaseController
 {
@@ -155,7 +156,7 @@ class AiChat extends BaseController
                         foreach ($messages as $message) {
 
                             $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
-                            AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'], 'inbox_id' => $threadId]);
+                            AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'], 'inbox_id' => $threadId,]);
                         }
                     }
                 }
@@ -466,6 +467,172 @@ class AiChat extends BaseController
     }
     
     #-------------  S T O R E       M E S S A G E --------------------#
+
+    #------------  C H A T      I N S I G H T      -------------------#
+
+    // public function insights(Request $request){
+
+    //     $validate= Validator::make($request->all(), [
+           
+    //         'start_date' => 'required|date_format:Y-m-d',
+    //         'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
+    //     ]);
+
+    //     if($validate->fails()){
+
+    //         return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+    //     }
+       
+    //     $myId                        =       Auth::id();
+    //     $inbox                          =       AiThread::where(function ($query) use ($myId) {
+    //         $query->where('sender_id', $myId)
+    //             ->orWhere('receiver_id', $myId);
+    //     })->first();
+
+    //     if (isset($inbox) && !empty($inbox)) {
+
+    //         $inboxId                =             $inbox->id;
+    //         $messages               =             AiMessage::with(['sender' => function ($query) {
+
+    //             $query->select('id', 'name', 'user_name', 'profile');
+    //         }])->where(function ($query) use ($myId) {
+
+    //             $query->where('is_user1_trash', '!=', $myId)
+    //                 ->orWhere('is_user2_trash', '!=', $myId);
+    //         })->where('inbox_id', $inboxId)->whereBetween(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), [$request->start_date, $request->end_date])->get();
+
+    //         $chatData = [];
+
+    //         foreach ($messages as $message) {
+
+    //             $chatData[] = [
+    //                 'sender' => $message->participant,
+    //                 'media' => (isset($message->media) && !empty($message->media))?$this->addBaseInImage($message->media):null,
+    //                 'message' => $message->message_content,
+    //                 'timestamp' => $message->created_at->toDateTimeString(),
+    //             ];
+    //         }
+    //             array_push($chatData, 
+    //                     array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
+    //                     array("text" => "provide result in json format"),
+    //                     array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+    //                     array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the journal entries'"),
+    //                     array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+    //                 );
+    //             $insight = $this->generateReportAI($chatData, 3);
+    //              #insert in database if success
+    //             if(isset($insight['status']) && $insight['status'] == 200){
+
+    //                 $newReport              = new JournalReport;
+    //                 // $newReport->journal_id  = $insight->id;
+    //                 $newReport->start_date  = $request->start_date;
+    //                 $newReport->end_date    = $request->end_date;
+    //                 $newReport->report      = json_encode($report['data']);
+    //                 $newReport->type        = 3;
+    //                 $newReport->save();
+    //                 return response()->json($insight, 200);
+    //             }
+    //             else{
+
+    //                 return response()->json($insight, 400);
+    //             }
+    
+            
+    
+    //         }
+
+    //       //  $instructions = "Hey Gemini, when responding to user queries, let's keep our language clear and relatable, avoiding complex terms or medical jargon. Ensure our responses resonate with the experiences and perspectives of the Black community. Let's maintain a focus on health-related issues and provide empathetic support. Encourage others to share insights, advice, and personal anecdotes to support the original poster.";
+
+    //         // $instructionsToGemini = <<<INSTRUCTIONS
+    //         // Hey Gemini, when assisting users, ensure responses align with the provided instructions. 
+    //         // Always prioritize accuracy, privacy, and cultural sensitivity. Refer users to healthcare 
+    //         // professionals for personalized advice and avoid speculative or unverified information. 
+    //         // Let's create a supportive and informative environment for users seeking health-related guidance.
+    //         // INSTRUCTIONS;
+    //     }
+    
+    // }
+
+    function convertIntoJson($text)
+    {
+        // $text="```json\n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n```";
+        $text = str_replace('```JSON', '', $text);
+        $text = str_replace('```json', '', $text);
+        $text = str_replace('```', '', $text);
+
+        return $text;
+    }
+
+
+    public function insights(Request $request){
+
+        $validate = Validator::make($request->all(), [
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
+        ]);
+    
+        if($validate->fails()){
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+        }
+    
+        $myId = Auth::id();
+        $inbox = AiThread::where(function ($query) use ($myId) {
+            $query->where('sender_id', $myId)
+                ->orWhere('receiver_id', $myId);
+        })->first();
+    
+        if (isset($inbox) && !empty($inbox)) {
+            $inboxId = $inbox->id;
+            $messages = AiMessage::with(['sender' => function ($query) {
+                $query->select('id', 'name', 'user_name', 'profile');
+            }])->where(function ($query) use ($myId) {
+                $query->where('is_user1_trash', '!=', $myId)
+                    ->orWhere('is_user2_trash', '!=', $myId);
+            })->where('inbox_id', $inboxId)->whereBetween(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), [$request->start_date, $request->end_date])->get();
+    
+            $chatData = [];
+    
+            foreach ($messages as $message) {
+                $chatData[] = [
+                    'sender' => $message->participant,
+                    'media' => (isset($message->media) && !empty($message->media)) ? $this->addBaseInImage($message->media) : null,
+                    'message' => $message->message_content,
+                    'timestamp' => $message->created_at->toDateTimeString(),
+                ];
+            }
+            array_push($chatData, [
+                ["text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"],
+                ["text" => "provide result in json format"],
+                ["text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"],
+                ["text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the journal entries'"],
+                ["text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"]
+            ]);
+    
+            $insight = $this->generateReportAI($chatData, 3);
+            
+            if(isset($insight['status']) && $insight['status'] == 200){
+                $newReport = new JournalReport;
+                $newReport->start_date = $request->start_date;
+                $newReport->end_date = $request->end_date;
+                $newReport->report = json_encode($insight['data']);
+                $newReport->type = 3;
+                $newReport->save();
+                return response()->json($insight, 200);
+            }
+            else{
+                return response()->json($insight, 400);
+            }
+        }
+    }
+    
+
+
+
+
+
+
+
+
 
 
 }
