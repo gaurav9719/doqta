@@ -793,10 +793,12 @@ class DicoverService extends BaseController
         try {
 
             $limit              =   10;
+            
             if (($request->limit) && !empty($request->limit)) {
 
                 $limit          =   $request->limit;
             }
+
             $data               =    [];
             $discoverCommunity  =  Group::whereHas('groupMember', function ($query) use ($authId) {
 

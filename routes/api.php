@@ -226,6 +226,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('aiChat/pinUnpinMessage', [AiChat::class,'pinUnpinMessage']);
     Route::get('aiChat/pinnedMessage', [AiChat::class,'pinnedMessage']);
     Route::post('aiChat/storeMessage', [AiChat::class,'storeMessage']);
+    Route::get('aiChat/insights', [AiChat::class,'insights']);
     Route::resource('aiChat', AiChat::class);
 
 });

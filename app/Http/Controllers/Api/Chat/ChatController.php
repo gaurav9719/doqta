@@ -70,7 +70,7 @@ class ChatController extends BaseController
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
 
                 })
-                ->select('inboxes.*', 'U.name', 'U.profile', 'U.id as other_user_id')
+                ->select('inboxes.*', 'U.name', 'U.profile','U.user_name', 'U.id as other_user_id')
                 ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
                 ->simplePaginate($limit); // Paginate the results
 
@@ -363,7 +363,7 @@ class ChatController extends BaseController
 
         $result             =             Message::with(['sender' => function ($query) {
 
-            $query->select('id', 'name', 'profile');
+            $query->select('id', 'name', 'user_name','profile');
         }, 'reply_to.sender' => function ($query) {
 
             $query->select('id', 'name', 'profile');

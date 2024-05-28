@@ -274,6 +274,112 @@ trait CommonTrait
     }
 
 
+    Function generateReportAI($data, $type){
+
+        // Define your API key
+        $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
+
+        // Define the URL
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+         
+        // return $data;
+
+        $data = array(
+            "contents" => array(
+                array(
+                    "role" => "user",
+                    "parts" => $data
+                )
+            )
+        );
+
+        // Initialize cURL session
+        $curl = curl_init($url);
+
+        // Set cURL options
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+
+        // Execute cURL request
+        $response = curl_exec($curl);
+
+        // Check for errors
+        if ($response === false) {
+            $error = curl_error($curl);
+            echo "cURL Error: " . $error;
+        } else {
+
+            $response = json_decode($response, true);
+
+            // return $response;
+            try {
+               
+                $result = $response['candidates'][0]['content']['parts'][0]['text'];
+
+                $finalResponse = $this->convertIntoJson($result);
+                $finalResponse = json_decode($finalResponse, true);
+                
+                if($type == 1 || $type=3){
+                    if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
+                        // return ($finalResponse['insights']);
+                        return [
+                            'status' => 200,
+                            "message" => "Insights & Suggestions generated successfully",
+                            'data' => $finalResponse
+                        ];
+    
+                    } else {
+                        return [
+                            'status' => 400,
+                            "message" => "Insights & Suggestions generation failed",
+                            'data' => $finalResponse
+                        ];
+                    }
+                }
+                elseif($type == 2){
+                    if (isset($finalResponse['symptoms']) && isset($finalResponse['mood']) && isset($finalResponse['pain']) && isset($finalResponse['questions_to_ask_your_doctor']) && count($finalResponse['symptoms']) > 0 && count($finalResponse['mood']) > 0 && count($finalResponse['pain']) > 0  && count($finalResponse['questions_to_ask_your_doctor']) > 0) {
+                        return [
+                            'status' => 200,
+                            "message" => "Report generated successfully",
+                            'data' => $finalResponse
+                        ];
+    
+                    } else {
+                        return [
+                            'status' => 400,
+                            "message" => "Report generation failed",
+                            'data' => $finalResponse
+                        ];
+                    }
+                }
+
+            } catch (Exception $e) {
+                Log::error('Error while creating journal report: ' . $e->getMessage());
+                return [
+                    'status' => 400,
+                    "message" => "Exception Error",
+                    'data' => $e->getLine()
+                ];
+            }
+        }
+
+        // Close cURL session
+        curl_close($curl);
+    }
+
+
+    function convertIntoJson($text)
+    {
+        // $text="```json\n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n```";
+        $text = str_replace('```JSON', '', $text);
+        $text = str_replace('```json', '', $text);
+        $text = str_replace('```', '', $text);
+
+        return $text;
+    }
+
 
 
 
