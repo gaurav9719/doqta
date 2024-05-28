@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Recruiter\GhostRequestController;
 use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
+use App\Http\Controllers\Api\Search\SearchController;;
 
 /*
 |--------------------------------------------------------------------------
@@ -230,6 +231,14 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::resource('aiChat', AiChat::class);
 
 });
+
+
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
+   
+    Route::resource('search', SearchController::class);
+
+});
+
 
 
 

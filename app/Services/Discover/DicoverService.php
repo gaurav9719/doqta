@@ -226,17 +226,24 @@ class DicoverService extends BaseController
 
     #-------------*******  T O P       C O M M U N I T Y       T H I S         W E E K **************-------------#
 
-    public function topCommunityThisWeek($request,$authId,$limit,$type =""){
+    public function topCommunityThisWeek($request,$authId,$limit,$type ="",$isWeekly=""){
         try {
             
 
             $startOfWeek                            =       Carbon::now()->startOfWeek();
             $endOfWeek                              =       Carbon::now()->endOfWeek();
-            $topCommunities                         =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
+            if(isset($isWeekly) && !empty($isWeekly)){
 
-                $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+                $topCommunities                         =       Group::withCount(['groupMember']);
 
-            }]);
+            }else{
+
+                $topCommunities                         =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
+    
+                    $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+    
+                }]);
+            }
 
             if (isset($request->search) && !empty($request->search)) {
 
@@ -255,6 +262,7 @@ class DicoverService extends BaseController
                     ->where(function ($query) use ($authId) {
                         // Check if the authenticated user has blocked someone
                         $query->where('user_id', $authId)
+
                             ->whereColumn('blocked_users.blocked_user_id', 'groups.created_by');
                     })
                     ->orWhere(function ($query) use ($authId) {
@@ -266,6 +274,7 @@ class DicoverService extends BaseController
                 $query->whereBetween('created_at', [$startOfWeek, $endOfWeek])
                     ->where('is_active', 1); // Assuming 'is_active' field exists in group members
             })->having('group_member_count', '>', 0)
+
             ->orderByDesc('post_count');
 
             if(!empty($type)){  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
@@ -788,7 +797,7 @@ class DicoverService extends BaseController
 
 
 
-    public function getDiscoverCommunity($request, $authId)
+    public function getDiscoverCommunityOLD($request, $authId)
     {
         try {
 
@@ -800,6 +809,7 @@ class DicoverService extends BaseController
             }
 
             $data               =    [];
+
             $discoverCommunity  =  Group::whereHas('groupMember', function ($query) use ($authId) {
 
                 $query->where('user_id', '<>', $authId);
@@ -812,17 +822,22 @@ class DicoverService extends BaseController
 
             }
             $discoveredCommunity       =   $discoverCommunity->whereNotExists(function ($subquery) use ($authId) {    
+
                 $subquery->select(DB::raw(1))
+
                     ->from('group_members')
+
                     ->whereRaw("group_id = groups.id AND user_id=".$authId);
+
             })->simplePaginate($limit);
 
             $discoveredCommunity->each(function ($query) use ($authId) {
 
-                if (isset($query->member_count) && !empty($query->member_count)) {
+                // if (isset($query->member_count) && !empty($query->member_count)) {
 
-                    $query->member_count    =   shortNumber($query->member_count);
-                }
+                //     // $query->member_count    =   shortNumber($query->member_count);
+                //     $query->member_count        =  $query->member_count;
+                // }
 
                 if (isset($query->cover_photo) && !empty($query->cover_photo)) {
 
@@ -833,6 +848,77 @@ class DicoverService extends BaseController
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
 
             return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200);
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "discover-getDiscoverCommunity"' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+
+    public function getDiscoverCommunity($request, $authId,$type="")
+    {
+        try {
+            
+            $limit              =   10;
+            
+            if (($request->limit) && !empty($request->limit)) {
+
+                $limit          =   $request->limit;
+            }
+
+            $data               =    [];
+            
+            $discoverCommunity  =  Group::where('is_active', 1);
+
+            if (!empty($request->search)) {
+
+                $discoverCommunity =   $discoverCommunity->where('name', 'like', "%$request->search%");
+
+            }
+            $discoveredCommunity       =   $discoverCommunity->whereNotExists(function ($query) use ($authId) {
+    
+                $query->select(DB::raw(1))->from('blocked_users')
+
+                    ->where(function ($query) use ($authId) {
+                        // Check if the authenticated user has blocked someone
+                        $query->where('user_id', $authId)
+
+                            ->whereColumn('blocked_users.blocked_user_id', 'groups.created_by');
+                    })
+                    ->orWhere(function ($query) use ($authId) {
+                        // Check if the authenticated user has been blocked by someone
+                        $query->where('blocked_user_id', $authId)
+
+                            ->whereColumn('blocked_users.user_id', 'groups.created_by');
+                    });
+            });
+            if(isset($type) && !empty($type)){
+
+                $discoveredCommunity       = $discoverCommunity->limit($limit)->get();
+
+            }else{
+
+                $discoveredCommunity       = $discoverCommunity->simplePaginate($limit);
+
+            }
+            $discoveredCommunity->each(function ($query) use ($authId) {
+
+                // if (isset($query->member_count) && !empty($query->member_count)) {
+
+                //     // $query->member_count    =   shortNumber($query->member_count);
+                //     $query->member_count        =  $query->member_count;
+                // }
+
+                if (isset($query->cover_photo) && !empty($query->cover_photo)) {
+
+                    $query->cover_photo    =   $this->addBaseInImage($query->cover_photo);
+                }
+                $query->isJoined         =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
+            });
+            // Get the member_ids where group_id is in $groupIds and is_active is truthy
+
+            return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200);
+
         } catch (Exception $e) {
 
             Log::error('Error caught: "discover-getDiscoverCommunity"' . $e->getMessage());

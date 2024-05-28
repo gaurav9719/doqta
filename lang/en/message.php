@@ -130,7 +130,7 @@ return [
     "unpinned_message"=>"Message unpinned successfully",
 "all_pinned_message"=>"Pinned message",
 "email_changed_successfully"=>"Email changed successfully",
-
+"search_community"=>"Search community",
     
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",
