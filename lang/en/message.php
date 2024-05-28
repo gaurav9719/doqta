@@ -131,6 +131,7 @@ return [
 "all_pinned_message"=>"Pinned message",
 "email_changed_successfully"=>"Email changed successfully",
 "search_community"=>"Search community",
+"shared_media"=>"Shared media",
     
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",

@@ -255,6 +255,9 @@ class ChatController extends BaseController
 
                             $q->select('id','name','user_name','profile');
 
+                        },'post.group'=>function($q){
+
+                            $q->select('id','name','description','created_by');
                         }])->where(function ($query) use ($myId) {
 
                             $query->where('is_user1_trash', '!=', $myId)

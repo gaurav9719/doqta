@@ -858,7 +858,7 @@ class DicoverService extends BaseController
     public function getDiscoverCommunity($request, $authId,$type="")
     {
         try {
-            
+
             $limit              =   10;
             
             if (($request->limit) && !empty($request->limit)) {
@@ -913,7 +913,7 @@ class DicoverService extends BaseController
 
                     $query->cover_photo    =   $this->addBaseInImage($query->cover_photo);
                 }
-                $query->isJoined         =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
+                $query->isJoined           =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
             });
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
 

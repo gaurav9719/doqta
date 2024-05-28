@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\AiThread;
 use App\Models\AiMessage;
+use App\Traits\CommonTrait;
 use Illuminate\Http\Request;
 use App\Models\JournalReport;
 use App\Models\PinnedMessage;
@@ -15,12 +16,12 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
+use GeminiAPI\Laravel\Facades\Gemini;
+use GeminiAPI\Resources\Parts\TextPart;
+use Illuminate\Support\Facades\Storage;
+use GeminiAPI\Resources\Parts\ImagePart;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
-use App\Traits\CommonTrait;
-use GeminiAPI\Resources\Parts\TextPart;
-use GeminiAPI\Resources\Parts\ImagePart;
-use GeminiAPI\Laravel\Facades\Gemini;
 
 class AiChat extends BaseController
 {
@@ -619,6 +620,7 @@ class AiChat extends BaseController
         );
             $insight = $this->generateReportAI($chatData, 3);
             if(isset($insight['status']) && $insight['status'] == 200){
+
                 $newReport = new JournalReport;
                 $newReport->start_date = $request->start_date;
                 $newReport->end_date = $request->end_date;
@@ -633,4 +635,107 @@ class AiChat extends BaseController
             }
         }
     }
+    #---------------------  S H A R E D       M E D I A   -------------------#
+    // public function shareMedia(Request $request){
+
+    //     try {
+    //         $authId     =   Auth::id();
+    //         $limit      =   $request->limit??10;
+    //         $inbox                          =               AiThread::where(function ($query) use ($authId) {
+    //             $query->where('sender_id', $authId)
+    //                 ->orWhere('receiver_id', $authId);
+    //         })->first();
+    //         if (isset($inbox) && !empty($inbox)) {
+
+    //             $inboxId                =             $inbox->id;
+    //             // dd($inboxId);
+    //             $media                  =   AiMessage::select('id','media','message_type')->where(['message_type'=>2,'inbox_id'=>$inboxId])->where(function($query) use($authId){
+    
+    //                 $query->where('is_user1_trash','<>',$authId)->orWhere('is_user2_trash','<>',$authId);
+    
+    //             })->simplePaginate($limit);
+    
+    //             if(isset($media[0]) && !empty($media[0])){
+    
+    //                 $media->each(function($query){
+    
+    //                     if(isset($query->media) && !empty($query->media)){
+    
+    //                         if(Storage::disk('public')->exists($query->media)){
+    
+    //                             $query->media   =   $this->addBaseInImage($query->media);
+    
+    //                         }else{
+    
+    //                             $query->media   =   null;
+    //                         }
+    //                     }
+    //                 });
+    //             }
+    //             return $this->sendResponse($media, trans('message.shared_media'), 200);
+    //         }
+    //     } catch (Exception $e) {
+            
+    //         Log::error('Error caught: "getShareMedia" ' . $e->getMessage());
+    //         return $this->sendError($e->getMessage(), [], 400);
+    //     }
+    // }
+    // #---------------------  S H A R E D       M E D I A   -------------------#
+
+
+    public function shareMedia(Request $request)
+{
+    try {
+        $authId = Auth::id();
+        $limit = $request->limit ?? 10;
+        $inbox = AiThread::where(function ($query) use ($authId) {
+            $query->where('sender_id', $authId)
+                ->orWhere('receiver_id', $authId);
+        })->first();
+
+        if (isset($inbox) && !empty($inbox)) {
+
+            $inboxId = $inbox->id;
+            $media = AiMessage::select('id','media','message_type')
+            
+                ->where(['message_type' => 2, 'inbox_id' => $inboxId])
+                ->where(function($query) use($authId) {
+                    $query->where('is_user1_trash', '<>', $authId)->orWhere('is_user2_trash', '<>', $authId);
+                })
+                ->simplePaginate($limit);
+
+            if($media[0] && !empty($media[0])){
+
+                $media->getCollection()->transform(function($query) {
+                    if (empty($query->media)) {
+                        return null;
+                    } elseif (Storage::disk('public')->exists($query->media)) {
+                        $query->media = $this->addBaseInImage($query->media);
+                        return $query;
+                    } else {
+                        return null;
+                    }
+                });
+                $media->setCollection($media->getCollection()->filter());
+            }
+            return $this->sendResponse($media, trans('message.shared_media'), 200);
+        }else{
+
+            $inbox = AiThread::where(function ($query) use ($authId) {
+                $query->where('sender_id', $authId)
+                    ->orWhere('receiver_id', $authId);
+            })->simplePaginate(1);
+            // If no media found, construct response with pagination parameters and empty data
+            return $this->sendResponse($inbox, trans('message.shared_media'), 200);
+
+        }
+    } catch (Exception $e) {
+        Log::error('Error caught: "getShareMedia" ' . $e->getMessage());
+        return $this->sendError($e->getMessage(), [], 400);
+    }
+}
+
+
+    
+    
 }
