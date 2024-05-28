@@ -251,6 +251,10 @@ class ChatController extends BaseController
                         }, 'reply_to.sender' => function ($query) {
 
                             $query->select('id', 'name', 'profile');
+                        },'post','post.post_user'=>function($q){
+
+                            $q->select('id','name','user_name','profile');
+
                         }])->where(function ($query) use ($myId) {
 
                             $query->where('is_user1_trash', '!=', $myId)
@@ -267,6 +271,11 @@ class ChatController extends BaseController
                                         $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
                                     }
                                 }
+
+
+
+
+                                
                                 if (isset($result->media) && !empty($result->media)) {
 
                                     $result->media        =   $this->addBaseInImage($result->media);
@@ -294,7 +303,24 @@ class ChatController extends BaseController
                                     }
                                 }
 
-                                $result->time_ago = time_elapsed_string($result->created);
+
+                                if (isset($result->post) && !empty($result->post)) {
+
+                                    if (isset($result->post->media_url) && !empty($result->post->media_url)) {
+
+                                        $result->post->media_url        =   $this->addBaseInImage($result->post->media_url);
+                                    }
+
+
+                                    if (isset($result->post->post_user) && !empty($result->post->post_user->profile)) {
+
+                                        $result->post->post_user->profile        =   $this->addBaseInImage($result->post->post_user->profile);
+                                    }
+
+                                    $result->postedAt = time_elapsed_string($result->post->created_at);
+                                    
+                                }
+                                $result->time_ago = time_elapsed_string($result->created_at);
 
                                 if ($result->isread == 0) {
                                     Message::where('id', $result->id)
