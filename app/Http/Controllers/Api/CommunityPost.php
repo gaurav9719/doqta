@@ -555,7 +555,7 @@ class CommunityPost extends BaseController
 
             if (!$isMember) {
 
-                return $this->sendError(trans('message.you_are_not_group_member'), [], 403);
+                return $this->sendError(trans('message.you_are_not_group_member'), [], 201);
             }
             $addComment = new Comment();
             $addComment->user_id = $authId;

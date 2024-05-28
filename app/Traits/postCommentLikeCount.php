@@ -176,7 +176,7 @@ use IsLikedPostComment;
             $isGroupMember = GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
             if (!$isGroupMember) {
 
-                return response()->json(['status' => 400, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
+                return response()->json(['status' => 201, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
             }
 
             $limit               = 10;
