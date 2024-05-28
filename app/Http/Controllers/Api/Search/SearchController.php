@@ -45,7 +45,12 @@ class SearchController extends BaseController
                 }
             }
 
-            if(isset())
+            if(isset($interest) && !empty($interest)){
+
+                
+
+
+            }
 
 
 
