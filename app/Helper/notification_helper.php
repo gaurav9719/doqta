@@ -201,7 +201,7 @@ if (!function_exists('sendPushNotificationNew')) {
 
                     if($userDevice['device_type']==1){        // call ios function
     
-                       IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+                      // IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
     
                     }elseif ($userDevice['device_type']==2) {     // call andriod function
     

@@ -51,7 +51,9 @@ class CommunityPost extends BaseController
     {
         $limit = 10;
         $authId = Auth::id();
+
         if (isset($request->limit) && !empty($request->limit)) {
+
             $limit = $request->limit;
         }
         return $this->getCommunityPost->homeScreen($request, $authId);
@@ -71,8 +73,6 @@ class CommunityPost extends BaseController
     public function store(AddPostRequest $request)
     {
         $authId = Auth::id();
-
-      
         //check if you are the member of 
         //check group is active or not
         $isGroupExist = Group::where(['id' => $request->community_id, 'is_active' => 1])->exists();
