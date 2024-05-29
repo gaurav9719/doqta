@@ -183,7 +183,7 @@ use IsLikedPostComment;
             if (isset($request['limit']) && !empty($request['limit'])) {
                 $limit           = $request['limit'];
             }
-            DB::enableQueryLog();
+          
             $posts = Post::whereHas('post_user', function ($query) {
 
                 $query->where('is_active', 1);
@@ -200,6 +200,8 @@ use IsLikedPostComment;
                                 $query->select('id', 'name','user_name', 'profile');
                             }
                         ]);
+                },'parent_post.group'=>function($query){
+                    $query->select('id','name','description','created_by');
                 }])
                 ->where('group_id', $community_id)
                 ->where('is_active', 1)
@@ -250,12 +252,14 @@ use IsLikedPostComment;
                     $post->parent_post->reaction             =       $isExist['reaction'];
                     $post->parent_post->total_likes_count    =       $isExist['total_likes_count'];
                     $post->parent_post->total_comment_count  =       $isExist['total_comment_count'];
-                    $isRepost                                =   Post::where(['parent_id'=>$post->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $post->parent_post->is_reposted          =  ($isRepost)?1:0;
+                    $isRepost                                =       Post::where(['parent_id'=>$post->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                    $post->parent_post->is_reposted          =       ($isRepost)?1:0;
+                    $post->parent_post->postedAt                          =      time_elapsed_string($post->created_at);
+
                 }
-                $isRepost                                    =   Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                $post->is_reposted                           =  ($isRepost)?1:0;
-                $isExist = $this->IsPostLiked($post->id, $authId,1);
+                $isRepost                                    =      Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                $post->is_reposted                           =      ($isRepost)?1:0;
+                $isExist                                     =      $this->IsPostLiked($post->id, $authId,1);
                 $post->is_liked =       $isExist['is_liked'];
                 $post->reaction =       $isExist['reaction'];
                 $post->total_likes_count = $isExist['total_likes_count'];
