@@ -71,6 +71,8 @@ class CommunityPost extends BaseController
     public function store(AddPostRequest $request)
     {
         $authId = Auth::id();
+
+      
         //check if you are the member of 
         //check group is active or not
         $isGroupExist = Group::where(['id' => $request->community_id, 'is_active' => 1])->exists();

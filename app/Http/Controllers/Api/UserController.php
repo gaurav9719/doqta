@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use Exception;
 use Carbon\Carbon;
+use App\Models\Post;
 use App\Models\User;
 use App\Models\Job_status;
 use App\Models\ActivityLog;
@@ -11,6 +12,7 @@ use App\Models\BlockedUser;
 use App\Models\Notification;
 use App\Models\UserFollower;
 use Illuminate\Http\Request;
+use App\Mail\ChangeEmailRequest;
 use App\Services\GetUserService;
 use App\Models\EmailChangeRequest;
 use Illuminate\Support\Facades\DB;
@@ -21,16 +23,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Services\NotificationService;
+use App\Models\emailPasswordChangeLogs;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Requests\UpdateProfileValidation;
-use App\Mail\ChangeEmailRequest;
-use App\Models\emailPasswordChangeLogs;
-
+use App\Traits\postCommentLikeCount;
+use App\Traits\IsLikedPostComment;
 class UserController extends BaseController
 {
     //
 
+    use postCommentLikeCount,IsLikedPostComment;
     protected $user, $userProfile, $authId, $getUser, $notification_sent;
     // protected $userProfile;
     public function __construct(UserProfileUpdate $userProfile, GetUserService $getUser, NotificationService $notification_sent)
@@ -106,14 +109,17 @@ class UserController extends BaseController
         if($validate->fails()){
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
-        
+
         $authId             =   Auth::id();
         if(isset($request->type) && $request->type == 2){
             
-            $limit = isset($request->limit) ? $request->limit : 10;
-            $activity =ActivityLog::where('user_id', $authId)->simplePaginate($limit);
-            return $this->sendResponse($activity, "Your Activity", 200);
+            $limit      =   isset($request->limit) ? $request->limit : 10;
+
+            $activity   =    $this->getActivity($limit);
+
+            return $this->sendResponse($activity, "Your Activities", 200);
         }
+
         if (isset($request->user_id) && !empty($request->user_id)) {
 
             $getUser        =   $request->user_id;
@@ -261,6 +267,88 @@ class UserController extends BaseController
             Log::error('Error caught: "requestEmailChange" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
+}
+
+function getActivity($limit){
+    $authId=Auth::id();
+    $types=[10,11,12,13,14,15];
+    $actions= [
+        10 => "You posted in the community",
+        11 => "You liked this post",
+        12 => "You Commented on this post",
+        13 => "You liked comment of this post",
+        14 => "You replied comment of this post",
+        15 => "You reposted the post",
+    ];
+
+    $caseStatement = "CASE";
+    foreach ($actions as $type => $message) {
+        $caseStatement .= " WHEN action = $type THEN '$message'";
+    }
+    $caseStatement .= " ELSE 'Your action' END AS action_message";
+    
+    $activities =ActivityLog::select('*')
+        ->selectRaw($caseStatement)
+        ->where('user_id', $authId)
+        ->whereIn('action', $types)
+        ->with(['post_details'=> function($query) use($authId){
+            
+            $query->with(['post_user'=>function($query){
+
+                $query->select('id','name','user_name','profile');
+                },
+                'group'=>function($query){
+                    $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
+                },
+                'comment' => function($query) use ($authId){
+                    $query->where('user_id', $authId);
+                },
+                'parent_post' => function ($query) {
+
+                    $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                        ->where('is_active', 1)
+                        ->with([
+                            'post_user' => function ($query) {
+                                $query->select('id', 'name', 'profile');
+                            }, 
+                            
+                        ]);
+                }
+            ])->withCount(['total_likes','total_comment']);
+        }])
+        
+        ->orderBy('id', 'desc')
+        ->simplePaginate($limit);
+
+        $activities->each(function ($homeScreenPost) use($authId) {
+
+            if (isset($homeScreenPost->post_details->media_url) && !empty($homeScreenPost->post_details->media_url)) {
+
+                $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
+            }
+            if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
+
+                $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
+            }
+
+            if (isset($homeScreenPost->post_details->post_user) &&  !empty($homeScreenPost->post_details->post_user->profile)) {
+
+                $homeScreenPost->post_details->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_details->post_user->profile);
+            }
+            if ($homeScreenPost->post_details->group &&  $homeScreenPost->post_details->group->cover_photo) {
+
+                $homeScreenPost->post_details->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->post_details->group->cover_photo );
+            }
+            $isExist                         =   $this->IsPostLiked($homeScreenPost->post_details->id, $authId);
+            $homeScreenPost->post_details->is_liked        =   $isExist['is_liked'];
+            $homeScreenPost->post_details->reaction        =   $isExist['reaction'];
+            $isRepost                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->id,'user_id'=>$authId,'is_active'=>1])->exists();
+            $homeScreenPost->post_details->is_reposted  =  ($isRepost)?1:0;
+            $homeScreenPost->post_details->postedAt     =   time_elapsed_string($homeScreenPost->post_details->created_at);
+
+        });
+
+    return $activities;
 }
 
 

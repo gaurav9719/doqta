@@ -26,6 +26,12 @@ class PostLike extends Model
         return $this->hasMany(UserParticipantCategory::class,'user_id','user_id');
     }
 
+    function user_details(){
+
+        return $this->belongsTo(User::class, 'user_id', 'id');
+        
+    }
+
 
 
 

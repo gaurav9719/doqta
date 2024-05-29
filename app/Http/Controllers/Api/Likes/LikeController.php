@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers\Api\Likes;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Api\BaseController;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Exception;
 use Carbon\Carbon;
 use App\Models\Post;
-use App\Services\Like\likesService;
-use App\Traits\IsCommunityJoined;
+use App\Models\PostLike;
+use Illuminate\Http\Request;
 use App\Models\ReportToComment;
+use App\Traits\IsCommunityJoined;
+use Illuminate\Support\Facades\DB;
+use App\Services\Like\likesService;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\BaseController;
+
 class LikeController extends BaseController
 {
     use IsCommunityJoined;
@@ -30,9 +32,23 @@ class LikeController extends BaseController
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         //
+
+        $validation     =   Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id'
+        ]);
+        
+        if($validation->fails()){
+
+            return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+        }
+
+        $likes          =   PostLike::where('post_id', $request->post_id)->where('is_active', 1)->with('user_details:id,name,user_name,profile')->orderBy('created_at', 'desc')->get();
+
+        return $this->sendResponse($likes, "Post Reactions", 200);
+        
     }
 
     /**

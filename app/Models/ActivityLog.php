@@ -23,4 +23,9 @@ class ActivityLog extends Model
         'updated_at',
         'comment_id'
     ];
+
+    function post_details(){
+        
+        return $this->hasOne(Post::class, 'id', 'post_id');
+    }
 }

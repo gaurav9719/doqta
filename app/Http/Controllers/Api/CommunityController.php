@@ -125,7 +125,7 @@ class CommunityController extends BaseController
             $authId = Auth::id();
             $addCommunity = new Group();
             //check name is already exist or not 
-            $communityName = filter_text($request->name);
+            $communityName = $request->name;
 
             $isExist = Group::where(['name' => $communityName, 'is_active' => 1])->exists();
             if ($isExist) {
@@ -136,7 +136,7 @@ class CommunityController extends BaseController
             $addCommunity->name = $communityName;
             if (isset($request->description) && !empty($request->description)) {
 
-                $addCommunity->description = filter_text($request->description);
+                $addCommunity->description = $request->description;
             }
             $addCommunity->created_by = $authId;
 

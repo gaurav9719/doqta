@@ -44,11 +44,14 @@ class likesService extends BaseController
     {
         DB::beginTransaction();
         try {
+            
             $post               =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
-            if ($request->action == 0) {    // remove liked
-                if (empty($post)) {
 
+            if ($request->action == 0) {    // remove liked
+
+                if (empty($post)) {
                     return $this->sendError(trans('message.something_went_wrong'), [], 400);
+
                 } else {
 
                     $post->delete();
@@ -63,22 +66,22 @@ class likesService extends BaseController
                 // liked/update
                 if (empty($post)) {       // insert post like
                    
-                    $postLike = PostLike::create(['post_id' => $request->post_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
-                    $post_reaction_count = post_reaction_count(1, $request->reaction, $request->post_id);
+                    $postLike                       =   PostLike::create(['post_id' => $request->post_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
+                    $post_reaction_count            =   post_reaction_count(1, $request->reaction, $request->post_id);
                     $increment = increment('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
-                    $group_post                  =    Post::select('group_id', 'user_id','title')->where(['id' => $request->post_id])->first();
-                    $title                       =    $group_post->title;
-                    $addActivityLog              =    new ActivityLog();
-                    $addActivityLog->user_id     =    $authId;
-                    $addActivityLog->post_id     =    $request->post_id;
-                    $addActivityLog->community_id =    $group_post->group_id;
+                    $group_post                     =    Post::select('group_id', 'user_id','title')->where(['id' => $request->post_id])->first();
+                    $title                          =    $group_post->title;
+                    $addActivityLog                 =    new ActivityLog();
+                    $addActivityLog->user_id        =    $authId;
+                    $addActivityLog->post_id        =    $request->post_id;
+                    $addActivityLog->community_id   =    $group_post->group_id;
                     if (isset($request->comment_id) && !empty($request->comment_id)) {
 
                         $addActivityLog->comment_id =    $request->comment_id;
                     }
-                    $type                         =     trans('notification_message.like_post_type');
-                    $addActivityLog->action      =    1;    //like
-                    $addActivityLog->action_details =  "liked coummunity post " . $title;
+                    $type                           =     trans('notification_message.like_post_type');
+                    $addActivityLog->action         =    1;    //like
+                    $addActivityLog->action_details =    "liked coummunity post " . $title;
                     $addActivityLog->save();
                     #----------- R E C O R D        A C T I V I T Y -------------# 17 may
                     $addActivityLog                 =    new ActivityLog();

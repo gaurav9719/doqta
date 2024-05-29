@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('profile')->nullable();
             $table->string('cover')->nullable();
             $table->string('bio')->nullable();
-            $table->tinyInteger('mute_notification')->default(1)->comment('0:muted,1:active');
+            $table->tinyInteger('is_muted')->default(0)->comment('0:active,1:muted');
             $table->string('otp')->nullable();
             $table->dateTime('otp_expiry_time')->nullable();
             $table->timestamp('email_verified_at')->nullable();
