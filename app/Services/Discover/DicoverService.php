@@ -65,7 +65,7 @@ class DicoverService extends BaseController
 
             $data                               =   [];
             $support                            =   $this->supportShareInterest($request, $authId, $limit,1);
-            if ($support !== "400") {
+            if ($support != "400") {
 
                 $data['support_shared_interests']  = $support;
 
@@ -77,7 +77,7 @@ class DicoverService extends BaseController
             // Fetch top community
             $topCommunity = $this->topCommunityThisWeek($request, $authId, $limit, 1);
             
-            if ($topCommunity !== "400") {
+            if ($topCommunity != "400") {
 
                 $data['top_communities_this_week'] = $topCommunity; // Use correct variable here
 
@@ -90,7 +90,7 @@ class DicoverService extends BaseController
 
             $topArticles  =   $this->topArticles($request, $authId, $limit,1);
 
-            if($topArticles!=="400"){
+            if($topArticles!="400"){
                 $data['care_takers']       =  $topArticles;
             }else{
                 $data['care_takers']       =      [];
@@ -98,7 +98,7 @@ class DicoverService extends BaseController
             #------------------ T O P        A R T I C L E S -------------------#
             $topVideo       =            $this->topVideos($request, $authId, $limit,1);
 
-            if($topVideo!=="400"){
+            if($topVideo!="400"){
 
                 $data['top_videos']       =  $topVideo;
 
