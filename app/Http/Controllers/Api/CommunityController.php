@@ -220,16 +220,16 @@ class CommunityController extends BaseController
                 $addCommunity = [];
                 filter_text($request->name);
 
-                $isExist = Group::where(['name' => filter_text($request->name), 'is_active' => 1])->where('id', '<>', '')->exists();
+                $isExist = Group::where(['name' => $request->name, 'is_active' => 1])->where('id', '<>', '')->exists();
 
                 if (isset($request->name) && !empty($request->name)) {
 
-                    $addCommunity['name'] = filter_text($request->name);
+                    $addCommunity['name'] = $request->name;
                 }
 
                 if (isset($request->description) && !empty($request->description)) {
 
-                    $addCommunity['description'] = filter_text($request->description);
+                    $addCommunity['description'] = $request->description;
                 }
 
 
