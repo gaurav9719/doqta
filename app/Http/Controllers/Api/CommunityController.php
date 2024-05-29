@@ -281,7 +281,7 @@ class CommunityController extends BaseController
 
                 if (isset($request->name) && !empty($request->name)) {
 
-                    $communityName  = filter_text($request->name);
+                    $communityName  = $request->name;
 
                     $isExist = Group::where(['name' => $communityName, 'is_active' => 1])->where('id', '<>', $request->id)->exists();
 
@@ -297,7 +297,7 @@ class CommunityController extends BaseController
 
                 if (isset($request->description) && !empty($request->description)) {
 
-                    $addCommunity['description']   =  filter_text($request->description);
+                    $addCommunity['description']   =  $request->description;
                 }
 
                 if ($request->file('cover_photo')) {
