@@ -229,6 +229,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('aiChat/storeMessage', [AiChat::class,'storeMessage']);
     Route::get('aiChat/insights', [AiChat::class,'insights']);
     Route::get('aiChat/shareMedia', [AiChat::class,'shareMedia']);
+    Route::get('aiChat/threadMessage', [AiChat::class,'threadMessage']);
     Route::resource('aiChat', AiChat::class);
 
 });

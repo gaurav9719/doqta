@@ -2,28 +2,29 @@
 
 namespace App\Http\Controllers\Api\Journals;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Api\BaseController;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Exception;
-use App\Http\Requests\JournalValidation;
-use App\Http\Requests\Journal_entry\JournalEntry as JournalEntryValidation;
+use Carbon\Carbon;
+use App\Models\Journal;
+use App\Traits\CommonTrait;
 use App\Models\JournalEntry;
+use App\Models\JournalTopic;
+use Illuminate\Http\Request;
+use App\Models\JournalReport;
+use App\Rules\SymptomIsExist;
 use App\Models\journalsFeeling;
 use App\Models\journalSymptoms;
-use Carbon\Carbon;
-use App\Services\JournalService;
 use App\Models\PhysicalSymptom;
-use App\Models\Journal;
-use App\Models\JournalTopic;
+use App\Services\JournalService;
 use App\Rules\FeelingTypeIsExist;
-use App\Rules\SymptomIsExist;
-use App\Traits\CommonTrait;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\JournalValidation;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\BaseController;
 use Egulias\EmailValidator\Result\Reason\EmptyReason;
+use App\Http\Requests\Journal_entry\JournalEntry as JournalEntryValidation;
 
 class JournalController extends BaseController
 {
@@ -747,103 +748,137 @@ class JournalController extends BaseController
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
             }
-            $start_date = $request->start_date;
-            $end_date = $request->end_date;
-            // $dates = getDatesBetween($start_date, $end_date);
-            // if (isset($dates[0]) && !empty($dates[0])) {
-            //     $insight = array();
-            //     foreach ($dates as $date) {
-
-            //         $insights = JournalEntry::with([
-            //             'feeling' => function ($query) {
-
-            //                 $query->select('id', 'name'); // Rename 'id' and 'name'
-    
-            //             }
-            //         ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
-
-            //         if (isset($request->journal_id) && !empty($request->journal_id)) {
-            //             $insights = $insights->where('journal_id', $request->journal_id);
-            //         }
-            //         $insights = $insights->whereDate('journal_on', '=', $date)->get();
-            //         if ($insights->isNotEmpty()) {
-            //             $insight[] = [
-            //                 'date' => $date,
-            //                 'count' => count($insights),
-            //                 'mood' => $insights[0]['feeling_id'],
-            //                 'insights' => $insights,
-            //             ];
-            //         }
-            //     }
-
-
-
-
-            $jorunal        =   Journal::where(['id'=>$request->journal_id])->first();
-
-
-            if(isset($jorunal) && !empty($jorunal)){
-
-
-                $insights       =       JournalEntry::with([
-                    'feeling'=>function($query){
-                        $query->select('id','name'); 
-                    },'feeling_types.type','symptom','symptom.journalSymtom'
-                ])->select('id','journal_id', 'feeling_id', 'pain','content','created_at')->where('is_active', 1)->where('journal_id', $request->journal_id)->whereBetween('journal_on', [$start_date,$end_date])->limit(5)->get();
-
-
-                if(isset($insights) && !empty($insights)){
-
-                    $insights->each(function($query) use($painScale){
-
-                        $query->pain =   $painScale[$query->pain];
-                    });
-
-                }
-
-                if ($insights->isNotEmpty()) {
-                    $insight[] = [
-                        'journal_name' => $jorunal->title,
-                        'insights' => $insights,
-                    ];
-                }
-
-                // return response()->json($insight);
-
-                $formattedData = [];
-                $Data['journal_name']=$jorunal->title;
-                $Data['journal_topic']=$jorunal->topic->name;
-                foreach ($insights as $entry) {
-
-                    $feelingNames     = $entry->feeling ? $entry->feeling->name : null;
-                    $feelingTypeNames = $entry->feeling_types->isEmpty() ? null : $entry->feeling_types->pluck('type.name')->implode(', ');
-                    $symptomNames = $entry->symptom->isEmpty() ? null : $entry->symptom->pluck('journalSymtom.symptom')->implode(', ');
-
-                    $formattedData['insights'][] = [
-                        'date'=>  Carbon::parse($entry->created_at)->format('Y-m-d H:i:s A'),
-                        'pain' => $entry->pain,
-                        'mood' => $feelingNames,
-                        'feeling' => $feelingTypeNames,
-                        'symptom' => $symptomNames,
-                        'content'=>$entry->content,
-                        
-
-
-                    ];
-                }
-
-                return json_encode($formattedData);
+            $user_id    =   Auth::id();
+            $journal    =   Journal::find($request->journal_id);
         
-                // return response()->json($formattedData);
+            if($journal->user_id != $user_id){
 
-
-
-
-
-
-                // return $this->sendResponse($insight, trans('message.insight'), 200);
+                return $this->sendResponsewithoutData("Invailed journal", 403);
             }
+            $start_date         = $request->start_date;
+            $end_date           = $request->end_date;
+            $dates              = getDatesBetween($start_date, $end_date);
+            $insight = array();
+
+            if (isset($dates[0]) && !empty($dates[0])) {
+
+                foreach ($dates as $date) {
+
+                    $insights = JournalEntry::with([
+
+                        'feeling' => function ($query) {
+
+                            $query->select('id', 'name'); // Rename 'id' and 'name'
+    
+                        }
+                    ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
+
+                    if (isset($request->journal_id) && !empty($request->journal_id)) {
+
+                        $insights = $insights->where('journal_id', $request->journal_id);
+                    }
+                    $insights = $insights->whereDate('journal_on', '=', $date)->get();
+
+                    if ($insights->isNotEmpty()) {
+
+                        $moodAvg = JournalEntry::where('is_active', 1);
+
+                        if (isset($request->journal_id) && !empty($request->journal_id)) {
+                            $moodAvg->where('journal_id', $request->journal_id);
+                        }
+
+                        $moodAvg = $moodAvg->whereDate('journal_on', '=', $date)
+                            ->selectRaw('AVG(feeling_id) AS avg_mood')
+                            ->first();
+                        $avg    =   ceil((isset($moodAvg) && !empty($moodAvg))?$moodAvg['avg_mood']:0);    
+                        
+                        $insight[] = [
+                            'date' => $date,
+                            'count' => count($insights),
+                            'avg_mood'=>$avg,
+                            'mood' => $insights[0]['feeling_id'],
+                            'mood_pain' => $insights,
+                        ];
+                    }
+                }
+            }
+            #---------  C R E A T E         I N S I G H T S -------------------#
+            $journalInsights        =   [];
+            if(isset($insight) && !empty($insight)){
+
+                $request_ids    =       JournalEntry::where('journal_id', $journal->id)->whereBetween('journal_on', [$start_date, $end_date])->pluck('id')->toArray();
+                
+                $reports        =       JournalReport::where('journal_id', $journal->id)->where('type', $request->type)->where(['start_date'=>$start_date,'end_date'=>$end_date])->first();
+
+                $first_entry_id =       JournalEntry::where(['journal_id'=>$journal->id,'is_active'=>1])->whereBetween('journal_on', [$start_date, $end_date])->min('id');
+
+                $last_entry_id  =        JournalEntry::where(['journal_id'=>$journal->id,'is_active'=>1])->whereBetween('journal_on', [$start_date, $end_date])->max('id');
+
+                if(isset($reports) && !empty($reports)){
+
+                    if(!empty($first_entry_id) && !empty($first_entry_id)){
+
+                        if($reports->start==$first_entry_id && $reports->end==$last_entry_id){
+
+                            $journalInsights       = json_decode($reports->report);
+                          
+                        }
+                    }
+                }else{  #-------- generate new insights ----------------#
+
+                    $data           =       array(['text'=>"Journal Name : $journal->title"],['text' => "Disease: ".$journal->topic->name], ['text' => 'Journal Entries']);
+                    #preparing journal entries as input in array
+                    $entries        =       JournalEntry::where('journal_id', $journal->id)->whereBetween('journal_on', [$request->start_date, $request->end_date])->with(['feeling','feeling_types.feeling_type_details', 'symptom.journalSymtom'])->get();
+    
+                    foreach($entries as $entry){
+                        #date
+                        $date               =       Carbon::parse($entry->journal_on)->format('Y-m-d H:i A');
+                        array_push($data, ['text'=> "Date: $date"]);
+                        #mood
+                        $details= "Mood: ". $entry->feeling->name;
+                        $felling_types= $entry->feeling_types->pluck('feeling_type_details.name')->implode(", ");
+                        $details = $details.". Feelings: $felling_types";
+            
+                        #symptoms
+                        $symptoms= $entry->symptom->pluck('journalSymtom.symptom')->implode(", ");
+                        $details = $details.". Symptoms: $symptoms";
+                        $pain= $painScale[$entry->pain];
+                        $details = $details.". Pain: $pain";
+                        #description
+                        $details = $details.". Description: $entry->content";
+                        array_push($data, ['text'=> $details]);
+                    }
+                    #Insides & Suggestion
+                    array_push($data, 
+                            array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and sugestions"),
+                            array("text" => "provide result in json format"),
+                            array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+                            array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the journal entries'"),
+                            array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+                        );
+                    $journalInsights = $this->generateReportAItraint($data, 1);
+                    
+                    if(isset($journalInsights) && !empty($journalInsights)){
+                        $newReport              = new JournalReport;
+                        $newReport->journal_id  = $journal->id;
+                        $newReport->start_date  = $request->start_date;
+                        $newReport->end_date    = $request->end_date;
+                        $newReport->start       = $first_entry_id;
+                        $newReport->end         = $last_entry_id;
+                        $newReport->report      = json_encode($journalInsights);
+                        $newReport->type        = $request->type;
+                        $newReport->save();
+                    }
+                }
+            }
+            return response()->json([
+                'status' => 200,
+                'message' => trans('message.insight'),
+                'data' => $insight,
+                'insights' => $journalInsights
+            ], 200);
         } catch (Exception $e) {
+
             DB::rollback();
             Log::error('Error caught in "insights" method: ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);

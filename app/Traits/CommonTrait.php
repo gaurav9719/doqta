@@ -22,6 +22,10 @@ use GeminiAPI\Resources\Parts\ImagePart;
 use App\Traits\postCommentLikeCount;
 trait CommonTrait
 {
+    protected $count=0;
+
+
+
     use postCommentLikeCount;
     public function createSymtomByTopic($journalId, $topic)
     {
@@ -274,7 +278,7 @@ trait CommonTrait
     }
 
 
-    Function generateReportAI($data, $type){
+    Function generateReportAItraint($data, $type){
 
         // Define your API key
         $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
@@ -324,19 +328,20 @@ trait CommonTrait
                 if($type == 1 || $type=3){
                     if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
                         // return ($finalResponse['insights']);
-                        return [
-                            'status' => 200,
-                            "message" => "Insights & Suggestions generated successfully",
-                            'data' => $finalResponse
-                        ];
-    
+                        
+                            return $finalResponse;
+                        
                     } else {
-                        return [
-                            'status' => 400,
-                            "message" => "Insights & Suggestions generation failed",
-                            'data' => $finalResponse
-                        ];
+
+                        if (self::$count <3) {
+                            self::$count++;
+                            $this->generateReportAItraint($data, $type);
+                        }
+                       
                     }
+                    return null;
+
+
                 }
                 elseif($type == 2){
                     if (isset($finalResponse['symptoms']) && isset($finalResponse['mood']) && isset($finalResponse['pain']) && isset($finalResponse['questions_to_ask_your_doctor']) && count($finalResponse['symptoms']) > 0 && count($finalResponse['mood']) > 0 && count($finalResponse['pain']) > 0  && count($finalResponse['questions_to_ask_your_doctor']) > 0) {

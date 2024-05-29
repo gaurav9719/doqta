@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('message_id')->nullable()->index();
             $table->unsignedBigInteger('sender_id')->nullable();
             $table->unsignedBigInteger('receiver_id')->nullable();
+            $table->text('thread_name')->nullable();
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->tinyInteger('is_user1_trash')->default(0)->comment('0:not,1:delete');

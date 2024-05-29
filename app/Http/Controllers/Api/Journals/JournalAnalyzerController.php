@@ -158,10 +158,8 @@ class JournalAnalyzerController extends BaseController
                 )
             )
         );
-
         // Initialize cURL session
         $curl = curl_init($url);
-
         // Set cURL options
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
@@ -182,25 +180,19 @@ class JournalAnalyzerController extends BaseController
             // return $response;
             try {
                 $result = $response['candidates'][0]['content']['parts'][0]['text'];
-
                 $finalResponse = $this->convertIntoJson($result);
                 $finalResponse = json_decode($finalResponse, true);
-                
+
                 if($type == 1 || $type=3){
+
                     if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
                         // return ($finalResponse['insights']);
-                        return [
-                            'status' => 200,
-                            "message" => "Insights & Suggestions generated successfully",
-                            'data' => $finalResponse
-                        ];
-    
+                        return $finalResponse;
+                   
                     } else {
-                        return [
-                            'status' => 400,
-                            "message" => "Insights & Suggestions generation failed",
-                            'data' => $finalResponse
-                        ];
+
+                        $this->generateReportAI($data, $type);
+                       
                     }
                 }
                 elseif($type == 2){

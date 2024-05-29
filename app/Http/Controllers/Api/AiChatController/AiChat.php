@@ -217,90 +217,74 @@ class AiChat extends BaseController
     {
         try {
             $myId = Auth::id();
-
-            $inbox = AiThread::select('id')->where(function ($query) use ($myId) {
-                $query->where('sender_id', $myId)
-                    ->orWhere('receiver_id', $myId);
-            })->first();
+            // dd($myId);
             $limit = $request->get('limit', 10);
 
-            if ($inbox) {
+            $notifications = AiThread::where(function ($query) use ($myId) {
 
-                $notifications = AiMessage::where('inbox_id', $inbox->id)
-                    ->orderBy('created_at', 'desc')->with(['sender' => function ($query) {
-                        $query->select('id', 'name', 'user_name', 'profile');
-                    }])
-                    ->paginate($limit);
+                $query->where('sender_id', $myId)
+                    ->orWhere('receiver_id', $myId);
+                    
+            })->paginate($limit);
+            $groupedNotifications      = $notifications->getCollection()->groupBy(function ($date) {
 
-                $groupedNotifications      = $notifications->getCollection()->groupBy(function ($date) {
+                // if (isset($date->sender) && !empty($date->sender->profile)) {
 
-                    if (isset($date->sender) && !empty($date->sender->profile)) {
+                //     $date->sender->profile = $this->addBaseInImage($date->sender->profile);
+                // }
 
-                        $date->sender->profile = $this->addBaseInImage($date->sender->profile);
-                    }
+                $notificationDate          = Carbon::parse($date->created_at)->startOfDay();
+                $today                     = Carbon::now()->startOfDay();
+                $yesterday                 = Carbon::yesterday()->startOfDay();
+                $startOfWeek               = Carbon::now()->startOfWeek();
+                $startOfLastWeek           = Carbon::now()->subWeek()->startOfWeek();
+                $endOfLastWeek             = Carbon::now()->subWeek()->endOfWeek();
 
-                    $notificationDate          = Carbon::parse($date->created_at)->startOfDay();
-                    $today                     = Carbon::now()->startOfDay();
-                    $yesterday                 = Carbon::yesterday()->startOfDay();
-                    $startOfWeek               = Carbon::now()->startOfWeek();
-                    $startOfLastWeek           = Carbon::now()->subWeek()->startOfWeek();
-                    $endOfLastWeek             = Carbon::now()->subWeek()->endOfWeek();
+                if ($notificationDate->equalTo($today)) {
+                    return 'Today';
+                } elseif ($notificationDate->equalTo($yesterday)) {
+                    return 'Yesterday';
+                } elseif ($notificationDate->between($startOfWeek, $today)) {
+                    return 'This Week';
+                } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
+                    return 'Last Week';
+                } else {
+                    return 'Older';
+                }
+            });
 
-                    if ($notificationDate->equalTo($today)) {
-                        return 'Today';
-                    } elseif ($notificationDate->equalTo($yesterday)) {
-                        return 'Yesterday';
-                    } elseif ($notificationDate->between($startOfWeek, $today)) {
-                        return 'This Week';
-                    } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
-                        return 'Last Week';
-                    } else {
-                        return 'Older';
-                    }
-                });
-
-                $responseData = $groupedNotifications->map(function ($notificationsGroup, $date) {
-                    return [
-                        'message_on' => $date,
-                        'message' => $notificationsGroup->map(function ($notification) {
-                            return [
-                                'id' => $notification->id,
-                                'sender_id' => $notification->sender_id,
-                                'message_type' => $notification->message_type,
-                                'is_user1_trash' => $notification->is_user1_trash,
-                                'is_user2_trash' => $notification->is_user2_trash,
-                                'message' => $notification->message,
-                                'mesage_type' => $notification->message_type,
-                                'media' => (isset($notification->media) && !empty($notification->media))?$this->addBaseInImage($notification->media):null,
-                                'created_at' => $notification->created_at,
-                                'updated_at' => $notification->updated_at,
-                                'time_ago' => time_elapsed_string($notification->created_at),
-                                'sender' => $notification->sender,
-                            ];
-                        })
-                    ];
-                })->values(); // Ensure we return an indexed array, not associative
-
-                $data = [
-                    'current_page' => $notifications->currentPage(),
-                    'data' => $responseData,
-                    'first_page_url' => $notifications->url(1),
-                    'from' => $notifications->firstItem(),
-                    'next_page_url' => $notifications->nextPageUrl(),
-                    'path' => $notifications->path(),
-                    'per_page' => $notifications->perPage(),
-                    'prev_page_url' => $notifications->previousPageUrl(),
-                    'to' => $notifications->lastItem(),
+            $responseData = $groupedNotifications->map(function ($notificationsGroup, $date) {
+                return [
+                    'message_on' => $date,
+                    'message' => $notificationsGroup->map(function ($notification) {
+                        return [
+                            'id' => $notification->id,
+                            'sender_id' => $notification->sender_id,
+                            'receiver_id' => $notification->receiver_id,
+                            'thread_name' => $notification->thread_name,
+                            'is_user1_trash' => $notification->is_user1_trash,
+                            'is_user2_trash' => $notification->is_user2_trash,
+                            'created_at' => $notification->created_at,
+                            'updated_at' => $notification->updated_at,
+                            'time_ago' => time_elapsed_string($notification->created_at),
+                        ];
+                    })
                 ];
-                return $this->sendResponse($data, trans('message.chat_logs'), 200);
-            } else {
+            })->values(); // Ensure we return an indexed array, not associative
 
-                $inbox = AiThread::select('id')->where(function ($query) use ($myId) {
-                    $query->where('sender_id', $myId)
-                        ->orWhere('receiver_id', $myId);
-                })->simplePaginate(1);
-                return $this->sendResponse($inbox, trans('message.chat_logs'), 200);
-            }
+            $data = [
+                'current_page' => $notifications->currentPage(),
+                'data' => $responseData,
+                'first_page_url' => $notifications->url(1),
+                'from' => $notifications->firstItem(),
+                'next_page_url' => $notifications->nextPageUrl(),
+                'path' => $notifications->path(),
+                'per_page' => $notifications->perPage(),
+                'prev_page_url' => $notifications->previousPageUrl(),
+                'to' => $notifications->lastItem(),
+            ];
+            return $this->sendResponse($data, trans('message.chat_logs'), 200);
+             
         } catch (Exception $e) {
 
             Log::error('Error caught: "aiChatLogs" ' . $e->getMessage());
@@ -397,7 +381,6 @@ class AiChat extends BaseController
     #-------------------- G E T       A L L     P I N N E D         M E S S A G E   ---------------------_#
 
 
-
     #-------------  S T O R E       M E S S A G E --------------------#
     public function storeMessage(Request $request){
 
@@ -408,8 +391,9 @@ class AiChat extends BaseController
             $validator                          =       Validator::make($request->all(), [
                 'message' => 'required',
                 'participant' => 'required|string|in:user,system',
-                'media'=>"nullable|mimes:jpg,jpeg,png,bmp,tiff"
-            ]);
+                'media'=>"nullable|mimes:jpg,jpeg,png,bmp,tiff",
+                'is_new_thread'=>"required|integer|between:0,1",
+                'thread_id' => 'required_if:is_new_thread,0|integer|exists:ai_threads,id' ],['thread_id.required_if'=>"invalid thread_id"]);
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
@@ -433,23 +417,32 @@ class AiChat extends BaseController
                     $aiId                          =   $addAi->id;
                 }
                 #-------- check thread is exist or not
-                $inbox                              =               AiThread::where(function ($query) use ($myId) {
-                    $query->where('sender_id', $myId)
-                        ->orWhere('receiver_id', $myId);
-                })->first();
+                if($request->is_new_thread==0){
+                    $inserted_id                        =               null;
+                    $inbox                              =               AiThread::where(function ($query) use ($myId) {
+                        $query->where('sender_id', $myId)
+                            ->orWhere('receiver_id', $myId);
+                    })->where('id',$request->thread_id)->first();
+    
+                    if (isset($inbox) && !empty($inbox)) {
+    
+                        $threadId                     =         $inbox->id;
+    
+                    }else{
 
-                if (isset($inbox) && !empty($inbox)) {
+                        return $this->sendResponsewithoutData(trans('message.invalid_thread'), 409);
 
-                    $threadId                     =         $inbox->id;
-
-                } else {                                          // create chat thread
+                    } 
+                }else {                                          // create chat thread
 
                     $newThread                    =           new AiThread();
                     $newThread->sender_id         =           $myId;
                     $newThread->receiver_id       =           $aiId;
+                    $newThread->thread_name       =           $request->message;
                     $newThread->save();
                     $threadId                     =          $newThread->id;
                 }
+
                 if (isset($threadId) && !empty($threadId)) {
 
                     $senderId                     =         ($request->participant == "user") ? $myId : $aiId;
@@ -460,10 +453,14 @@ class AiChat extends BaseController
                         $message['media']          =       $media;
                         $message['message_type']   =       2;
                     }
-                    AiMessage::create($message);
+                    $lastMessage                   =      AiMessage::create($message);
+                    $inserted_id                   =    $lastMessage->id;
+                    AiThread::find($threadId)->update(['message_id'=>$inserted_id]);
                 }
                 DB::commit();
-                return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
+
+                return $this->sendResponse($threadId, trans('message.saved_successfully'), 200);
+                // return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
             }
         } catch (Exception $e) {
             Log::error('Error caught: "storeAiChat" ' . $e->getMessage());
@@ -471,6 +468,96 @@ class AiChat extends BaseController
         }
     }
     
+
+    #-------------- T H R E A D         M E S S A G E S     ----------------------#
+    public function threadMessage(Request $request){
+
+        try {
+
+            $validator                          =       Validator::make($request->all(), [
+                'thread_id' => 'required|integer|exists:ai_threads,id'
+            ]);
+            if ($validator->fails()) {
+                // Handle validation failure
+                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
+            } else {
+
+                $myId                           =               Auth::id();
+                $limit                          =               10;
+                if (isset($request->limit) && !empty($request->limit)) {
+
+                    $limit                      =               $request->limit;
+                }
+
+                DB::enableQueryLog();
+                $inbox                          =               AiThread::where(function ($query) use ($myId) {
+                    $query->where('sender_id', $myId)
+                        ->orWhere('receiver_id', $myId);
+                })->where('id',$request->thread_id)->first();
+
+                if (isset($inbox) && !empty($inbox)) {
+
+                    $inboxId                =             $inbox->id;
+                    $messages               =             AiMessage::with(['sender' => function ($query) {
+
+                        $query->select('id', 'name', 'user_name', 'profile');
+                    }])->where(function ($query) use ($myId) {
+
+                        $query->where('is_user1_trash', '!=', $myId)
+                            ->orWhere('is_user2_trash', '!=', $myId);
+                    })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
+
+                    if ($messages[0]) {
+                        $messages->each(function ($result) {
+
+                            if (isset($result->sender) && !empty($result->sender)) {
+
+                                if (isset($result->sender->profile) && !empty($result->sender->profile)) {
+
+                                    $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
+                                }
+                            }
+                            if (isset($result->media) && !empty($result->media)) {
+
+                                $result->media                      =   $this->addBaseInImage($result->media);
+                            }
+                            $result->time_ago                       =   time_elapsed_string($result->created);
+                        });
+                    }
+
+                    $messages->setCollection($messages->getCollection()->reverse()->values());
+
+                    return $this->sendResponse($messages, trans('message.chat_logs'), 200);
+
+                } else {
+
+                    $inbox                          =               AiThread::where(function ($query) use ($myId) {
+                        $query->where('sender_id', $myId)
+                            ->orWhere('receiver_id', $myId);
+                    })->where('id',$request->thread_id)->simplePaginate(1);
+    
+                    return $this->sendResponse($inbox, trans('message.chat_logs'), 200);
+                }
+            }
+        } catch (Exception $e) {
+            Log::error('Error caught: "chat_logs" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #-------------- T H R E A D         M E S S A G E S     ----------------------#
+
+
+
+
+
+
+
+
+
+
+
+
     #-------------  S T O R E       M E S S A G E --------------------#
 
     #------------  C H A T      I N S I G H T      -------------------#
@@ -570,8 +657,7 @@ class AiChat extends BaseController
 
 
     public function insights(Request $request){
-        
-           
+
         $validate = Validator::make($request->all(), [
             'start_date' => 'required|date_format:Y-m-d',
             'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
@@ -581,11 +667,10 @@ class AiChat extends BaseController
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
-    
-        $myId = Auth::id();
-        $inbox = AiThread::where(function ($query) use ($myId) {
-            $query->where('sender_id', $myId)
-                ->orWhere('receiver_id', $myId);
+        $myId           = Auth::id();
+        $inbox          = AiThread::where(function ($query) use ($myId) {
+                            $query->where('sender_id', $myId)
+                                ->orWhere('receiver_id', $myId);
         })->first();
 
         if (isset($inbox) && !empty($inbox)) {

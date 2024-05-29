@@ -132,7 +132,7 @@ return [
 "email_changed_successfully"=>"Email changed successfully",
 "search_community"=>"Search community",
 "shared_media"=>"Shared media",
-    
+    "invalid_thread"=>"Invalid thread",
     'updatePrefences'=>"Prefences updated successfully",
     'statistics'=>"Statistics",
     'pointSystem'=>"Point System",

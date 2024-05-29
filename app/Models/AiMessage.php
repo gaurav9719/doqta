@@ -12,7 +12,7 @@ class AiMessage extends Model
 
     use HasFactory;
 
-    protected $fillable     =   ['id','inbox_id','sender_id','message','media','message_type','is_user1_trash','is_user2_trash','is_active'];
+    protected $fillable     =   ['id','inbox_id','participant','sender_id','message','media','message_type','is_user1_trash','is_user2_trash','is_active'];
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id','id');
