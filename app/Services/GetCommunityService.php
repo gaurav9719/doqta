@@ -74,6 +74,7 @@ class GetCommunityService extends BaseController
                     $query->select('id','name','user_name','profile');
                     },
                     'group'=>function($query){
+                        
                         $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
                     },
                     'parent_post' => function ($query) {
@@ -135,7 +136,11 @@ class GetCommunityService extends BaseController
                     }
                     $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
                 });
-            return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200);
+
+
+                $notification_count     =   notification_count();
+
+            return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200,$notification_count);
 
         } catch (Exception $e) {
 
@@ -432,6 +437,4 @@ class GetCommunityService extends BaseController
         return $response;
 
     }
-
-
 }

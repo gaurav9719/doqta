@@ -134,7 +134,6 @@ class Notifications extends BaseController
     {
         try {
             $userID     = Auth::id();
-
             $perPage    = 10;
             if(isset($request->limit) && !empty($request->limit)){
 

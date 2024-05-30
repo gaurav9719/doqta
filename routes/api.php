@@ -179,6 +179,10 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('journal/insights', [JournalController::class,'insights']);
     Route::get('journal/getJournalEntries', [JournalController::class,'getJournalEntries']);
     Route::get('journal/symtoms', [JournalController::class,'symtoms']);
+    Route::get('journal/getJournalBydate', [JournalController::class,'getJournalBydate']);
+
+
+    
     Route::resource('journal', JournalController::class);
 
 
@@ -258,6 +262,8 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
     Route::post('requestEmailChange','requestEmailChange');
+    Route::post('iosPush','iosPush');
+    
 });
 
 

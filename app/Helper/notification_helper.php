@@ -19,7 +19,7 @@ function IosPush($devicetoken,$message,$type,$data,$mood_icon = '')
     // Be aware of thing that Token will stale after one hour, so you should generate it again.
     // Can be useful when trying to send pushes during long-running tasks
     $authProvider = AuthProvider\Certificate::create($options);
-    $alert = Alert::create()->setTitle('Collabo');
+    $alert = Alert::create()->setTitle('Doqta');
     $alert = $alert->setBody($message);
     $alert = $alert->setTitleLocKey($type);
     //	$alert = $alert->type($type);
@@ -178,7 +178,7 @@ if (!function_exists('sendPushNotification')) {
 
                 }elseif ($userData['device_type']==2) {     // call andriod function
 
-                    androidPushNotification($userData['device_token'],$message,$message_type,[]);
+                    //androidPushNotification($userData['device_token'],$message,$message_type,[]);
                 }
             }
         }
@@ -201,7 +201,7 @@ if (!function_exists('sendPushNotificationNew')) {
 
                     if($userDevice['device_type']==1){        // call ios function
     
-                      // IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+                      //IosPush($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
     
                     }elseif ($userDevice['device_type']==2) {     // call andriod function
     

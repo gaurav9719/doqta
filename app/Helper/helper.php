@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use BaconQrCode\Renderer\Color\Rgb;
 use BaconQrCode\Renderer\Image\Png;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Crypt;
 use Spatie\Snapshots\MatchesSnapshots;
@@ -1110,5 +1111,12 @@ if (!function_exists('post_reaction_count')) {
         $post->$column += $increment;
         $post->save(); // Persist the changes
         return true;
+    }
+
+    if (!function_exists('notification_count')) {
+        function notification_count()
+        {
+            return Notification::where('receiver_id', Auth::id())->where('is_read', 0)->count();
+        }
     }
 }

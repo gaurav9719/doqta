@@ -354,7 +354,10 @@ function getActivity($limit){
 
 
 
+public function iosPush(){
 
+    IosPush("e8f1ff8294fae16cfd528e16f387b10a4e1a6cbc9ec5028415b2cc2ff1d8544b","hello",1,['name'=>"param"],$mood_icon = '');
+}
 
 
 

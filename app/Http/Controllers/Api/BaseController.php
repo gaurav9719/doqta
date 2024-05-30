@@ -13,7 +13,7 @@ class BaseController extends Controller
 {
     //
 
-    public function sendResponse($result, $message,$code)
+    public function sendResponse($result, $message,$code,$notification="")
     {
     	$response = [
             'status' => $code,
@@ -21,6 +21,10 @@ class BaseController extends Controller
             'data'    => $result,
             
         ];
+        if(isset($notification)){
+
+            $response['notification']  =    $notification; 
+        }
 
         return response()->json($response, $code);
     }

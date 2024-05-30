@@ -45,4 +45,10 @@ class JournalEntry extends Model
         return $this->hasOne(JournalTopic::class,'id','topic_id');
     }
 
+    public function journal(){
+
+        return $this->belongsTo(Journal::class,'journal_id','id')->where('is_active',1);
+        
+    }
+
 }

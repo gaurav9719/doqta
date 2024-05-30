@@ -725,10 +725,15 @@ class DicoverService extends BaseController
 
                             $query->select('id', 'name', 'profile','user_name');
 
+                        },'group' => function ($query) {
+
+                            $query->select('id','name','description','created_by');
+                            
                         }]);
                 }, 'group' => function ($query) {
 
-                    $query->select('id', 'name');
+                    $query->select('id','name','description','created_by');
+                    
                 },'post_user'=>function($q){
                     $q->select('id','user_name','name','profile');
                 }])
@@ -784,7 +789,9 @@ class DicoverService extends BaseController
                 $homeScreenPost->total_likes_count = $isExist['total_likes_count'];
                 $homeScreenPost->total_comment_count = $isExist['total_comment_count'];
             });
-            return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200);
+            $notification_count     =   notification_count();
+            return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200,$notification_count);
+
         } catch (Exception $e) {
 
             Log::error('Error caught: "getDiscoverPost" ' . $e->getMessage());
@@ -846,8 +853,8 @@ class DicoverService extends BaseController
                 $query->isJoined         =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
             });
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
-
-            return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200);
+            $notification_count     =   notification_count();
+            return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200,$notification_count);
         } catch (Exception $e) {
 
             Log::error('Error caught: "discover-getDiscoverCommunity"' . $e->getMessage());
@@ -916,8 +923,8 @@ class DicoverService extends BaseController
                 $query->isJoined           =   (GroupMember::where(['group_id' => $query->id, 'user_id' => $authId])->exists()) ? 1 : 0;
             });
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
-
-            return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200);
+            $notification_count     =   notification_count();
+            return $this->sendResponse($discoveredCommunity, trans('message.dicover_community'), 200,$notification_count);
 
         } catch (Exception $e) {
 
@@ -1044,7 +1051,8 @@ class DicoverService extends BaseController
 
                 $data['care_takers']       =      [];
             }
-            return $this->sendResponse($data, trans('message.discover_people'), 200);
+            $notification_count     =   notification_count();
+            return $this->sendResponse($data, trans('message.discover_people'), 200,$notification_count);
 
             
         } catch (Exception $e) {
@@ -1081,8 +1089,8 @@ class DicoverService extends BaseController
             }])->whereIn('group_id', $groupIds)
                 ->whereNotNull('media_url')
                 ->where('is_active', 1)->simplePaginate($limit);
-
-            return $this->sendResponse($discoverPost, trans('message.dicover_media'), 200);
+                $notification_count     =   notification_count();
+            return $this->sendResponse($discoverPost, trans('message.dicover_media'), 200, $notification_count);
         } catch (Exception $e) {
             Log::error('Error caught: "discover-all"' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -1193,7 +1201,8 @@ class DicoverService extends BaseController
                 // Update the collection in $maxLikesPosts with the filtered posts
                 $maxLikesPosts->setCollection($filteredPosts);
                 // Return the paginated results after processing
-                return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200);
+                $notification_count     =   notification_count();
+                return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200,$notification_count);
             }
            // dd(DB::getQueryLog());
         } catch (Exception $e) {
@@ -1271,7 +1280,9 @@ class DicoverService extends BaseController
         // Update the collection in $maxLikesPosts with the filtered posts
         $maxLikesPosts->setCollection($filteredPosts);
         // Return the paginated results after processing
-        return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200);
+        $notification_count     =   notification_count();
+
+        return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200,$notification_count);
     }
 
 
@@ -1356,8 +1367,8 @@ class DicoverService extends BaseController
                 // return $data;
 
             } else {
-
-                return $this->sendResponse($supportUser, trans('message.dicover_people'), 200);
+                $notification_count     =   notification_count();
+                return $this->sendResponse($supportUser, trans('message.dicover_people'), 200,$notification_count);
             }
         } catch (Exception $e) {
             Log::error('Error caught: "supportUsers-service"' . $e->getMessage());
@@ -1436,8 +1447,8 @@ class DicoverService extends BaseController
 
         // $groupIdsQuery          =   GroupMember::where(['user_id' => $authId, 'is_active' => 1])->pluck('user_id');
 
-
-        return $this->sendResponse($careTaker, trans('message.dicover_people'), 200);
+        $notification_count     =   notification_count();
+        return $this->sendResponse($careTaker, trans('message.dicover_people'), 200,$notification_count);
 
 
 
@@ -1546,7 +1557,8 @@ class DicoverService extends BaseController
                     return $groupMembers;
 
                 } else {
-                    return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200);
+                    $notification_count     =   notification_count();
+                    return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200,$notification_count);
                 }
 
         } catch (Exception $e) {

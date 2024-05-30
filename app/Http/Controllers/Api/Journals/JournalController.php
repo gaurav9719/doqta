@@ -906,6 +906,7 @@ class JournalController extends BaseController
         if ($check->user_id == $userId) {
 
             $response = $this->journal->journalEntries($userId, $request->journal_id, $limit, $request);
+
             return $response;
         } else {
 
@@ -960,5 +961,42 @@ class JournalController extends BaseController
             return 'No Pain mentioned in the journal entries';
         }
     }
+
+    #----------   G E T         J O U R N A L       B Y     D A T E    ----------------__#
+    public function getJournalBydate(Request $request){
+
+        try {
+
+            $validate = Validator::make($request->all(), [
+
+                'journal_id' => 'nullable|integer|exists:journals,id',
+                'date' => ['required', 'date', 'date_format:Y-m-d'],
+                [
+                    'date_field.required' => 'The date field is required.',
+                    'date_field.date' => 'The date field must be a valid date.',
+                    'date_field.date_format' => 'The date field must be in the format YYYY-MM-DD.',
+                ]
+            ]);
+            if ($validate->fails()) {
+
+                return $this->sendError($validate->errors()->first(), [], 400);
+
+            } else {
+
+                $authId     =   Auth::id();
+
+                return $this->journal->journalEntryByDate($authId,$request);
+            }
+              
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "update journal" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+
+
+    }
+    #----------   G E T         J O U R N A L       B Y     D A T E    ----------------__#
+
 
 }

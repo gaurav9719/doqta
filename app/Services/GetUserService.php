@@ -237,6 +237,11 @@ class GetUserService extends BaseController
                 'post_user:id,user_name,name,profile'
             ])->with(['parent_post', 'parent_post.post_user'=>function($query){
                 $query->select('id','name','user_name','profile');
+
+            },'parent_post.group'=>function($query){
+
+                $query->select('id','name','description','created_by');
+                
             }])
             ->withCount('total_comment')
             ->where('user_id', $userId)
