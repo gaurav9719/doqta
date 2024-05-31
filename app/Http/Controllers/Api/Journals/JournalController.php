@@ -863,8 +863,9 @@ class JournalController extends BaseController
                         $newReport->journal_id  = $journal->id;
                         $newReport->start_date  = $request->start_date;
                         $newReport->end_date    = $request->end_date;
-                        $newReport->start       = $first_entry_id;
-                        $newReport->end         = $last_entry_id;
+                        $newReport->start_id    = $first_entry_id;
+                        $newReport->end_id      = $last_entry_id;
+                        
                         $newReport->report      = json_encode($journalInsights);
                         $newReport->type        = $request->type;
                         $newReport->save();

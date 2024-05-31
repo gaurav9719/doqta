@@ -168,7 +168,7 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
-    Route::get('generateReport', [JournalAnalyzerController::class, 'generateReport']);
+     Route::get('journal/insights', [JournalAnalyzerController::class, 'generateReport']);
 
 
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
@@ -176,7 +176,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('journal/updateJournal', [JournalController::class,'updateJournal']);
     
     Route::post('journal/journalEntry', [JournalController::class,'journalEntry']);
-    Route::get('journal/insights', [JournalController::class,'insights']);
+    // Route::get('journal/insights', [JournalController::class,'generateReport']);
     Route::get('journal/getJournalEntries', [JournalController::class,'getJournalEntries']);
     Route::get('journal/symtoms', [JournalController::class,'symtoms']);
     Route::get('journal/getJournalBydate', [JournalController::class,'getJournalBydate']);
