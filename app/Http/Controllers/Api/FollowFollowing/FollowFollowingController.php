@@ -283,7 +283,7 @@ class FollowFollowingController extends BaseController
                             $activity                   =    new ActivityLog();
                             $activity->user_id          =    $authId;
                             $activity->support_user_id  =    $request->user_id;
-                            $activity->action_details   =    "Started suppoting " . $receiver->name;
+                            $activity->action_details   =    "Started suppoting " . $receiver->user_name;
                             $activity->action           =    1;    //Started supporting
                             $activity->save();
                             #-------  A C T I V I T Y -----------#
@@ -292,7 +292,7 @@ class FollowFollowingController extends BaseController
                         $action                          =   1;
                         #send notification
                         $sender        =   Auth::user();
-                        $mesage        =   $sender->name ." ".$message;
+                        $mesage        =   $sender->user_name ." ".$message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                         DB::commit();
@@ -322,14 +322,14 @@ class FollowFollowingController extends BaseController
                             #send notification
                             $sender        =   Auth::user();
                             $receiver      =   User::find($request->user_id);
-                            $mesage        =   $sender->name . " accepted your support request";
+                            $mesage        =   $sender->user_name . " accepted your support request";
                             $data          =   ["message" => $mesage];
                             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.supporting_you_message_type'), $data);
                             #-------  A C T I V I T Y -----------# 17may
                             $activity                   =    new ActivityLog();
                             $activity->user_id          =    $request->user_id;
                             $activity->support_user_id  =    $authId;
-                            $activity->action_details   =    "Started suppoting " . $sender->name;
+                            $activity->action_details   =    "Started suppoting " . $sender->user_name;
                             $activity->action           =    1;    //Started supporting
                             $activity->save();
                             #-------  A C T I V I T Y -----------#

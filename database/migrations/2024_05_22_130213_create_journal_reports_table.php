@@ -25,7 +25,6 @@ return new class extends Migration
             $table->json('report')->nullable();
             $table->tinyInteger('type')->nullable()->comment('1=insights_and_suggestion, 2=report,3 chat insight');
             $table->tinyInteger('report_type')->nullable()->comment('1=journal_report, 2=chat_report');
-
             $table->foreign('journal_id')->references('id')->on('journals')->onDelete('cascade');
             $table->foreign('ai_thread_id')->references('id')->on('ai_threads')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

@@ -82,7 +82,7 @@ class AuthController extends BaseController
 
             if(isset($request->device_token) && !empty($request->device_token)){
 
-                UserDevice::where(['id'=>$request->device_token,'user_id'=>Auth::id()])->delete();
+                UserDevice::where(['device_token'=>$request->device_token,'user_id'=>Auth::id()])->delete();
             }
 
             $accessToken = Auth::user()->token();
