@@ -1471,63 +1471,110 @@ class DicoverService extends BaseController
         try {
             
             DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
-            if (!empty($request->search)) {
+            // if (!empty($request->search)) {
     
-                $groupIdsQuery      =   Group::where('name', 'like', "%$request->search%")->pluck('id');
-                $groupMembers       =   GroupMember::whereIn('group_id', $groupIdsQuery)->where('user_id', '<>', $authId);
+            //     $groupIdsQuery      =   Group::where('name', 'like', "%$request->search%")->pluck('id');
+            //     $groupMembers       =   GroupMember::whereIn('group_id', $groupIdsQuery)->where('user_id', '<>', $authId);
                 
-            }else{
+            // }else{
     
-                $groupMembers = GroupMember::where('user_id', '<>', $authId);
-            }
+            //     $groupMembers = GroupMember::where('user_id', '<>', $authId);
+            // }
           
-            $groupMembers =  $groupMembers->select('user_id', 'group_id')
+            // $groupMembers =  $groupMembers->select('user_id', 'group_id')
     
-                ->with(['communities' => function ($q) {
+            //     ->with(['communities' => function ($q) {
     
-                    $q->select('id', 'name', 'cover_photo');
+            //         $q->select('id', 'name', 'cover_photo');
     
-                }, 'user' => function ($q) {
+            //     }, 'user' => function ($q) {
     
-                    $q->select('id', 'name', 'user_name', 'profile');
+            //         $q->select('id', 'name', 'user_name', 'profile');
     
-                }])->whereHas('user', function ($q) {
+            //     }])->whereHas('user')->whereHas('user.userParticipant',function($q){
+
+            //         $q->whereIn('participant_id',[2]);
+
+            //     })->whereNotExists(function ($query) use ($authId) {
     
-                    $q->where('is_active', 1);
+            //         $query->select(DB::raw(1))
     
-                })->whereNotExists(function ($query) use ($authId) {
+            //             ->from('blocked_users')
     
-                    $query->select(DB::raw(1))
+            //             ->where(function ($query) use ($authId) {
+            //                 // Check if the authenticated user has blocked someone
+            //                 $query->where('user_id', $authId)
+            //                     ->whereColumn('blocked_users.blocked_user_id', 'id');
+            //             })
+            //             ->orWhere(function ($query) use ($authId) {
+            //                 // Check if the authenticated user has been blocked by someone
+            //                 $query->where('blocked_user_id', $authId)
+            //                     ->whereColumn('blocked_users.user_id', 'id');
+            //             });
+            //     })->whereNotExists(function ($query) use ($authId) {
     
-                        ->from('blocked_users')
+            //         $query->select(DB::raw(1))
+            //             ->from('user_followers')
+            //             ->whereColumn('user_followers.user_id', '=', 'id')
+            //             ->where('user_followers.follower_user_id', '=', $authId);
+            //     })
+            //     ->groupBy('user_id');
+
+
+            // Initialize base query based on search input
+            $groupMembers = GroupMember::query();
+
+            if (!empty($request->search)) {
+                $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+                $groupMembers->whereIn('group_id', $groupIds);
+            }
+
+            // Filter out the authenticated user's own group memberships
+            $groupMembers->where('user_id', '<>', $authId);
+
+            // Eager load related models with selected fields
+            $groupMembers->with([
+                'communities:id,name,cover_photo',
+                'user:id,name,user_name,profile'
+            ]);
+
+            // Filter based on user participant
+            $groupMembers->whereHas('user.userParticipant', function($query) {
+                $query->whereIn('participant_id', [2]);
+            });
+
+            // Exclude blocked users and those who blocked the authenticated user
+            $groupMembers->whereDoesntHave('user.blockedUsers', function($query) use ($authId) {
+                $query->where('blocked_user_id', $authId);
+            })
+            ->whereDoesntHave('user.blockedBy', function($query) use ($authId) {
+                $query->where('user_id', $authId);
+            });
+
+            // Exclude users followed by the authenticated user
+            $groupMembers->whereDoesntHave('user.followers', function($query) use ($authId) {
+                $query->where('follower_user_id', $authId);
+            });
+
+            // Group by user_id to ensure distinct users
+            $groupMembers->groupBy('user_id');
+
+            // Apply pagination or limit
+            if (isset($type) && !empty($type)) {
+                $groupMembers = $groupMembers->limit($limit)->get();
+            } else {
+                $groupMembers = $groupMembers->simplePaginate($limit);
+            }
+
     
-                        ->where(function ($query) use ($authId) {
-                            // Check if the authenticated user has blocked someone
-                            $query->where('user_id', $authId)
-                                ->whereColumn('blocked_users.blocked_user_id', 'id');
-                        })
-                        ->orWhere(function ($query) use ($authId) {
-                            // Check if the authenticated user has been blocked by someone
-                            $query->where('blocked_user_id', $authId)
-                                ->whereColumn('blocked_users.user_id', 'id');
-                        });
-                })->whereNotExists(function ($query) use ($authId) {
+                // if(isset($type) && !empty($type)){
     
-                    $query->select(DB::raw(1))
-                        ->from('user_followers')
-                        ->whereColumn('user_followers.user_id', '=', 'id')
-                        ->where('user_followers.follower_user_id', '=', $authId);
-                })
-                ->groupBy('user_id');
+                //     $groupMembers   =   $groupMembers->get()->take($limit);
     
-                if(isset($type) && !empty($type)){
+                // }else{
     
-                    $groupMembers   =   $groupMembers->get()->take($limit);
-    
-                }else{
-    
-                    $groupMembers   =   $groupMembers->simplePaginate($limit);
-                }
+                //     $groupMembers   =   $groupMembers->simplePaginate($limit);
+                // }
                 
                 if(isset($groupMembers[0]) && !empty($groupMembers[0])){
     

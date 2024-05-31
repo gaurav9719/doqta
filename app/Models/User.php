@@ -171,7 +171,21 @@ class User extends Authenticatable
         return $this->hasMany(UserMedicalCredentials::class,'user_id', 'id');
     }
 
-    
+    public function blockedUsers()
+    {
+        return $this->hasMany(BlockedUser::class, 'user_id', 'id');
+    }
+
+    // Users that have blocked this user
+    public function blockedBy()
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id', 'id');
+    }
+
+    public function followers()
+    {
+        return $this->hasMany(UserFollower::class, 'user_id', 'id');
+    }
     
    
 
