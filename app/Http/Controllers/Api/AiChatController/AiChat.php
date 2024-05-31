@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use GeminiAPI\Resources\Parts\ImagePart;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
+use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
 
 class AiChat extends BaseController
 {
@@ -447,14 +448,16 @@ class AiChat extends BaseController
 
                     $senderId                     =         ($request->participant == "user") ? $myId : $aiId;
                     $message                      =         ['sender_id' => $senderId,'participant'=>$request->participant, 'message' => $request->message, 'inbox_id' => $threadId];
+
                     if(isset($request->media) && !empty($request->media)){
 
                         $media                     =       upload_file($request->media,'ai_chat');
                         $message['media']          =       $media;
                         $message['message_type']   =       2;
                     }
+
                     $lastMessage                   =      AiMessage::create($message);
-                    $inserted_id                   =    $lastMessage->id;
+                    $inserted_id                   =        $lastMessage->id;
                     AiThread::find($threadId)->update(['message_id'=>$inserted_id]);
                 }
                 DB::commit();
@@ -490,7 +493,6 @@ class AiChat extends BaseController
                     $limit                      =               $request->limit;
                 }
 
-                DB::enableQueryLog();
                 $inbox                          =               AiThread::where(function ($query) use ($myId) {
                     $query->where('sender_id', $myId)
                         ->orWhere('receiver_id', $myId);
@@ -655,117 +657,73 @@ class AiChat extends BaseController
         return $text;
     }
 
+#------------ OLD ONE MAY 31 --------_____
+    // public function insights(Request $request){
 
-    public function insights(Request $request){
-
-        $validate = Validator::make($request->all(), [
-            'start_date' => 'required|date_format:Y-m-d',
-            'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
-        ]);
+    //     $validate = Validator::make($request->all(), [
+    //         'start_date' => 'required|date_format:Y-m-d',
+    //         'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
+    //     ]);
     
-        if($validate->fails()){
+    //     if($validate->fails()){
 
-            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
-        }
-        $myId           = Auth::id();
-        $inbox          = AiThread::where(function ($query) use ($myId) {
-                            $query->where('sender_id', $myId)
-                                ->orWhere('receiver_id', $myId);
-        })->first();
+    //         return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+    //     }
+    //     $myId           = Auth::id();
+    //     $inbox          = AiThread::where(function ($query) use ($myId) {
+    //                         $query->where('sender_id', $myId)
+    //                             ->orWhere('receiver_id', $myId);
+    //     })->first();
 
-        if (isset($inbox) && !empty($inbox)) {
+    //     if (isset($inbox) && !empty($inbox)) {
             
-            $inboxId = $inbox->id;
-            // DB::enableQueryLog();
-            $messages = AiMessage::with(['sender' => function ($query) {
-                $query->select('id', 'name', 'user_name', 'profile');
-            }])->where(function ($query) use ($myId) {
-                $query->where('is_user1_trash', '!=', $myId)
-                    ->orWhere('is_user2_trash', '!=', $myId);
-            })->where('inbox_id', $inboxId)->whereBetween(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), [$request->start_date, $request->end_date])->get();
-            $chatData = [];
+    //         $inboxId = $inbox->id;
+    //         // DB::enableQueryLog();
+    //         $messages = AiMessage::with(['sender' => function ($query) {
+    //             $query->select('id', 'name', 'user_name', 'profile');
+    //         }])->where(function ($query) use ($myId) {
+    //             $query->where('is_user1_trash', '!=', $myId)
+    //                 ->orWhere('is_user2_trash', '!=', $myId);
+    //         })->where('inbox_id', $inboxId)->whereBetween(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d')"), [$request->start_date, $request->end_date])->get();
+    //         $chatData = [];
 
-            foreach ($messages as $message) {
+    //         foreach ($messages as $message) {
 
-                $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
-                $media  =   (isset($message->media) && !empty($message->media)) ? $this->addBaseInImage($message->media) : null;
-                $details= "Date:".$date;
-                $details.= ", Sender: ".$message->participant;
-                $details.= ", Message: ".$message->message;
-                $details.= ", Media link: ".$media;
-                array_push($chatData, ['text'=> $details]);
+    //             $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+    //             $media  =   (isset($message->media) && !empty($message->media)) ? $this->addBaseInImage($message->media) : null;
+    //             $details= "Date:".$date;
+    //             $details.= ", Sender: ".$message->participant;
+    //             $details.= ", Message: ".$message->message;
+    //             $details.= ", Media link: ".$media;
+    //             array_push($chatData, ['text'=> $details]);
                
-            }
-            array_push($chatData, 
-            array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
-            array("text" => "provide result in json format"),
-            array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
-            array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
-            array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
-        );
-            $insight = $this->generateReportAI($chatData, 3);
-            if(isset($insight['status']) && $insight['status'] == 200){
-
-                $newReport = new JournalReport;
-                $newReport->start_date = $request->start_date;
-                $newReport->end_date = $request->end_date;
-                $newReport->report = json_encode($insight['data']);
-                $newReport->type = 3;
-                $newReport->save();
-                return response()->json($insight, 200);
-            }
-            else{
-
-                return response()->json($insight, 400);
-            }
-        }
-    }
-    #---------------------  S H A R E D       M E D I A   -------------------#
-    // public function shareMedia(Request $request){
-
-    //     try {
-    //         $authId     =   Auth::id();
-    //         $limit      =   $request->limit??10;
-    //         $inbox                          =               AiThread::where(function ($query) use ($authId) {
-    //             $query->where('sender_id', $authId)
-    //                 ->orWhere('receiver_id', $authId);
-    //         })->first();
-    //         if (isset($inbox) && !empty($inbox)) {
-
-    //             $inboxId                =             $inbox->id;
-    //             // dd($inboxId);
-    //             $media                  =   AiMessage::select('id','media','message_type')->where(['message_type'=>2,'inbox_id'=>$inboxId])->where(function($query) use($authId){
-    
-    //                 $query->where('is_user1_trash','<>',$authId)->orWhere('is_user2_trash','<>',$authId);
-    
-    //             })->simplePaginate($limit);
-    
-    //             if(isset($media[0]) && !empty($media[0])){
-    
-    //                 $media->each(function($query){
-    
-    //                     if(isset($query->media) && !empty($query->media)){
-    
-    //                         if(Storage::disk('public')->exists($query->media)){
-    
-    //                             $query->media   =   $this->addBaseInImage($query->media);
-    
-    //                         }else{
-    
-    //                             $query->media   =   null;
-    //                         }
-    //                     }
-    //                 });
-    //             }
-    //             return $this->sendResponse($media, trans('message.shared_media'), 200);
     //         }
-    //     } catch (Exception $e) {
-            
-    //         Log::error('Error caught: "getShareMedia" ' . $e->getMessage());
-    //         return $this->sendError($e->getMessage(), [], 400);
+    //         array_push($chatData, 
+    //         array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
+    //         array("text" => "provide result in json format"),
+    //         array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+    //         array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
+    //         array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+    //     );
+    //         $insight = $this->generateReportAI($chatData, 3);
+    //         if(isset($insight['status']) && $insight['status'] == 200){
+
+    //             $newReport = new JournalReport;
+    //             $newReport->start_date = $request->start_date;
+    //             $newReport->end_date = $request->end_date;
+    //             $newReport->report = json_encode($insight['data']);
+    //             $newReport->type = 3;
+    //             $newReport->save();
+    //             return response()->json($insight, 200);
+    //         }
+    //         else{
+
+    //             return response()->json($insight, 400);
+    //         }
     //     }
     // }
-    // #---------------------  S H A R E D       M E D I A   -------------------#
+#----------------------------------------__#
+
 
 
     public function shareMedia(Request $request)
@@ -821,6 +779,131 @@ class AiChat extends BaseController
 }
 
 
+public function insights(Request $request){
+        
+           
+    $validate = Validator::make($request->all(), [
+        'start_date' => 'required|date_format:Y-m-d',
+        'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
+    ]);
+
+    if($validate->fails()){
+        return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+    }
     
+    $myId = Auth::id();
+    $inbox_ids = AiThread::where(function ($query) use ($myId) {
+        $query->where('sender_id', $myId)
+        ->orWhere('receiver_id', $myId);
+        })
+        ->pluck('id')
+        ->toArray();
+    
+    if (count($inbox_ids) > 0) {
+        
+        #check report available for request time
+        $start_time     = Carbon::parse($request->start_date)->startOfDay();
+        $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
+        $request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
+            ->where(function ($query) use ($myId) {
+                $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);
+            })
+            ->where('is_active', 1)
+            ->whereBetween('created_at', [$start_time, $end_time])
+            ->pluck('id')->toArray();
+
+           
+        $ids_count  = count($request_ids);
+        $start_id   = reset($request_ids);
+        $end_id     = end($request_ids);
+        $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
+        if($ids_count > 0){
+            if(count($reports) > 0){
+                foreach($reports as $report){
+                    $reportIds= AiMessage::whereIn('inbox_id', $inbox_ids)
+                    ->where(function ($query) use ($myId) {
+                        $query->where('is_user1_trash', '!=', $myId)
+                            ->orWhere('is_user2_trash', '!=', $myId);
+                    })
+                    ->where('is_active', 1)
+                    ->whereBetween('created_at', [$report->start_date, $report->end_date])
+                    ->pluck('id')->toArray();
+                    if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
+                        if(count($request_ids) == $report->ids_count  && $start_id == $report->start_id && $end_id == $report->end_id){
+                            $response= json_decode($report->report);
+                            return $this->sendResponse($response, "Insights & Suggestions generated successfully", 200);
+                        }
+                    }
+                }
+            }
+            #end check report section
+            
+            $messages = AiMessage::with(['sender' => function ($query) {
+                $query->select('id', 'name', 'user_name', 'profile');
+            }])->where(function ($query) use ($myId) {
+                $query->where('is_user1_trash', '!=', $myId)
+                    ->orWhere('is_user2_trash', '!=', $myId);
+            })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
+
+
+            // return $messages;
+            $chatData = [];
+
+            foreach ($messages as $message) {
+
+                $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                $details= "Date:".$date;
+                $details.= ", Sender: ".$message->sender->name;
+                $details.= ", Message: ".$message->message;
+                if(isset($message->media) && !empty($message->media)){
+                    $media  =   $this->addBaseInImage($message->media);
+                    $details.= ", Media link: ".$media;
+                }
+                array_push($chatData, ['text'=> $details]);
+            
+            }
+            // return $chatData;
+            array_push($chatData, 
+            array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
+            array("text" => "provide result in json format"),
+            array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+            array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
+            array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+            );
+            $analyzer   = new JournalAnalyzerController();
+            $insight    = $analyzer->generateReportAI($chatData, 3);
+
+            if(isset($insight['status']) && $insight['status'] == 200){
+
+                $newReport=JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
+                if(!isset($newReport)){
+                    $newReport = new JournalReport;
+                }
+                $newReport->user_id         = $myId;
+                $newReport->start_date      = $start_time;
+                $newReport->end_date        = $end_time;
+                $newReport->report          = json_encode($insight['data']);
+                $newReport->ids_count       = $ids_count;
+                $newReport->start_id        = $start_id;
+                $newReport->end_id          = $end_id;
+                $newReport->type            = 1;
+                $newReport->report_type     = 2;
+                $newReport->save();
+                return response()->json($insight, 200);
+            }
+            else{
+
+                return response()->json($insight, 201);
+            }
+        }
+        else{
+
+            return $this->sendResponse(null,'No message found', 200);
+        }
+    }
+    else{
+        return $this->sendResponse(null,'No message found', 200);
+    }
+}
     
 }

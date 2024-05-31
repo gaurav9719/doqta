@@ -39,7 +39,14 @@ use IsLikedPostComment;
     }
     public function addBaseInImage($cover_photo){
         
-        return (filter_var($cover_photo, FILTER_VALIDATE_URL))? $cover_photo : asset('storage/'.$cover_photo);
+        if(isset($cover_photo) && !empty($cover_photo)){
+
+            return (filter_var($cover_photo, FILTER_VALIDATE_URL))? $cover_photo : asset('storage/'.$cover_photo);
+            
+        }else{
+
+            return null;
+        }
     }
 
 

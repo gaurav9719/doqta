@@ -123,14 +123,18 @@ class CommunityPost extends BaseController
     public function update(EditCommunityPost $request, string $id)
     {
         //
-        $authId = Auth::id();
-        $isExist = Post::whereHas('group_post', function ($query) {
+        $authId         = Auth::id();
+        
+        $isExist        = Post::whereHas('group_post', function ($query) {
+
             $query->where('is_active', 1);
+
         })->where(['id' => $id, 'user_id' => $authId])->exists(); // check post is your or not
 
         if ($isExist) {   // edit the post
 
             return $this->addCommunityPost->editPost($request, $authId, $id);
+
         } else {        //invalid post
 
             return $this->sendError(trans("message.invalid_post"), [], 403);

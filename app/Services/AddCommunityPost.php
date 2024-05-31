@@ -80,11 +80,37 @@ class AddCommunityPost extends BaseController
             $post->save();
             $postId                     = $post->id;
             DB::commit();
+
+            try {
+                // Dispatch Job1 and chain Job2 and Job3
+                dispatch(new SummarizePostJob($postId))
+                ->chain([new scoreCalculation($postId)]); // C
+    
+                // Handle immediate success response
+            } catch (\Throwable $exception) {
+                // Handle job dispatching errors
+                Log::error('Failed to dispatch jobs', ['exception' => $exception]);
+               
+            }
+        
             //Do summarize the post
-            $this->summerize($postId);
-            //dispatch(new SummarizePostJob($postId));
-            //dispatch(new scoreCalculation($postId));
-            // $this->calculateScoreByAi($postId);
+            //$this->summerize($postId);
+            // dispatch(new SummarizePostJob($postId));
+            // dispatch(new scoreCalculation($postId));
+            //SummarizePostJob::dispatch($postId)->afterCommit();
+
+
+            // SummarizePostJob::dispatchSync($postId);
+ 
+            // SummarizePostJob::dispatch($postId);
+
+            // Dispatch JobTwo to 'queue-two'
+          //  scoreCalculation::dispatch($postId);
+
+        // Dispatch JobThree to 'queue-three'
+    
+
+            //$this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);

@@ -21,7 +21,7 @@ class BaseController extends Controller
             'data'    => $result,
             
         ];
-        if(isset($notification)){
+        if(isset($notification) && $notification!=""){
 
             $response['notification']  =    $notification; 
         }

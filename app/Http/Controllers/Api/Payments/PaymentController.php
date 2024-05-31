@@ -88,33 +88,42 @@ class PaymentController extends BaseController
                 // Add custom rule for no special characters
 
             if ($validator->fails()) {
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             }
-            
             #check any paid plan active on account
             $authId          =      Auth::id();
-            $check=UserPlan::where('user_id', $authId)->where('is_trial_plan', 0)->where('is_active', 1)->first();
+            $check           =      UserPlan::where('user_id', $authId)->where('is_trial_plan', 0)->where('is_active', 1)->first();
 
             if(isset($check)){
+
                 $check->plan_details;
+
                 return $this->sendResponse($check, $check['plan_details']['name']." Plan already active on your account", 200);
+
             }
             
             #check plan type match with selected plan
             
             if(Plan::find($request->plan_id)->type != $request->type){
+
                 return $this->sendResponsewithoutData("Invalid plan type ", 422);
             }
             
             #Corporate plan
             if($request->type == 4){
+
                 $validation = Validator::make($request->all(), [
-                    'email' => 'required|email:rfc,dns',
-                    // 'email' => 'required|email',
+
+                    //'email' => 'required|email:rfc,dns',
+                    'email' => 'required|email',
                     'action' => 'required|integer|between:1,2',
                     'purchased_device'  => 'required|integer|between:1,2',
+
                 ]);
                 if ($validation->fails()) {
+
                     return $this->sendResponsewithoutData($validation->errors()->first(), 400);
                 }
 

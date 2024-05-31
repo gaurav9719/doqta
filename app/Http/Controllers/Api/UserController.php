@@ -6,6 +6,7 @@ use Exception;
 use Carbon\Carbon;
 use App\Models\Post;
 use App\Models\User;
+use App\Models\Comment;
 use App\Models\Job_status;
 use App\Models\ActivityLog;
 use App\Models\BlockedUser;
@@ -15,10 +16,12 @@ use Illuminate\Http\Request;
 use App\Mail\ChangeEmailRequest;
 use App\Services\GetUserService;
 use App\Models\EmailChangeRequest;
+use App\Traits\IsLikedPostComment;
 use Illuminate\Support\Facades\DB;
 use App\Services\UserProfileUpdate;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -27,8 +30,7 @@ use App\Models\emailPasswordChangeLogs;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Requests\UpdateProfileValidation;
-use App\Traits\postCommentLikeCount;
-use App\Traits\IsLikedPostComment;
+
 class UserController extends BaseController
 {
     //
@@ -131,7 +133,7 @@ class UserController extends BaseController
         if (User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
 
             $userProfile        =   $this->getUser->getUser($getUser, $authId);
-
+            // dd($userProfile);
             return $this->sendResponse($userProfile, trans("message.user_profile"), 200);
         } else {
             return $this->sendError(trans('message.invalidUser'), [], 422);
@@ -287,7 +289,7 @@ function getActivity($limit){
     }
     $caseStatement .= " ELSE 'Your action' END AS action_message";
     
-    $activities =ActivityLog::select('*')
+    $activities =ActivityLog::select('id','user_id','post_id','community_id','like_id','community_member_id','parent_id','action','action_details','is_active','created_at','updated_at','comment_id')
         ->selectRaw($caseStatement)
         ->where('user_id', $authId)
         ->whereIn('action', $types)
@@ -304,15 +306,16 @@ function getActivity($limit){
                     $query->where('user_id', $authId);
                 },
                 'parent_post' => function ($query) {
-
-                    $query->select('id', 'user_id', 'title', 'repost_count', 'like_count', 'comment_count', 'is_high_confidence')
+                    $query->select('*')
                         ->where('is_active', 1)
                         ->with([
                             'post_user' => function ($query) {
-                                $query->select('id', 'name', 'profile');
-                            }, 
-                            
+                                $query->select('id', 'name','user_name', 'profile');
+                            }
                         ]);
+                },'parent_post.group'=>function($query){
+
+                    $query->select('id','name','description','created_by');
                 }
             ])->withCount(['total_likes','total_comment']);
         }])
@@ -345,6 +348,24 @@ function getActivity($limit){
             $isRepost                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->id,'user_id'=>$authId,'is_active'=>1])->exists();
             $homeScreenPost->post_details->is_reposted  =  ($isRepost)?1:0;
             $homeScreenPost->post_details->postedAt     =   time_elapsed_string($homeScreenPost->post_details->created_at);
+
+
+            #------------ parent post data-----------------#
+            if(isset($homeScreenPost->post_details->parent_post) && !empty($homeScreenPost->post_details->parent_post)){
+
+                if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
+
+                    $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
+                }
+                $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $authId);
+                $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];
+                $homeScreenPost->post_details->parent_post->reaction        =   $isExist['reaction'];
+                $homeScreenPost->post_details->parent_post->total_likes_count =   $isExist['total_likes_count'];
+                $homeScreenPost->post_details->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->post_details->parent_post->id)->count();
+                $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                $homeScreenPost->post_details->parent_post->is_reposted     =  ($isRepost)?1:0;
+                $homeScreenPost->post_details->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->post_details->parent_post->created_at);
+            }
 
         });
 

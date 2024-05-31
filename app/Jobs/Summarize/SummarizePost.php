@@ -8,6 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Traits\SummarizePost as summarizeTarit;
+use Illuminate\Support\Facades\Log;
+
 class SummarizePost implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels,summarizeTarit;
@@ -26,6 +28,8 @@ class SummarizePost implements ShouldQueue
      */
     public function handle(): void
     {
-        $this->summerize($this->postId);
+        $result=$this->summerize($this->postId);
+        Log::info("summarize queue is working");
+        Log::info("summarize queue is working result".$result);
     }
 }

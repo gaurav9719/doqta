@@ -31,8 +31,8 @@ class user_payment extends BaseController
             $validator = Validator::make($request->all(), [
                 'transaction_id'    => 'required|string',
                 'signature'         => 'nullable|string',
-                'currency'          => 'required|string',
-                'currency_symbol'   => 'required|string',
+                'currency'          => 'nullable|string',
+                'currency_symbol'   => 'nullable|string',
                 'start_date'        => 'required|date_format:Y-m-d H:i:s e',
                 'end_date'          => 'required|date_format:Y-m-d H:i:s e|after:start_date',
                 'purchased_device'  => 'required|integer|between:1,2',
@@ -46,18 +46,25 @@ class user_payment extends BaseController
             } else {
                 //check user already used trailed or not
                 if($request->type == 1) {
+
                     $isTrailUsed        =       User::where(['id'=>$userId,'is_active'=>1,'is_trial_used'=>1])->exists();
+
                     if($isTrailUsed){
+
                         return $this->sendResponsewithoutData(trans('message.trail_already_used'), 403);
                     }
-                    $check=UserPlan::where('user_id',$userId)->first();
+
+                    $check              =       UserPlan::where('user_id',$userId)->first(); // if paid plan then not use trail plan
+
                     if($check){
+
                         return $this->sendResponsewithoutData("Trial plan available for first-time users only", 400);
                     }
                 }
 
                 //check user transaction id with userid
                 $isTransExist                         =   UserPlan::where('transaction_id',$request->transaction_id)->first();
+
                 if(isset($isTransExist) && !empty($isTransExist)){
                     
                     if($isTransExist['user_id'] != $userId){
@@ -94,10 +101,15 @@ class user_payment extends BaseController
                 $addPayment->transaction_id           =     $transactionId;
                 $addPayment->user_id                  =     $userId;
                 $addPayment->user_plan_id             =     $user_plan->id;
-                $addPayment->signature                =     encrypt($request->signature);
+                if(isset($request->signature) && !empty($request->signature)){
+
+                    $addPayment->signature            =     encrypt($request->signature);
+                }
                 $addPayment->amount                   =     $amount;
-                $addPayment->currency                 =     $request->currency;
-                $addPayment->currency_symbol          =     $request->currency_symbol;
+
+                $addPayment->currency                 =     (isset($request->currency) && !empty($request->currency))?$request->currency:null;
+                $addPayment->currency_symbol          =     (isset($request->currency_symbol) && !empty($request->currency_symbol))?$request->currency_symbol:null;
+
                 $addPayment->payment_by               =     1;        // 1 app in purchas, 2=stripe, 3=paypal, 4=google_pay,
                 $addPayment->status                   =     2;        // 2 completed
                 $addPayment->is_trial_plan            =     $request->type == 1 ? 1 : 0;
@@ -105,8 +117,11 @@ class user_payment extends BaseController
                 $addPayment->save();
 
                 if($request->type != 1){
-                    $trial_plan= UserPlan::where('user_id', $userId)->where('is_trial_plan', 1)->where('is_active', 1)->first();
+
+                    $trial_plan                      =  UserPlan::where('user_id', $userId)->where('is_trial_plan', 1)->where('is_active', 1)->first(); //check trail is activate if find deactivate the plan
+
                     if(isset($trial_plan)){
+
                         $trial_plan->is_active      = 2;
                         $trial_plan->cancelled_at   = Carbon::now();
                         $trial_plan->save();
@@ -116,6 +131,7 @@ class user_payment extends BaseController
                 
                 $user=User::find($userId);
                 if($request->type == 1){
+                    
                     $user->is_trial_used = 1;
                 }
                 $user->user_plan_id  = $user_plan->id;
@@ -142,24 +158,28 @@ class user_payment extends BaseController
     #-------------C O R P O R A T E    P L A N ------------------#
     #Corporate Plan
     public function corporatePlan($request){
+
         try {
-        $request=(object) $request;
 
-        $user= Auth::user();
-
+        $request    =       (object) $request;
+        $user       =       User::find(Auth::id());
         #Send OTP
         if($request->action == 1){
+
             $check2 = CorporativePlanUser::where('corporate_email', $request->email)->where('is_verified', 1)->first();
+
             if ($check2) {
-                return $this->sendResponsewithoutData( "Provided email already in use", 400);
+
+                return $this->sendResponsewithoutData("Provided email already in use", 400);
             }
 
-            $email = explode('@', $request->email);
-            $domain = $email[1];
-            $check = Domain::where('name', $domain)->first();
-            $expiry = Carbon::now()->addMinutes(10);
-            $otp = rand(123468, 999999);
+            $email          = explode('@', $request->email);
+            $domain         = $email[1];
+            $check          = Domain::where('name', $domain)->first();
+            $expiry         = Carbon::now()->addMinutes(10);
+            $otp            = rand(123468, 999999);
             if ($check) {
+
                 $emp1 = CorporativePlanUser::where('user_id', $user->id)->first();
                 if (isset($emp1)) {
                     $emp = CorporativePlanUser::where('user_id', $user->id)->where('corporate_email', $request->email)->first();
@@ -202,16 +222,22 @@ class user_payment extends BaseController
                     return $this->sendResponsewithoutData( "OTP sent, please check your mail", 200);
                 }
             } else {
-                return $this->sendResponsewithoutData( "Access Denied! Your Company is not partner with us.", 400);
+
+                return $this->sendResponsewithoutData( "No corporate plan available.", 400);
             }
         }
 
         #verify OTP
         elseif($request->action == 2){
-            $employee = CorporativePlanUser::where('user_id', $user->id)->first();
+
+            $employee       = CorporativePlanUser::where('user_id', $user->id)->first();
+
             if (isset($employee)) {
+
                 if ($employee->is_verified != 1) {
+
                     if ($employee->otp_expiry > Carbon::now()) {
+
                         if ($employee->otp == $request->otp) {
                             #Create Plan Order
                             $order                      = new UserPlan;
@@ -227,7 +253,6 @@ class user_payment extends BaseController
                             $employee->otp          = null;
                             $employee->otp_expiry   = null;
                             $employee->is_verified  = 1;
-                            $employee->is_verified  = 1;
                             $employee->is_active    = 1;
                             $employee->save();
 
@@ -237,8 +262,10 @@ class user_payment extends BaseController
                             $user->save();
 
                             #cancel trail plan if active
-                            $trial_plan= UserPlan::where('user_id', $user->id)->where('is_trial_plan', 1)->where('is_active', 1)->first();
+                            $trial_plan                     = UserPlan::where('user_id', $user->id)->where('is_trial_plan', 1)->where('is_active', 1)->first();
+
                             if(isset($trial_plan)){
+
                                 $trial_plan->is_active      = 2;
                                 $trial_plan->cancelled_at   = Carbon::now();
                                 $trial_plan->save();

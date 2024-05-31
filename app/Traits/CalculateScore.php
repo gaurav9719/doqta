@@ -108,6 +108,7 @@ trait CalculateScore
     public function calculateScoreByAi($postId)
     {
         log::info("come");
+        
         try {
             $post = Post::where('id', $postId)->first();
 

@@ -191,7 +191,7 @@ class GetUserService extends BaseController
             
                     if(isset($user_medical->medicial_document) && !empty($user_medical->medicial_document)){
                         // Prepend asset path to the icon attribute
-                        $user_medical->medicial_document = asset('storage/' . $user_medical->medicial_document);
+                        $user_medical->medicial_document = $this->addBaseInImage($user_medical->medicial_document);
                     }
                 });
             }
@@ -207,8 +207,8 @@ class GetUserService extends BaseController
 
             //     $userDetail->user_interest['interest']['icon']  = asset('storage/' . $userDetail->user_interest['interest']['icon']);
             // }
-            $userDetail->profile        = $userDetail->profile ? asset('storage/' . $userDetail->profile) : null;
-            $userDetail->cover          = $userDetail->cover ? asset('storage/' . $userDetail->cover) : null;
+            $userDetail->profile        = $this->addBaseInImage($userDetail->profile);
+            $userDetail->cover          = $this->addBaseInImage($userDetail->cover);
         }
         return $userDetail;
     }

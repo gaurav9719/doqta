@@ -122,8 +122,9 @@ class GetCommunityService extends BaseController
                     if(isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)){
 
                         if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
-
+                            
                             $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
+
                         }
                         $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
                         $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
