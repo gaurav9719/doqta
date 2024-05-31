@@ -2,11 +2,13 @@
 
 namespace App\Http\Requests\Journal_entry;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Contracts\Validation\Validator;
-use App\Rules\FeelingTypeIsExist;
 use App\Rules\SymptomIsExist;
+use App\Rules\AtLeastOneSymptom;
+use App\Rules\FeelingTypeIsExist;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
 class JournalEntry extends FormRequest
 {
     /**
@@ -20,14 +22,17 @@ class JournalEntry extends FormRequest
             'feeling'=>'required|integer|exists:feelings,id',
             'feeling_type' => ['required','array',new FeelingTypeIsExist],
             'pain' => 'required|integer|between:0,5',
-            'symptom'=>['required','array',new SymptomIsExist],
+            'symptom'=>['nullable','array',new SymptomIsExist],
             'other_symptom'=>['nullable','array'],
             'content' => 'required|string|min:3',
             'link' => 'nullable|url',
             'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
+            new AtLeastOneSymptom,
         ];
     }
+
+   
  
 
 
@@ -40,6 +45,8 @@ class JournalEntry extends FormRequest
             
             'symptom.array' => 'Invalid symptom',
             'other_symptom.array' => 'Invalid other symptom',
+            'symptom.required_without' => 'Either symptom or other_symptom must be present.',
+            'other_symptom.required_without' => 'Either symptom or other_symptom must be present.',
         
         ];
     }

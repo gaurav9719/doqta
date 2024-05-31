@@ -385,6 +385,7 @@ class JournalController extends BaseController
     #----------  N E W      F U N C T I O N --------------_____# MAY17,2024
     public function journalEntry(JournalEntryValidation $request)
     {
+        // dd($request->all());
         DB::beginTransaction();
         try {
             $userId = Auth::id();
@@ -736,7 +737,7 @@ class JournalController extends BaseController
     public function insights(Request $request)
     {
         try {
-
+            
             $painScale = ["No Pain","Mild Pain", "Discomforting Pain", "Moderate Pain","Severe Pain","Very Severe Pain"];
              
             $validation = Validator::make($request->all(), [

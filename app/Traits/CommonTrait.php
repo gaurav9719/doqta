@@ -325,7 +325,7 @@ trait CommonTrait
                 $finalResponse = $this->convertIntoJson($result);
                 $finalResponse = json_decode($finalResponse, true);
                 
-                if($type == 1 || $type=3){
+                if($type == 1 || $type==3){
                     if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
                         // return ($finalResponse['insights']);
                         
