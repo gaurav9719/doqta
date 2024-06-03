@@ -91,6 +91,11 @@ return [
     "user.unfollow"=>"Unsupport successfully",
     "already_blocked"=>"User already blocked",
     "user_blocked"=>"User blocked successfully",
+    "user_unblocked"=>"User unblocked successfully",
+    "already_unblocked"=>"No exist in blocked list or already unblocked",
+
+
+
     "already_reported"=>"Report to user already submitted",
     "user_reported"=>"Report to user successfully submitted",
     "add_comment"=>"Comment posted successfully",

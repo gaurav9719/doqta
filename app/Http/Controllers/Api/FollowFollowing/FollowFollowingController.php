@@ -407,12 +407,11 @@ class FollowFollowingController extends BaseController
 
     public function blockUser(Request $request)
     {
-
         DB::beginTransaction();
         try {
 
             $authId         =   Auth::id();
-            $validation     =   Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id'], ['user_id.integer' => "Invalid user"]);
+            $validation     =   Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id','type'=>'required|integer|between:0,1'], ['user_id.integer' => "Invalid user",'type.integer'=>"invalid type"]);
 
             if ($validation->fails()) {
 
@@ -421,25 +420,39 @@ class FollowFollowingController extends BaseController
             } else {
 
                 if($authId==$request->user_id){
-
+                    
                     return $this->sendError(trans("message.something_went_wrong"), [], 403);
                 }
+                $hasBlocked     =   BlockedUser::where(['user_id' => $authId, 'blocked_user_id' => $request->user_id])->first();
+                if($request->type==1){                              // block User
 
-                $hasBlocked     =   BlockedUser::where(['user_id' => $authId, 'blocked_user_id' => $request->user_id])->exists();
+                    if (isset($hasBlocked) && !empty($hasBlocked)) { //already blocked
 
-                if ($hasBlocked) { //already blocked
+                        return $this->sendError(trans("message.already_blocked"), [], 400);
+    
+                    } else {
+    
+                        $blockUser                      =   new BlockedUser();
+                        $blockUser->user_id             =   $authId;
+                        $blockUser->blocked_user_id     =   $request->user_id;
+                        $blockUser->save();
+                        $message                        =   trans('message.user_blocked');
+                    }
 
-                    return $this->sendError(trans("message.already_blocked"), [], 400);
+                }else {                                  //unblocked user
 
-                } else {
+                    if (isset($hasBlocked) && !empty($hasBlocked)) { //already blocked
 
-                    $blockUser                      =   new BlockedUser();
-                    $blockUser->user_id             =   $authId;
-                    $blockUser->blocked_user_id      =  $request->user_id;
-                    $blockUser->save();
-                    DB::commit();
+                        $hasBlocked->delete();
+                        $message                        =   trans('message.user_unblocked');
+                    }else{
+
+                        return $this->sendError(trans('message.already_unblocked'), [], 400);
+
+                    }
                 }
-                return $this->sendResponsewithoutData(trans('message.user_blocked'), 200);
+                DB::commit();
+                return $this->sendResponsewithoutData($message, 200);
             }
         } catch (Exception $e) {
             DB::rollBack();
@@ -462,26 +475,34 @@ class FollowFollowingController extends BaseController
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             } else {
 
-                $hasReported     =   ReportedUser::where(['reporter_id' => $authId, 'reported_user_id' => $request->user_id])->exists();
+                if($authId==$request->user_id){
 
-                if ($hasReported) { //already blocked
+                    return $this->sendError(trans("message.something_went_wrong"), [], 403);
+                }
+
+                $hasReported     =   ReportedUser::where(['reporter_id' => $authId, 'reported_user_id' => $request->user_id])->first();
+
+                if (isset($hasReported) && !empty($hasReported)) { //already blocked
 
                     return $this->sendError(trans("message.already_reported"), [], 400);
-                } else {
 
+                } else {
                     $reportUser                         =   new ReportedUser();
                     $reportUser->reporter_id            =   $authId;
                     $reportUser->reported_user_id       =   $request->user_id;
-
+                    
                     if (isset($request->reason) && !empty($request->reason)) {
 
                         $reportUser->reason             =  $request->reason;
                     }
                     $reportUser->save();
-                    DB::commit();
+                    $message                            =   trans('message.user_reported');
                 }
+                    DB::commit();
+    
                 return $this->sendResponsewithoutData(trans('message.user_reported'), 200);
             }
         } catch (Exception $e) {

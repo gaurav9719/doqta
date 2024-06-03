@@ -367,10 +367,10 @@ class JournalAnalyzerController extends BaseController
                         if (!empty($request->journal_id)) {
                             $query->where('journal_id', $request->journal_id);
                         }
-                        
-                        $moodAvg = $query->whereDate('journal_on', $date)
+                        $moodAvg    =   $query->whereDate('journal_on', $date)
                                         ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
                                         ->first();
+
                         $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
                         $avg_pain    =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_pain'] : 0);
 

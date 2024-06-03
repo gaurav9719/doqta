@@ -27,5 +27,11 @@ class Message extends Model
 
     }
 
+    public function share_user(){
+
+        return $this->belongsTo(User::class,'user_id','id');
+
+    }
+
 
 }

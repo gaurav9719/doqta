@@ -113,7 +113,7 @@ trait CommonTrait
         ]);
     }
 
-
+    #-----------------  S H A R E        P O S T        I N      C H A T    ------------------#
     public function sharePostInChat($request, $myId, $recievers)
     {
 
@@ -187,6 +187,182 @@ trait CommonTrait
             return $this->sendError($e->getMessage(), [], 422);
         }
     }
+    #------------------- S H A R E      P O S T         I N     C H A T     ------------------#
+
+
+    #------------------ S H A R E       P R O F I L E   I N     C H A T     ------------------#
+    public function shareUserInChat($request, $myId, $recievers)
+    {
+
+        DB::beginTransaction();
+
+        try {
+
+            $userIDs                            =               explode(',', $recievers);
+
+            if (isset($userIDs) && !empty($userIDs)) {
+
+                $message_type                   =               5;
+                $userData                       =               User::where(['id' => $request->user_id, 'is_active' => 1])->first();
+                $userName                       =               "shared profile " . $userData->user_name;
+
+                foreach ($userIDs as $reciever) {
+
+                    $message                    =               Inbox::where(function ($query) use ($myId, $reciever) {
+
+                        $query->where(function ($subQuery) use ($myId, $reciever) {
+
+                            $subQuery->where('sender_id', $myId)
+                                ->where('receiver_id', $reciever);
+                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
+
+                            $subQuery->where('receiver_id', $myId)
+                                ->where('sender_id', $reciever);
+                        });
+                    })->first();
+
+                    if (empty($message)) {
+                        // create new thread
+                        $message                       =               new Inbox();
+                        $message->sender_id            =               $myId;
+                        $message->receiver_id          =               $reciever;
+                        $message->save();
+                    }
+                    $inboxId                            =               $message->id;
+                    #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
+                    $sendMessage                        =                new Message();
+                    $sendMessage->inbox_id              =                $inboxId;
+                    $sendMessage->sender_id             =                $myId;
+                    $sendMessage->message               =                $userName;
+                    $sendMessage->message_type          =                $message_type;
+                    $sendMessage->user_id               =                $userData->id;
+                    $sendMessage->save();
+                    $lastMessageId                      =               $sendMessage->id;
+                    Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
+                    #----- share Post with user -----#
+                    #send notification
+                    $receiver                           =               User::find($reciever);
+                    $sender                             =               User::find($myId);
+                    $message                            =               "New message from " . $sender->name;
+                    $data                               =               ["message" => $message, 'notification_type' => trans('notification_message.send_message_type')];
+                    sendPushNotificationNew($sender, $receiver, $data);
+                    DB::commit();
+                }
+                return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
+            } else {
+
+                return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
+            }
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::error('Error caught: "shareUserWithMessage" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
+    #------------------ S H A R E       P R O F I L E   I N     C H A T     ------------------#
+
+    public function shareInChat($request, $myId, $recievers)
+    {
+        DB::beginTransaction();
+        try {
+            $userIDs = explode(',', $recievers);
+
+            if (isset($userIDs) && !empty($userIDs)) {
+                $messageContent = '';
+                $relatedDataId = null;
+                $type = $request->type;
+
+                if ($type == 1) {
+                    // Sharing a post
+                    $message_type = 5;
+                    $postData = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
+                    $messageContent = $postData->title;
+                    $relatedDataId = $postData->id;
+
+                } elseif ($type == 2) {
+                    $message_type = 6;
+                    // Sharing a user profile
+                    $userData = User::where(['id' => $request->user_id, 'is_active' => 1])->first();
+                    $messageContent = "shared profile @". $userData->user_name;
+                    $relatedDataId = $userData->id;
+                }
+
+                foreach ($userIDs as $reciever) {
+                    $message = Inbox::where(function ($query) use ($myId, $reciever) {
+                        $query->where(function ($subQuery) use ($myId, $reciever) {
+                            $subQuery->where('sender_id', $myId)->where('receiver_id', $reciever);
+                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
+                            $subQuery->where('receiver_id', $myId)->where('sender_id', $reciever);
+                        });
+                    })->first();
+
+                    if (empty($message)) {
+                        // Create new thread
+                        $message = new Inbox();
+                        $message->sender_id = $myId;
+                        $message->receiver_id = $reciever;
+                        $message->save();
+                    }
+
+                    $inboxId = $message->id;
+
+                    // Add data to message table
+                    $sendMessage = new Message();
+                    $sendMessage->inbox_id = $inboxId;
+                    $sendMessage->sender_id = $myId;
+                    $sendMessage->message = $messageContent;
+                    $sendMessage->message_type = $message_type;
+                    if ($type == 1) {
+                        $sendMessage->post_id = $relatedDataId;
+                    } elseif ($type == 2) {
+                        $sendMessage->user_id = $relatedDataId;
+                    }
+                    $sendMessage->save();
+
+                    $lastMessageId = $sendMessage->id;
+                    Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
+
+                    // Share post with user (if type is 1)
+                    if ($type == 1) {
+                        $isCreated = SharePost::updateOrCreate(
+                            ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
+                            ['message_id' => $lastMessageId]
+                        );
+                        if ($isCreated->wasRecentlyCreated) {
+                            increment('posts', ['id' => $relatedDataId], 'share_count', 1);
+                        }
+                    }
+
+                    // Send notification
+                    $receiver = User::find($reciever);
+                    $sender = User::find($myId);
+                    $notificationMessage = "New message from " . $sender->name;
+                    $data = ["message" => $notificationMessage, 'notification_type' => trans('notification_message.send_message_type')];
+                    sendPushNotificationNew($sender, $receiver, $data);
+                }
+
+                DB::commit();
+                return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
+            } else {
+                return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
+            }
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::error('Error caught: "shareInChat" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
 
     public function getLastMessage($message_id, $myId)
     {
@@ -428,7 +604,7 @@ trait CommonTrait
         ];
         // Convert the PHP array to JSON
         $data = array(
-             "system_instruction"=>array("parts"=> $guidelines),
+            "system_instruction" => array("parts" => $guidelines),
             "contents" => array(
                 array(
                     "role" => "user",
@@ -459,7 +635,7 @@ trait CommonTrait
         } else {
             // Close cURL session
             curl_close($curl);
-         
+
             $response = json_decode($response, true);
             try {
 
@@ -479,15 +655,13 @@ trait CommonTrait
                             'data' => $finalResponse
                         ];
                         return $finalResult;
-
                     } else {
 
                         return $this->generateReportAIChatTrait($data, $count + 1);
                     }
-                }else {
+                } else {
 
                     return $this->generateReportAIChatTrait($data, $count + 1);
-
                 }
             } catch (Exception $e) {
                 Log::error('Error while creating journal report: ' . $e->getMessage());

@@ -131,7 +131,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     // Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
     // Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
     // Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
-    Route::post('user/blockUser', [FollowFollowingController::class,'blockUser']);
+    Route::post('user/block', [FollowFollowingController::class,'blockUser']);
+    Route::post('user/report', [FollowFollowingController::class,'reportUser']);
     Route::resource('supportSupporting', FollowFollowingController::class);
     
 });

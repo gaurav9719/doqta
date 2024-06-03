@@ -757,29 +757,44 @@ class CommunityPost extends BaseController
     {
 
         $validate = Validator::make($request->all(), [
-            'post_id' => 'required|exists:posts,id',
+            'type' => 'required|integer|between:1,2',
+            'post_id' => ['required_if:type,1','integer', 'exists:posts,id'],
+            'user_id' => ['required_if:type,2','integer', 'exists:users,id'],
             'receiver_id' => 'required|exists:users,id',
-        ]);
+        ],['post_id.required_if'=>"post id requierd",'user_id.required_if'=>"user id requierd"]);
+
         if ($validate->fails()) {
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
 
         } else {
-
-            $postData = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
-
-            if (empty($postData)) {
-
-                return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
-            }
-            $myId = Auth::id();
-
+            $myId     = Auth::id();
             $reciever = $request->receiver_id;
-            // if ($myId == $reciever) {
+            if($request->type==1){      //share post
+                $postData = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
 
-            //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
-            // }
-            return $this->sharePostInChat($request, $myId, $reciever);
+                if (empty($postData)) {
+    
+                    return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
+                }
+                // if ($myId == $reciever) {
+    
+                //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
+                // }
+                // return $this->sharePostInChat($request, $myId, $reciever);
+            }else {                     // share user profile
+                
+                $userData = User::where(['id' => $request->user_id, 'is_active' => 1])->first();
+
+                if (empty($userData)) {
+    
+                    return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
+                }
+                // return $this->shareUserInChat($request, $myId, $reciever);
+            }
+
+            return $this->shareInChat($request, $myId, $reciever);
+            
         }
     }
     #---------------  S H A R E         P O S T      I N    C H A T    ----------------#

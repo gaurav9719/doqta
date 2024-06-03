@@ -819,6 +819,7 @@ public function insights(Request $request){
         $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
         if($ids_count > 0){
             if(count($reports) > 0){
+                
                 foreach($reports as $report){
                     $reportIds= AiMessage::whereIn('inbox_id', $inbox_ids)
                     ->where(function ($query) use ($myId) {

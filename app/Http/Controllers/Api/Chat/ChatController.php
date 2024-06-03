@@ -83,11 +83,12 @@ class ChatController extends BaseController
                             $query->where('is_user1_trash','!=',$myId)->orWhere('is_user2_trash','!=',$myId);
 
                         })->where('sender_id','!=',$myId)->where('isread',0)->count();
+
                        if(isset($result->profile) && !empty($result->profile)){
 
                            $result['profile']          =       $this->addBaseInImage($result->profile);
                        }
-                        $result['last_message']        =   Message::select('id','message','sender_id','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread')->where(['id'=> $result->message_id])->first();
+                        $result['last_message']        =    Message::select('id','message','sender_id','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread')->where(['id'=> $result->message_id])->first();
                         
                         $result->time_ago = time_elapsed_string($result->updated_at);
                         
@@ -230,6 +231,7 @@ class ChatController extends BaseController
                 if ($myId == $reciever) {
 
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
+
                 } else {
 
                     $inbox                    =              Inbox::where(function ($query) use ($myId, $reciever) {
@@ -258,6 +260,11 @@ class ChatController extends BaseController
                         },'post.group'=>function($q){
 
                             $q->select('id','name','description','created_by');
+
+                        },'share_user'=>function($q){
+
+                            $q->select('id','user_name','name','profile','is_active');
+
                         }])->where(function ($query) use ($myId) {
 
                             $query->where('is_user1_trash', '!=', $myId)
@@ -275,10 +282,14 @@ class ChatController extends BaseController
                                     }
                                 }
 
+                                if (isset($result->share_user) && !empty($result->share_user)) { #--- share user detail --___#
 
+                                    if (isset($result->share_user->profile) && !empty($result->share_user->profile)) {
 
+                                        $result->share_user->profile        =   $this->addBaseInImage($result->share_user->profile);
+                                    }
+                                }
 
-                                
                                 if (isset($result->media) && !empty($result->media)) {
 
                                     $result->media        =   $this->addBaseInImage($result->media);
