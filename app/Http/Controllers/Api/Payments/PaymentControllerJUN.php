@@ -9,7 +9,6 @@ use App\Models\Domain;
 use App\Models\UserPlan;
 use Stripe\StripeClient;
 use Illuminate\Http\Request;
-use App\Models\PaymentHistory;
 use Illuminate\Support\Facades\DB;
 use App\Models\CorporativePlanUser;
 use Illuminate\Support\Facades\Log;
@@ -82,49 +81,61 @@ class PaymentController extends BaseController
         try {
 
             $validator           =      Validator::make($request->all(), [
-                'plan_id'=>'nullable|integer|exists:plans,id',
+                'plan_id'=>'required|integer|exists:plans,id',
+                'type'   => 'required|integer|between:1,4',
                 ],
                 ['type.integer'=>"invalid type"]);
                 // Add custom rule for no special characters
 
             if ($validator->fails()) {
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-            }
 
+            }
+            #check any paid plan active on account
+            $authId          =      Auth::id();
+            $check           =      UserPlan::where('user_id', $authId)->where('is_trial_plan', 0)->where('is_active', 1)->first();
+
+            if(isset($check)){
+
+                $check->plan_details;
+
+                return $this->sendResponse($check, $check['plan_details']['name']." Plan already active on your account", 200);
+
+            }
             
-            $authId = Auth::id();
-            if(isset($request->plan_id)){
-                
-                #Corporate plan
-                $plan= Plan::find($request->plan_id);
-                $request->type = $plan->type;
-                if($plan->type == 4){
-                    $validation = Validator::make($request->all(), [
-                        'email' => 'required|email',
-                        'action' => 'required|integer|between:1,2',
-                        'purchased_device'  => 'required|integer|between:1,2',
-                    ]);
+            #check plan type match with selected plan
+            
+            if(Plan::find($request->plan_id)->type != $request->type){
 
-                    if ($validation->fails()) {
-                        return $this->sendResponsewithoutData($validation->errors()->first(), 400);
-                    }
+                return $this->sendResponsewithoutData("Invalid plan type ", 422);
+            }
+            
+            #Corporate plan
+            if($request->type == 4){
 
-                    return $this->userPayment->corporatePlan($request->all(), $authId);
+                $validation = Validator::make($request->all(), [
+
+                    //'email' => 'required|email:rfc,dns',
+                    'email' => 'required|email',
+                    'action' => 'required|integer|between:1,2',
+                    'purchased_device'  => 'required|integer|between:1,2',
+
+                ]);
+                if ($validation->fails()) {
+
+                    return $this->sendResponsewithoutData($validation->errors()->first(), 400);
                 }
-                else {
-                    
-                    return  $this->userPayment->AppInPurchase($request,$authId);
-                }
+
+                return $this->userPayment->corporatePlan($request->all());
             }
-            else{
-                $response = $this->userPayment->markAsExpiredPlan($authId);
-                if($response){
-                    return $this->sendResponse(null, "Plan Deactivated", 200);
-                }
-                else{
-                    return $this->sendResponse(null, "No any active plan found", 200);
-                }
+            else {
+
+                return  $this->userPayment->AppInPurchase($request,$authId);
+
             }
+            
+
         }
         catch(Exception $e){
 
@@ -154,41 +165,8 @@ class PaymentController extends BaseController
      * Update the specified resource in storage.
      */
     public function update(Request $request, string $id)
-    {   
-        $request['id']= $id;
-        $validate= Validator::make($request->all(), [
-            'id' => 'required|integer|exists:user_plans,id'
-        ]);
-
-        if($validate->fails()){
-            return $this->sendResponsewithoutData($validate->errors()->first(),422);
-        }
-
-        $auth_id= Auth::id();
-        $userPlan= UserPlan::find($id);
-        if($auth_id == $userPlan->user_id){
-            if($userPlan->is_active == 1){
-                $userPlan->cancelled_at = Carbon::now();
-                $userPlan->is_active    = 2;
-                $userPlan->save();
-
-                if($userPlan->plan_details->type == 4){
-                    $corporateUser = CorporativePlanUser::where('user_id', $auth_id)->where('is_active', 1)->where('is_verified', 1)->first();
-                    if(isset($corporateUser)){
-                        $corporateUser->is_active = 0;
-                        $corporateUser->save();
-                    }
-                }
-
-                return $this->sendResponsewithoutData($userPlan->plan_details->name." plan cancelled successfully", 200);
-            }
-            else{
-                return $this->sendResponsewithoutData('Only active plan can be cancelled', 400);
-            }
-        }
-        else{
-            return $this->sendResponsewithoutData("invalid request", 422);
-        }
+    {
+        //
     }
 
     /**
@@ -198,6 +176,126 @@ class PaymentController extends BaseController
     {
         //
     }
+
+
+        #Corporate Plan
+        // function corporatePlan($request){
+        //     $request=(object) $request;
+    
+        //     $user= Auth::user();
+    
+        //     $check1 = UserPlan::where('user_id', $user->id)->where('is_active', 1)->first();
+    
+        //     if ($check1) {
+        //         $plan = Plan::find($check1->plan_id);
+        //         return $this->sendResponsewithoutData("$plan->name plan already activated on your account", 400);
+        //     }
+    
+        //     #Send OTP
+        //     if($request->action == 1){
+        //         $check2 = CorporativePlanUser::where('corporate_email', $request->email)->where('is_verified', 1)->first();
+        //         if ($check2) {
+        //             return $this->sendResponsewithoutData( "Provided email already in use", 400);
+        //         }
+    
+        //         $email = explode('@', $request->email);
+        //         $domain = $email[1];
+        //         $check = Domain::where('name', $domain)->first();
+        //         $expiry = Carbon::now()->addMinutes(10);
+        //         $otp = rand(123468, 999999);
+        //         if ($check) {
+        //             $emp1 = CorporativePlanUser::where('user_id', $user->id)->first();
+        //             if (isset($emp1)) {
+        //                 $emp = CorporativePlanUser::where('user_id', $user->id)->where('corporate_email', $request->email)->first();
+        //                 if (isset($emp)) {
+        //                     if ($emp->otp_expiry > Carbon::now()) {
+        //                         return $this->sendResponsewithoutData("OTP already sent, please check your mail", 200);
+        //                     } else {
+        //                         $emp->otp = $otp;
+        //                         $emp->otp_expiry = $expiry;
+        //                         $emp->save();
+    
+        //                         Mail::to($request->email)->send(new CorporateEmailVerification($otp));
+    
+        //                         return $this->sendResponsewithoutData("OTP sent, please check your mail", 200);
+        //                     }
+        //                 } else {
+        //                     $emp1->domain_id = $check->id;
+        //                     $emp1->corporate_email = $request->email;
+        //                     $emp1->otp = $otp;
+        //                     $emp1->otp_expiry = $expiry;
+        //                     $emp1->save();
+    
+        //                     Mail::to($request->email)->send(new CorporateEmailVerification($otp));
+    
+        //                     return $this->sendResponsewithoutData( "OTP sent, please check your mail", 200);
+        //                 }
+    
+        //             } else {
+        //                 //send otp on provided mail
+                        
+        //                 $employee = new CorporativePlanUser;
+        //                 $employee->domain_id = $check->id;
+        //                 $employee->user_id = $user->id;
+        //                 $employee->corporate_email = $request->email;
+        //                 $employee->otp = $otp;
+        //                 $employee->otp_expiry = $expiry;
+        //                 $employee->save();
+    
+        //                 Mail::to($request->email)->send(new CorporateEmailVerification($otp));
+        //                 return $this->sendResponsewithoutData( "OTP sent, please check your mail", 200);
+        //             }
+        //         } else {
+        //             return $this->sendResponsewithoutData( "Access Denied! Your Company is not partner with us.", 400);
+        //         }
+        //     }
+    
+        //     #verify OTP
+        //     elseif($request->action == 2){
+        //         $employee = CorporativePlanUser::where('user_id', $user->id)->first();
+        //         if (isset($employee)) {
+        //             if ($employee->is_verified != 1) {
+        //                 if ($employee->otp_expiry > Carbon::now()) {
+        //                     if ($employee->otp == $request->otp) {
+        //                         #Create Plan Order
+        //                         $order                      = new UserPlan;
+        //                         $order->user_id             = $user->id;
+        //                         $order->plan_id             = $request->plan_id;
+        //                         $order->is_active           = 1;
+        //                         $order->is_trial_plan       = 0;
+        //                         $order->start_date          = Carbon::now();
+        //                         $order->purchased_device    = $request->purchased_device;
+        //                         $order->save();
+    
+        //                         $employee->user_plan_id = $order->id;
+        //                         $employee->otp          = null;
+        //                         $employee->otp_expiry   = null;
+        //                         $employee->is_verified  = 1;
+        //                         $employee->is_verified  = 1;
+        //                         $employee->is_active    = 1;
+        //                         $employee->save();
+    
+    
+        //                         $user->user_plan_id = $order->id;
+        //                         $user->plan_status = 1;
+        //                         $user->save();
+    
+        //                         return $this->sendResponsewithoutData( "OTP verified!, Corporate membership plan activated on your account", 400);
+        //                     } else {
+        //                         return $this->sendResponsewithoutData( "invalid OTP", 400);
+        //                     }
+        //                 } else {
+        //                     return $this->sendResponsewithoutData( "OTP expired", 400);
+        //                 }
+        //             } else {
+        //                 return $this->sendResponsewithoutData("Corporate membership already activated on your account", 400);
+        //             }
+        //         }
+        //         else {
+        //             return $this->sendResponsewithoutData("Something went wrong", 400);
+        //         }
+        //     }
+        // }
 
 
 

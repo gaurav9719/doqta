@@ -23,7 +23,7 @@ trait CalculateScore
     //     try{
 
     //         $post       =   Post::where('id', $postId)->first();
-    
+
     //         if ((isset($post) && !empty($post)) && (isset($post->content) && !empty($post->content))) {
     //             $curl   = curl_init();
     //             curl_setopt_array($curl, [
@@ -89,7 +89,7 @@ trait CalculateScore
 
     //                 $response_data = json_decode($response, true);
     //                 if (isset($response_data) && !empty($response_data)) {
-    
+
     //                     $score    =   $response_data['choices'][0]['message']['content'];
     //                     if(isset($content) && is_numeric($content)){
     //                         return $score;
@@ -104,11 +104,11 @@ trait CalculateScore
     //     }
     // }
 
-   
+
     public function calculateScoreByAi($postId)
     {
         log::info("come");
-        
+
         try {
             $post = Post::where('id', $postId)->first();
 
@@ -164,11 +164,10 @@ trait CalculateScore
                     $response_data = json_decode($response, true);
                     if (isset($response_data['choices'][0]['message']['content'])) {
                         $score = $response_data['choices'][0]['message']['content'];
-                      
-                        if (is_numeric($score)) {
-                            Log::info('is_numeric'.$score);
-                            return $score;
 
+                        if (is_numeric($score)) {
+                            Log::info('is_numeric' . $score);
+                            return $score;
                         } else {
                             return $this->retryCalculation($postId);
                         }
@@ -201,6 +200,7 @@ trait CalculateScore
     public function CalculateConfidenceScore($postId)
     {
         $post           =       Post::find($postId);
+
         if (isset($post) && !empty($post)) {
             #User score
             $reaction   =      PostLike::where('post_id', $post->id)->count();
@@ -210,10 +210,12 @@ trait CalculateScore
 
                     $query->whereIn('participant_id', [1, 2]);
                 })->count();
+
             if ($reaction > 0) {
 
                 $uPercent = ($Userlike / $reaction) * 100;
             } else {
+
                 $uPercent = 0;
             }
             $uScore                 =       $this->userScore($uPercent);
@@ -235,7 +237,7 @@ trait CalculateScore
             $support_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 1])->count();
             $helpful_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 2])->count();
             $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
-            $rePostCount            =       Post::where(['parent_id'=>$post->id,'is_active'=>1])->count();
+            $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
 
             $post->total_count      =       $reaction;
             $post->support_count    =       $support_count;
@@ -254,6 +256,7 @@ trait CalculateScore
     {
         if ($percent >= 80) {
             return 3;
+            
         } elseif ($percent >= 53.33) {
             return 2;
         } elseif ($percent >= 26.66) {

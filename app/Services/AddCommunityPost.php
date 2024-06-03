@@ -44,6 +44,7 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
+
         try {
             $is_health_provider= UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
             $post = new Post();
@@ -119,7 +120,7 @@ class AddCommunityPost extends BaseController
             $activity->post_id          =    $post->id;
             $activity->community_id     =    $group->id;
             $activity->action_details   =    "Posted in  " . $group->name;
-            $activity->action           =   trans('notification_message.posted_in_community');    //Posted in community
+            $activity->action           =    trans('notification_message.posted_in_community');    //Posted in community
             $activity->save();
             #-------  A C T I V I T Y -----------#
             $this->feedPostNotification($request->community_id, $postId, Auth::user());

@@ -22,6 +22,10 @@ return new class extends Migration
             $table->string('ids_count')->nullable();
             $table->string('start_id')->nullable();
             $table->string('end_id')->nullable();
+            $table->string('is_chat_included')->default(0)->comment('0=not, 1=included');
+            $table->string('chat_start_id')->nullable();
+            $table->string('chat_end_id')->nullable();
+            $table->string('chat_ids_count')->nullable();
             $table->json('report')->nullable();
             $table->tinyInteger('type')->nullable()->comment('1=insights_and_suggestion, 2=report,3 chat insight');
             $table->tinyInteger('report_type')->nullable()->comment('1=journal_report, 2=chat_report');

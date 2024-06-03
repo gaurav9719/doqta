@@ -402,7 +402,7 @@ class UserController extends BaseController
 
 public function iosPush(){
 
-    IosPush("e8f1ff8294fae16cfd528e16f387b10a4e1a6cbc9ec5028415b2cc2ff1d8544b","hello",1,['name'=>"param"],$mood_icon = '');
+    dd(IosPush("96fee2946e3214071409278ca8e3d337bc3aa5998e36c16efa8141929e230c5e","Hello sir",1,['name'=>"param"],$mood_icon = ''));
 }
 
 
