@@ -107,8 +107,10 @@ class UserController extends BaseController
         $validate= Validator::make($request->all(), [
             'type' => 'nullable|integer|between:1,2',
             'limit'=> 'nullable|integer',
+            'user_id'=> 'required|integer|exists:users,id',
         ]);
         if($validate->fails()){
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
 
@@ -117,7 +119,7 @@ class UserController extends BaseController
             
             $limit      =   isset($request->limit) ? $request->limit : 10;
 
-            $activity   =    $this->getActivity($limit);
+            $activity   =    $this->getActivity($request,$limit);
 
             return $this->sendResponse($activity, "Your Activities", 200);
         }
@@ -125,6 +127,7 @@ class UserController extends BaseController
         if (isset($request->user_id) && !empty($request->user_id)) {
 
             $getUser        =   $request->user_id;
+
         } else {
 
             $getUser        =   $authId;
@@ -269,108 +272,130 @@ class UserController extends BaseController
             Log::error('Error caught: "requestEmailChange" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
-}
-
-function getActivity($limit){
-    $authId=Auth::id();
-    $types=[10,11,12,13,14,15];
-    $actions= [
-        10 => "You posted in the community",
-        11 => "You liked this post",
-        12 => "You Commented on this post",
-        13 => "You liked comment of this post",
-        14 => "You replied comment of this post",
-        15 => "You reposted the post",
-    ];
-
-    $caseStatement = "CASE";
-    foreach ($actions as $type => $message) {
-        $caseStatement .= " WHEN action = $type THEN '$message'";
     }
-    $caseStatement .= " ELSE 'Your action' END AS action_message";
-    
-    $activities =ActivityLog::select('id','user_id','post_id','community_id','like_id','community_member_id','parent_id','action','action_details','is_active','created_at','updated_at','comment_id')
-        ->selectRaw($caseStatement)
-        ->where('user_id', $authId)
-        ->whereIn('action', $types)
-        ->with(['post_details'=> function($query) use($authId){
-            
-            $query->with(['post_user'=>function($query){
 
-                $query->select('id','name','user_name','profile');
-                },
-                'group'=>function($query){
-                    $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
-                },
-                'comment' => function($query) use ($authId){
-                    $query->where('user_id', $authId);
-                },
-                'parent_post' => function ($query) {
-                    $query->select('*')
-                        ->where('is_active', 1)
-                        ->with([
-                            'post_user' => function ($query) {
-                                $query->select('id', 'name','user_name', 'profile');
-                            }
-                        ]);
-                },'parent_post.group'=>function($query){
+    function getActivity($request,$limit){
 
-                    $query->select('id','name','description','created_by');
-                }
-            ])->withCount(['total_likes','total_comment']);
-        }])
+
+        $loginId         =   Auth::id();
+        $userId          =   $request->user_id;
+        $userData        =   User::where(['is_active'=>1,'id'=>$userId])->first();
+        //dd($userData['user_name']);
+        // if(empty($userData)){
+
+
+
+        // }
+        $user_name     =    ($loginId == $request->user_id)? "You" :$userData['user_name'];
+        // dd($user_name);
+        $types=[10,11,12,13,14,15];
+        $actions= [
+            10 => "posted in the community",
+            11 => "liked this post",
+            12 => "Commented on this post",
+            13 => "liked comment of this post",
+            14 =>"replied comment of this post",
+            15 => "reposted the post",
+        ];
         
-        ->orderBy('id', 'desc')
-        ->simplePaginate($limit);
 
-        $activities->each(function ($homeScreenPost) use($authId) {
+        $caseStatement = "CASE";
+        foreach ($actions as $type => $message) {
+            $caseStatement .= " WHEN action = $type THEN '$message'";
+        }
+        $caseStatement .= " ELSE 'Your action' END AS action_message";
+        
+        $activities =ActivityLog::select('id','user_id','post_id','community_id','like_id','community_member_id','parent_id','action','action_details','is_active','created_at','updated_at','comment_id')
+            ->selectRaw($caseStatement)
+            ->where('user_id', $userId)
+            ->whereIn('action', $types)
+            ->with(['post_details'=> function($query) use($userId){
+                
+                $query->with(['post_user'=>function($query){
 
-            if (isset($homeScreenPost->post_details->media_url) && !empty($homeScreenPost->post_details->media_url)) {
+                    $query->select('id','name','user_name','profile');
+                    },
+                    'group'=>function($query){
 
-                $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
-            }
-            if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
+                        $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
+                    },
+                    'comment' => function($query) use ($userId){
+                        $query->where('user_id', $userId);
+                    },
+                    'parent_post' => function ($query) {
+                        $query->select('*')
+                            ->where('is_active', 1)
+                            ->with([
+                                'post_user' => function ($query) {
+                                    $query->select('id', 'name','user_name', 'profile');
+                                }
+                            ]);
+                    },'parent_post.group'=>function($query){
 
-                $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
-            }
+                        $query->select('id','name','description','created_by');
+                    }
+                ])->withCount(['total_likes','total_comment']);
+            },'user'=>function($q){
+                $q->select('id','name','user_name','profile');
+            }])
+            ->orderBy('id', 'desc')
+            ->simplePaginate($limit);
 
-            if (isset($homeScreenPost->post_details->post_user) &&  !empty($homeScreenPost->post_details->post_user->profile)) {
+            $activities->each(function ($homeScreenPost) use($loginId) {
 
-                $homeScreenPost->post_details->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_details->post_user->profile);
-            }
-            if ($homeScreenPost->post_details->group &&  $homeScreenPost->post_details->group->cover_photo) {
+                if (isset($homeScreenPost->post_details->media_url) && !empty($homeScreenPost->post_details->media_url)) {
 
-                $homeScreenPost->post_details->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->post_details->group->cover_photo );
-            }
-            $isExist                         =   $this->IsPostLiked($homeScreenPost->post_details->id, $authId);
-            $homeScreenPost->post_details->is_liked        =   $isExist['is_liked'];
-            $homeScreenPost->post_details->reaction        =   $isExist['reaction'];
-            $isRepost                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->id,'user_id'=>$authId,'is_active'=>1])->exists();
-            $homeScreenPost->post_details->is_reposted  =  ($isRepost)?1:0;
-            $homeScreenPost->post_details->postedAt     =   time_elapsed_string($homeScreenPost->post_details->created_at);
-
-
-            #------------ parent post data-----------------#
-            if(isset($homeScreenPost->post_details->parent_post) && !empty($homeScreenPost->post_details->parent_post)){
-
-                if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
-
-                    $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
+                    $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
                 }
-                $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $authId);
-                $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];
-                $homeScreenPost->post_details->parent_post->reaction        =   $isExist['reaction'];
-                $homeScreenPost->post_details->parent_post->total_likes_count =   $isExist['total_likes_count'];
-                $homeScreenPost->post_details->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->post_details->parent_post->id)->count();
-                $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                $homeScreenPost->post_details->parent_post->is_reposted     =  ($isRepost)?1:0;
-                $homeScreenPost->post_details->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->post_details->parent_post->created_at);
-            }
 
-        });
+                if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
 
-    return $activities;
-}
+                    $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
+                }
+
+                if (isset($homeScreenPost->post_details->post_user) &&  !empty($homeScreenPost->post_details->post_user->profile)) {
+
+                    $homeScreenPost->post_details->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_details->post_user->profile);
+                }
+                if ($homeScreenPost->post_details->group &&  $homeScreenPost->post_details->group->cover_photo) {
+
+                    $homeScreenPost->post_details->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->post_details->group->cover_photo );
+                }
+
+                if (isset($homeScreenPost->user) && !empty($homeScreenPost->user->profile)) {
+
+                    $homeScreenPost->user->profile      =  $this->addBaseInImage($homeScreenPost->user->profile);
+                }
+
+                
+                $isExist                                       =   $this->IsPostLiked($homeScreenPost->post_details->id, $loginId);
+                $homeScreenPost->post_details->is_liked        =   $isExist['is_liked'];
+                $homeScreenPost->post_details->reaction        =   $isExist['reaction'];
+                $isRepost                                      =   Post::where(['parent_id'=>$homeScreenPost->post_details->id,'user_id'=>$loginId,'is_active'=>1])->exists();
+                $homeScreenPost->post_details->is_reposted     =  ($isRepost)?1:0;
+                $homeScreenPost->post_details->postedAt        =   time_elapsed_string($homeScreenPost->post_details->created_at);
+
+
+                #------------ parent post data-----------------#
+                if(isset($homeScreenPost->post_details->parent_post) && !empty($homeScreenPost->post_details->parent_post)){
+
+                    if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
+
+                        $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
+                    }
+                    $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $loginId);
+                    $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];
+                    $homeScreenPost->post_details->parent_post->reaction        =   $isExist['reaction'];
+                    $homeScreenPost->post_details->parent_post->total_likes_count =   $isExist['total_likes_count'];
+                    $homeScreenPost->post_details->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->post_details->parent_post->id)->count();
+                    $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->parent_post->id,'user_id'=>$loginId,'is_active'=>1])->exists();
+                    $homeScreenPost->post_details->parent_post->is_reposted     =  ($isRepost)?1:0;
+                    $homeScreenPost->post_details->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->post_details->parent_post->created_at);
+                }
+            });
+
+        return $activities;
+    }
 
 
 

@@ -150,6 +150,8 @@ class JournalAnalyzerController extends BaseController
          
         // return $data;
 
+        
+
         $data = array(
             "contents" => array(
                 array(

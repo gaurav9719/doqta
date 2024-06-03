@@ -20,9 +20,10 @@ use GeminiAPI\Laravel\Facades\Gemini;
 use GeminiAPI\Resources\Parts\TextPart;
 use GeminiAPI\Resources\Parts\ImagePart;
 use App\Traits\postCommentLikeCount;
+
 trait CommonTrait
 {
-    protected $count=0;
+    protected $count = 0;
 
 
 
@@ -32,7 +33,7 @@ trait CommonTrait
         try {
             //code...
             $journal                            =   Journal::where('id', $journalId)->exists();
-            log::info("joural:".$journal);
+            log::info("joural:" . $journal);
             if ($journal) {
                 log::info("jouralok:");
 
@@ -42,17 +43,16 @@ trait CommonTrait
                     log::info("topic:");
                     $topicName                  =   $getTopic->name;
                     // DB::enableQueryLog();
-                    $isExistopic                =   JournalTopic::where('name', $topicName)->where('id','!=',$topic)->whereNull('parent_id')->first();
+                    $isExistopic                =   JournalTopic::where('name', $topicName)->where('id', '!=', $topic)->whereNull('parent_id')->first();
                     log::info(DB::getQueryLog());
                     if (isset($isExistopic) && !empty($isExistopic)) {
-                        log::info("exist topic:".$isExistopic);
+                        log::info("exist topic:" . $isExistopic);
                         $getTopic->parent_id       = $isExistopic->id;
                         $getTopic->save();
-
                     } else {
                         log::info("ai call topic:");
                         $result  = Gemini::generateText("Provide the list of different types of pain or symptoms associated with this health " . $topicName . " topic  with the 'symptoms' key. Only include the names of the symptoms with related this topic, with a maximum of 20 with each symptoms name upto 20 characters only in JSON object output without extra spaces and quotes around the keys and without any text outside the symptoms key:");
-                        log::info("ai call result:".$result);
+                        log::info("ai call result:" . $result);
 
                         if (strpos($result, '"""') !== false) {
 
@@ -64,7 +64,7 @@ trait CommonTrait
                         }
 
                         $jsonData               =   json_decode($jsonString, true);
-                        if(empty($jsonData)){
+                        if (empty($jsonData)) {
 
                             $this->createSymtomByTopic($journalId, $topic);
                         }
@@ -93,7 +93,6 @@ trait CommonTrait
         if (isset($journal) && !empty($journal)) {
 
             $topicId                 =      $journal->id;
-
         } else {
 
             $journal                =       new JournalTopic();
@@ -115,34 +114,34 @@ trait CommonTrait
     }
 
 
-    public function sharePostInChat($request,$myId,$recievers){
+    public function sharePostInChat($request, $myId, $recievers)
+    {
 
         DB::beginTransaction();
         try {
-            
-            $userIDs                            =               explode(',',$recievers);
-          
-            if(isset($userIDs) && !empty($userIDs)){
-                
+
+            $userIDs                            =               explode(',', $recievers);
+
+            if (isset($userIDs) && !empty($userIDs)) {
+
                 $message_type                   =               5;
-                $postData                       =               Post::where(['id'=>$request->post_id,'is_active'=>1])->first();
+                $postData                       =               Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
                 $postTitle                      =               $postData->title;
                 foreach ($userIDs as $reciever) {
-                   
+
                     $message                    =               Inbox::where(function ($query) use ($myId, $reciever) {
-                        
+
                         $query->where(function ($subQuery) use ($myId, $reciever) {
-        
+
                             $subQuery->where('sender_id', $myId)
                                 ->where('receiver_id', $reciever);
-        
                         })->orWhere(function ($subQuery) use ($myId, $reciever) {
-        
+
                             $subQuery->where('receiver_id', $myId)
                                 ->where('sender_id', $reciever);
                         });
                     })->first();
-        
+
                     if (empty($message)) {
                         // create new thread
                         $message                       =               new Inbox();
@@ -150,7 +149,7 @@ trait CommonTrait
                         $message->receiver_id          =               $reciever;
                         $message->save();
                     }
-        
+
                     $inboxId                            =               $message->id;
                     #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
                     $sendMessage                        =                new Message();
@@ -163,32 +162,30 @@ trait CommonTrait
                     $lastMessageId                      =               $sendMessage->id;
                     Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
                     #----- share Post with user -----#
-                    $isCreated                           =              SharePost::updateOrCreate(['user_id'=>$myId,'send_to'=>$reciever,'post_id'=>$postData->id],['message_id'=>$lastMessageId]);
+                    $isCreated                           =              SharePost::updateOrCreate(['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $postData->id], ['message_id' => $lastMessageId]);
                     if ($isCreated->wasRecentlyCreated) {
                         // The record was just created
-                        increment('posts',['id'=>$postData->id],'share_count',1);
+                        increment('posts', ['id' => $postData->id], 'share_count', 1);
                     }
                     #----- share Post with user -----#
                     #send notification
                     $receiver                           =               User::find($reciever);
                     $sender                             =               User::find($myId);
                     $message                            =               "New message from " . $sender->name;
-                    $data                               =               ["message"=> $message,'notification_type'=>trans('notification_message.send_message_type')];
-                    sendPushNotificationNew($sender, $receiver,$data);
+                    $data                               =               ["message" => $message, 'notification_type' => trans('notification_message.send_message_type')];
+                    sendPushNotificationNew($sender, $receiver, $data);
                     DB::commit();
                 }
                 return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
-            }else{
+            } else {
 
                 return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
-
             }
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "sharePostWithMessage" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 422);
         }
-        
     }
 
     public function getLastMessage($message_id, $myId)
@@ -200,11 +197,9 @@ trait CommonTrait
         }, 'reply_to.sender' => function ($query) {
 
             $query->select('id', 'name', 'profile');
+        }, 'post' => function ($query) {
 
-        },'post'=>function($query){
-
-            $query->select('id','title','parent_id','title','content','media_type','media_url');
-
+            $query->select('id', 'title', 'parent_id', 'title', 'content', 'media_type', 'media_url');
         }])->where(function ($query) use ($myId) {
 
             $query->where('is_user1_trash', '!=', $myId)
@@ -269,23 +264,22 @@ trait CommonTrait
     }
 
 
-    public function isSupportSupporting($loginUser,$otherUserId){
+    public function isSupportSupporting($loginUser, $otherUserId)
+    {
 
-        $isSupporting               =   UserFollower::where(['user_id'=>$otherUserId , 'follower_user_id'=>$loginUser])->exists();
-        
-
-
+        $isSupporting               =   UserFollower::where(['user_id' => $otherUserId, 'follower_user_id' => $loginUser])->exists();
     }
 
 
-    Function generateReportAItraint($data, $type){
+    function generateReportAItraint($data, $type)
+    {
 
         // Define your API key
         $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
 
         // Define the URL
         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
-         
+
         // return $data;
 
         $data = array(
@@ -319,38 +313,32 @@ trait CommonTrait
 
             // return $response;
             try {
-               
+
                 $result = $response['candidates'][0]['content']['parts'][0]['text'];
 
                 $finalResponse = $this->convertIntoJson($result);
                 $finalResponse = json_decode($finalResponse, true);
-                
-                if($type == 1 || $type==3){
+
+                if ($type == 1 || $type == 3) {
                     if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
                         // return ($finalResponse['insights']);
-                        
-                            return $finalResponse;
-                        
+
+                        return $finalResponse;
                     } else {
 
-                        if (self::$count <3) {
+                        if (self::$count < 3) {
                             self::$count++;
                             $this->generateReportAItraint($data, $type);
                         }
-                       
                     }
                     return null;
-
-
-                }
-                elseif($type == 2){
+                } elseif ($type == 2) {
                     if (isset($finalResponse['symptoms']) && isset($finalResponse['mood']) && isset($finalResponse['pain']) && isset($finalResponse['questions_to_ask_your_doctor']) && count($finalResponse['symptoms']) > 0 && count($finalResponse['mood']) > 0 && count($finalResponse['pain']) > 0  && count($finalResponse['questions_to_ask_your_doctor']) > 0) {
                         return [
                             'status' => 200,
                             "message" => "Report generated successfully",
                             'data' => $finalResponse
                         ];
-    
                     } else {
                         return [
                             'status' => 400,
@@ -359,7 +347,6 @@ trait CommonTrait
                         ];
                     }
                 }
-
             } catch (Exception $e) {
                 Log::error('Error while creating journal report: ' . $e->getMessage());
                 return [
@@ -387,11 +374,130 @@ trait CommonTrait
 
 
 
+    function generateReportAIChatTrait($data, $count = 1)
+    {
+        if ($count > 3) {
 
+            $response = [
+                'status' => 201,
+                "message" => "Insufficent data",
+                "data" => [],
+            ];
 
+            return $response;
+        }
+        // Define your API key
+        $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
+        // Define the URL
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+        // return $data;
+        $guidelines = [
+            [
+                "text" => "System: You are now an insights generator that analyzes conversations between Doqta users and the Doqta AI medical companion chatbot. Your role is to identify key observations that can help users and their doctors better understand the user's health journey based on their chatbot interactions. When generating insights from these conversations, follow these guidelines:"
+            ],
+            [
+                "text" => "Health Focus: Only provide insights from conversations pertaining to medical conditions, symptoms, treatments, advice, etc. Ignore any non-health related dialogue."
+            ],
+            [
+                "text" => "User-Centric: Insights should be tailored to each individual user's unique experiences, concerns, and health needs expressed in their conversations."
+            ],
+            [
+                "text" => "Simple Language: Explain insights using clear, easy-to-understand terminology. Avoid complex medical jargon unless defining a term. Maximize clarity and relatability."
+            ],
+            [
+                "text" => "Cultural Competence: Incorporate culturally relevant contexts and phrasing that resonates with the Black community's healthcare experiences where applicable."
+            ],
+            [
+                "text" => "Identify Patterns: Analyze conversations over time to detect patterns, progressions, regressions, themes, knowledge gaps, etc. related to symptoms, treatments, understanding, etc."
+            ],
+            [
+                "text" => "Note Advice Relevance: Highlight areas where the chatbot's advice aligns with or contradicts the user's experiences, beliefs, or ability to follow recommendations."
+            ],
+            [
+                "text" => "Surface Key Concerns: Bring attention to the user's primary health worries, challenges, or unresolved issues that may need further discussion with their doctor."
+            ],
+            [
+                "text" => "Suggest Next Steps: Provide constructive recommendations for the user to explore with their doctor, such as additional clarification, tests, treatment options, lifestyle adjustments, etc."
+            ],
+            [
+                "text" => "Empathetic Tone: Write with empathy, emotional intelligence, and a caring, supportive voice appropriate for a health companion."
+            ],
+            [
+                "text" => "Be concise and write insights as bullets that are no longer than one sentence each."
+            ]
+        ];
+        // Convert the PHP array to JSON
+        $data = array(
+             "system_instruction"=>array("parts"=> $guidelines),
+            "contents" => array(
+                array(
+                    "role" => "user",
+                    "parts" => $data
+                )
+            )
+        );
+        // Initialize cURL session
+        $curl = curl_init($url);
+        // Set cURL options
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        // Execute cURL request
+        $response = curl_exec($curl);
+        // Check for errors
+        if ($response === false) {
+            $error = curl_error($curl);
 
+            return [
+                'status' => 400,
+                "message" => "Exception Error",
+                'data' => $error
+            ];
 
+            // echo "cURL Error: " . $error;
+        } else {
+            // Close cURL session
+            curl_close($curl);
+         
+            $response = json_decode($response, true);
+            try {
 
+                if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
 
+                    $result = $response['candidates'][0]['content']['parts'][0]['text'];
 
+                    $finalResponse = $this->convertIntoJson($result);
+                    $finalResponse = json_decode($finalResponse, true);
+                    // return $finalResponse;
+
+                    if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
+                        // $finalResponse['function_called_count'] = $count;
+                        $finalResult = [
+                            'status' => 200,
+                            "message" => "Insights & Suggestions generated successfully",
+                            'data' => $finalResponse
+                        ];
+                        return $finalResult;
+
+                    } else {
+
+                        return $this->generateReportAIChatTrait($data, $count + 1);
+                    }
+                }else {
+
+                    return $this->generateReportAIChatTrait($data, $count + 1);
+
+                }
+            } catch (Exception $e) {
+                Log::error('Error while creating journal report: ' . $e->getMessage());
+                return [
+                    'status' => 400,
+                    "message" => "Exception Error",
+                    'data' => $e->getMessage()
+                ];
+            }
+        }
+        // Close cURL session
+    }
 }

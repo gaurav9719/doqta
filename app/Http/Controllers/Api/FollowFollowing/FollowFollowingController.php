@@ -412,18 +412,25 @@ class FollowFollowingController extends BaseController
         try {
 
             $authId         =   Auth::id();
-            $validation     =   Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id'], ['user_id.*' => "Invalid user"]);
+            $validation     =   Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id'], ['user_id.integer' => "Invalid user"]);
 
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             } else {
+
+                if($authId==$request->user_id){
+
+                    return $this->sendError(trans("message.something_went_wrong"), [], 403);
+                }
 
                 $hasBlocked     =   BlockedUser::where(['user_id' => $authId, 'blocked_user_id' => $request->user_id])->exists();
 
                 if ($hasBlocked) { //already blocked
 
                     return $this->sendError(trans("message.already_blocked"), [], 400);
+
                 } else {
 
                     $blockUser                      =   new BlockedUser();

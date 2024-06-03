@@ -3,6 +3,7 @@
 namespace App\Rules;
 
 use Closure;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 class AtLeastOneSymptom implements ValidationRule
@@ -15,7 +16,8 @@ class AtLeastOneSymptom implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     { 
         $data = request()->all();
-        dd($data);
+        Log::info('Request Data:', $data);
+
         $symptom = isset($data['symptom']) && is_array($data['symptom']) && !empty($data['symptom']);
         $otherSymptom = isset($data['other_symptom']) && is_array($data['other_symptom']) && !empty($data['other_symptom']);
 

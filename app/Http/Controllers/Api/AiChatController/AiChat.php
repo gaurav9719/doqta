@@ -868,10 +868,12 @@ public function insights(Request $request){
             array("text" => "provide result in json format"),
             array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
             array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
+            array("text" => "if Media link: available, analyze the image and give response accordingly"),
             array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
             );
             $analyzer   = new JournalAnalyzerController();
-            $insight    = $analyzer->generateReportAI($chatData, 3);
+
+            $insight    = $this->generateReportAIChatTrait($chatData);
 
             if(isset($insight['status']) && $insight['status'] == 200){
 

@@ -23,12 +23,12 @@ class JournalEntry extends FormRequest
             'feeling_type' => ['required','array',new FeelingTypeIsExist],
             'pain' => 'required|integer|between:0,5',
             'symptom'=>['nullable','array',new SymptomIsExist],
-            'other_symptom'=>['nullable','array'],
+            'extra_symptom'=>['nullable','array'],
             'content' => 'required|string|min:3',
             'link' => 'nullable|url',
             'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
-            new AtLeastOneSymptom,
+           
         ];
     }
 

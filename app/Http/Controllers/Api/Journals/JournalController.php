@@ -388,9 +388,17 @@ class JournalController extends BaseController
         // dd($request->all());
         DB::beginTransaction();
         try {
+
+            $symptom        = isset($request['symptom']) && is_array($request['symptom']) && !empty($request['symptom']);
+            $otherSymptom   = isset($request['extra_symptom']) && is_array($request['extra_symptom']) && !empty($request['extra_symptom']);
+
+            if (!$symptom && !$otherSymptom) {
+
+                return $this->sendError('Either symptom or other_symptom must be present', [], 400);
+
+            }
             $userId = Auth::id();
             $journalId = $request->journal_id;
-
             $journalExists = Journal::find($journalId);
             if (!$journalExists) {
                 return $this->sendError(trans('message.journal_not_exist'), [], 403);

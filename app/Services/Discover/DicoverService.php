@@ -106,7 +106,8 @@ class DicoverService extends BaseController
 
                 $data['top_videos']       =      [];
             }
-            return $this->sendResponse($data, trans('message.discover_all'), 200);
+            $notification_count     =   notification_count();
+            return $this->sendResponse($data, trans('message.discover_all'), 200,$notification_count);
 
         } catch (Exception $e) {
             Log::error('Error caught: "discover-all"' . $e->getMessage());
@@ -769,12 +770,14 @@ class DicoverService extends BaseController
 
                     $homeScreenPost->parent_post->postedAt = time_elapsed_string($homeScreenPost->parent_post->created_at);
 
-                     $isExist    = $this->IsPostLiked($homeScreenPost->parent_post['id'], $authId,1);
+                    $isExist                                           = $this->IsPostLiked($homeScreenPost->parent_post['id'], $authId,1);
                     
-                    $homeScreenPost->parent_post->is_liked = $isExist['is_liked'];
-                     $homeScreenPost->parent_post->reaction = $isExist['reaction'];
-                     $homeScreenPost->parent_post->total_likes_count = $isExist['total_likes_count'];
-                    $homeScreenPost->parent_post->total_comment_count = $isExist['total_comment_count'];
+                    $homeScreenPost->parent_post->is_liked              = $isExist['is_liked'];
+                    $homeScreenPost->parent_post->reaction              = $isExist['reaction'];
+                    $homeScreenPost->parent_post->total_likes_count     = $isExist['total_likes_count'];
+                    $homeScreenPost->parent_post->total_comment_count   = $isExist['total_comment_count'];
+                    $homeScreenPost->is_reposted                        = $isExist['is_reposted'];
+
                 }
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
@@ -782,12 +785,13 @@ class DicoverService extends BaseController
                     $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
                 }
                 // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
-                $homeScreenPost->postedAt = time_elapsed_string($homeScreenPost->created_at);
-                $isExist = $this->IsPostLiked($homeScreenPost->id, $authId,1);
-                $homeScreenPost->is_liked = $isExist['is_liked'];
-                $homeScreenPost->reaction = $isExist['reaction'];
-                $homeScreenPost->total_likes_count = $isExist['total_likes_count'];
-                $homeScreenPost->total_comment_count = $isExist['total_comment_count'];
+                $homeScreenPost->postedAt               = time_elapsed_string($homeScreenPost->created_at);
+                $isExist                                = $this->IsPostLiked($homeScreenPost->id, $authId,1);
+                $homeScreenPost->is_liked               = $isExist['is_liked'];
+                $homeScreenPost->reaction               = $isExist['reaction'];
+                $homeScreenPost->total_likes_count      = $isExist['total_likes_count'];
+                $homeScreenPost->total_comment_count    = $isExist['total_comment_count'];
+                $homeScreenPost->is_reposted            = $isExist['is_reposted'];
             });
             $notification_count     =   notification_count();
             return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200,$notification_count);

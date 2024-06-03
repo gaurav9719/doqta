@@ -1,9 +1,10 @@
 <?php
 namespace App\Traits;
 
+use App\Models\Post;
 use App\Models\Comment;
-use App\Models\CommentLike;
 use App\Models\PostLike;
+use App\Models\CommentLike;
 
 trait IsLikedPostComment
 {
@@ -28,6 +29,8 @@ trait IsLikedPostComment
 
             $data['total_comment_count']  =   Comment::where(['post_id' => $postId])->count();
         }
+        $isRepost                  =   Post::where(['parent_id'=>$postId,'user_id'=>$authId,'is_active'=>1])->exists();
+        $data['is_reposted']       =    ($isRepost)?1:0;
         return $data;
     }
 

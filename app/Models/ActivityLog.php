@@ -28,4 +28,9 @@ class ActivityLog extends Model
         
         return $this->hasOne(Post::class, 'id', 'post_id');
     }
+
+    function user(){
+
+        return $this->belongsTo(User::class,'user_id','id')->where('is_active',1);
+    }
 }
