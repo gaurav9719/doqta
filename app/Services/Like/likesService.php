@@ -120,10 +120,9 @@ class likesService extends BaseController
                     #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
-                DB::commit();
                 // dd($this->CalculateConfidenceScore($request->post_id));
-
                 dispatch(new AiScoreCalculatedJob($request->post_id));
+                DB::commit();
                 return $this->sendResponse($data, trans('message.post_liked'), 200);
                 // return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
             }
