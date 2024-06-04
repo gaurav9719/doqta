@@ -202,7 +202,7 @@ trait CalculateScore
         try {
             log::info("CalculateConfidenceScore");
             $post           =       Post::find($postId);
-
+            
             if (isset($post) && !empty($post)) {
                 #User score
                 $reaction   =      PostLike::where('post_id', $post->id)->count();
@@ -256,17 +256,18 @@ trait CalculateScore
                 $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
                 log::info("rePostCount".$rePostCount);
     
-                $post->total_likes_count =       $reaction;
+                $post->like_count       =       $reaction;
                 $post->support_count    =       $support_count;
                 $post->helpful_count    =       $helpful_count;
                 $post->unhelpful_count  =       $unhelpful_count;
                 $post->repost_count     =       $rePostCount;
 
                 #--------- get comment count ------------#
-                $post->total_comment_count    =       Comment::where(['post_id' =>$post->id])->count();
+                $post->comment_count    =       Comment::where(['post_id' =>$post->id])->count();
                 $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
                 log::info("post".$post);
                 $post->save();
+                // dd($post->id);
             }
         } catch (Exception $e) {
 

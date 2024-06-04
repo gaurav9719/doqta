@@ -59,6 +59,7 @@ class likesService extends BaseController
                     #--- jun 4 ----#
                     //decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
                     post_reaction_count(0, $post->reaction, $request->post_id);
+                    DB::commit();
                     dispatch(new AiScoreCalculatedJob($request->post_id));
                     ActivityLog::where(['user_id' => $authId, 'post_id' => $request->post_id, 'action' => 1])->delete();
                     Notification::where(['sender_id' => $authId, 'post_id' => $request->post_id, 'notification_type' => trans('notification_message.post_liked_message_type')])->delete();
@@ -119,8 +120,8 @@ class likesService extends BaseController
                     #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
-
-                 dd($this->CalculateConfidenceScore($request->post_id));
+                DB::commit();
+                // dd($this->CalculateConfidenceScore($request->post_id));
 
                 dispatch(new AiScoreCalculatedJob($request->post_id));
                 return $this->sendResponse($data, trans('message.post_liked'), 200);
@@ -131,6 +132,7 @@ class likesService extends BaseController
             Log::error('Error caught: "postLike" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         } finally {
+
             DB::commit();
         }
     }
