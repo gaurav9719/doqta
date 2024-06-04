@@ -938,7 +938,7 @@ class JournalController extends BaseController
 
             } else {
                 $topicId    =   $request->topic_id;
-                DB::enableQueryLog();
+                //DB::enableQueryLog();
                 $topic      =   JournalTopic::where('id', $topicId)->first();
 
                 $where      =   "(topic_id=" . $topicId." or type=2)";
@@ -950,7 +950,7 @@ class JournalController extends BaseController
 
                 $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderBy('type')->orderBy('symptom')->get();
 
-                dd(DB::getQueryLog());
+              //  dd(DB::getQueryLog());
                 
                 return $this->sendResponse($symptoms, trans('message.physical_symptom'), 200);
             }
