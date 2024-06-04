@@ -39,7 +39,7 @@ return new class extends Migration
             $table->string('otp')->nullable();
             $table->dateTime('otp_expiry_time')->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->tinyInteger('role')->comment('1=user, 3=admin')->default(1)->after('is_public')->index();
+            $table->tinyInteger('role')->comment('1=user, 3=admin')->default(1)->index();
             $table->rememberToken();
             $table->tinyInteger('is_active')->default(1)->comment('0:inactive,1 active,2deleted');
             $table->timestamps();
