@@ -56,7 +56,6 @@ return new class extends Migration
                 'updated_at' => now()
             ],
 
-
             [
                 'name' => 'AI',
                 'user_name' => 'AI',
