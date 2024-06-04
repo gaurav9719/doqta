@@ -293,7 +293,7 @@ class AiChat extends BaseController
         }
     }
 
-    public function chatLogsOLD(Request $request)
+    public function chatLogs(Request $request)
 {
     try {
         $myId = Auth::id();
