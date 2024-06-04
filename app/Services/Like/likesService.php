@@ -25,13 +25,13 @@ use Illuminate\Support\Facades\Hash;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
-
+use App\Traits\CalculateScore;
 /**
  * Class likesService.
  */
 class likesService extends BaseController
 {
-    use IsCommunityJoined, postCommentLikeCount;
+    use IsCommunityJoined, postCommentLikeCount,CalculateScore;
 
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
@@ -119,6 +119,10 @@ class likesService extends BaseController
                     #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
+
+                dd($this->CalculateConfidenceScore($request->post_id));
+
+
                 dispatch(new AiScoreCalculatedJob($request->post_id));
                 return $this->sendResponse($data, trans('message.post_liked'), 200);
                 // return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));

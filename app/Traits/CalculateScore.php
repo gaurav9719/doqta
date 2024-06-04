@@ -256,6 +256,7 @@ trait CalculateScore
         } catch (Exception $e) {
 
             Log::error('CalculateConfidenceScore.'.$e->getLine());
+            Log::error('CalculateConfidenceScore.'.$e->getMessage());
             
         }
     }
