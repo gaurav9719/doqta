@@ -211,6 +211,7 @@ trait CalculateScore
                     ->whereHas('checkUserRole', function ($query) {
     
                         $query->whereIn('participant_id', [1, 2]);
+
                     })->count();
     
                 if ($reaction > 0) {
@@ -255,6 +256,7 @@ trait CalculateScore
         } catch (Exception $e) {
 
             Log::error('CalculateConfidenceScore.'.$e->getMessage());
+            Log::error('CalculateConfidenceScore.'.$e->getLine());
             
         }
     }
