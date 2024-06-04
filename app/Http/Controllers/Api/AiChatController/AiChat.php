@@ -462,7 +462,9 @@ class AiChat extends BaseController
                 }
                 DB::commit();
 
-                return $this->sendResponse($threadId, trans('message.saved_successfully'), 200);
+                $messageData                       =    AiThread::find($threadId);
+
+                return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
                 // return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
             }
         } catch (Exception $e) {
