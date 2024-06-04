@@ -23,12 +23,11 @@ return new class extends Migration
 
             #---------- NEW ---------#
             $table->bigInteger('total_likes_count')->after('group_id')->default(0);
-            $table->bigInteger('total_comment_count')->after('like_count')->default(0);
+            $table->bigInteger('total_comment_count')->after('total_likes_count')->default(0);
             #---------- NEW ---------#
-
-            $table->bigInteger('repost_count')->after('comment_count')->default(0);
-            $table->bigInteger('share_count')->after('comment_count')->default(0);
-            $table->boolean('is_high_confidence')->after('comment_count')->default(0);
+            $table->bigInteger('repost_count')->after('total_likes_count')->default(0);
+            $table->bigInteger('share_count')->after('total_likes_count')->default(0);
+            $table->boolean('is_high_confidence')->after('total_likes_count')->default(0);
             $table->tinyInteger('is_active')->after('repost_count')->default(1)->comment('1:active,0:inactive,2:hide');
 
         });
@@ -40,9 +39,19 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('posts', function (Blueprint $table) {
-            
-            
+        
             $table->dropColumn('link');
+            $table->dropColumn('total_likes_count');
+            $table->dropColumn('total_comment_count');
+            $table->dropColumn('repost_count');
+            $table->dropColumn('share_count');
+            $table->dropColumn('is_high_confidence');
+            $table->dropColumn('is_active');
+            
+
+
+
+
         });
     }
 };
