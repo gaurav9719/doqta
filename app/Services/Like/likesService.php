@@ -105,7 +105,7 @@ class likesService extends BaseController
                         "community_id"  =>  $group->id,
                         "like_id"       =>  $postLike->id
                     ];
-                    $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+                   // $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                 } else {
                     // update like
                     $oldreact           =   $post->reaction;
