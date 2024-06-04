@@ -294,83 +294,109 @@ class AiChat extends BaseController
     }
    
     public function chatLogs(Request $request)
-{
-    try {
-        $myId = Auth::id();
-        $limit = $request->get('limit', 10);
-
-        // Fetch all notifications sorted by creation date in descending order
-        $allNotifications = AiThread::where(function ($query) use ($myId) {
-            $query->where('sender_id', $myId)
-                ->orWhere('receiver_id', $myId);
-        })->orderBy('created_at', 'desc')->get();
-
-        // Group notifications by date
-        $groupedNotifications = $allNotifications->groupBy(function ($notification) {
-            $notificationDate = Carbon::parse($notification->created_at)->startOfDay();
-            $today = Carbon::now()->startOfDay();
-            $yesterday = Carbon::yesterday()->startOfDay();
-            $startOfWeek = Carbon::now()->startOfWeek();
-            $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
-            $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
-
-            if ($notificationDate->equalTo($today)) {
-                return 'Today';
-            } elseif ($notificationDate->equalTo($yesterday)) {
-                return 'Yesterday';
-            } elseif ($notificationDate->between($startOfWeek, $today)) {
-                return 'This Week';
-            } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
-                return 'Last Week';
-            } else {
-                return 'Older';
-            }
-        });
-
-        // Sort the grouped notifications
-        $sortedGroupedNotifications = $groupedNotifications->sortKeysDesc();
-
-        // Flatten the sorted groups into a single collection
-        $flattenedNotifications = $sortedGroupedNotifications->flatten();
-
-        // Paginate the flattened notifications manually
-        $paginatedNotifications = $flattenedNotifications->forPage($request->get('page', 1), $limit);
-
-        // Map the paginated notifications to the required response structure
-        $responseData = $paginatedNotifications->map(function ($notification) {
-            return [
-                'id' => $notification->id,
-                'sender_id' => $notification->sender_id,
-                'receiver_id' => $notification->receiver_id,
-                'thread_name' => $notification->thread_name,
-                'is_user1_trash' => $notification->is_user1_trash,
-                'is_user2_trash' => $notification->is_user2_trash,
-                'created_at' => $notification->created_at,
-                'updated_at' => $notification->updated_at,
-                'time_ago' => time_elapsed_string($notification->created_at),
+    {
+        try {
+            $myId = Auth::id();
+            $limit = $request->get('limit', 10);
+            $page = $request->get('page', 1);
+    
+            // Fetch all notifications sorted by creation date in descending order
+            $allNotifications = AiThread::where(function ($query) use ($myId) {
+                $query->where('sender_id', $myId)
+                    ->orWhere('receiver_id', $myId);
+            })->orderBy('created_at', 'desc')->get();
+    
+            // Group notifications by date
+            $groupedNotifications = $allNotifications->groupBy(function ($notification) {
+                $notificationDate = Carbon::parse($notification->created_at)->startOfDay();
+                $today = Carbon::now()->startOfDay();
+                $yesterday = Carbon::yesterday()->startOfDay();
+                $startOfWeek = Carbon::now()->startOfWeek();
+                $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
+                $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
+    
+                if ($notificationDate->equalTo($today)) {
+                    return 'Today';
+                } elseif ($notificationDate->equalTo($yesterday)) {
+                    return 'Yesterday';
+                } elseif ($notificationDate->between($startOfWeek, $today)) {
+                    return 'This Week';
+                } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
+                    return 'Last Week';
+                } else {
+                    return 'Older';
+                }
+            });
+    
+            // Sort the grouped notifications by date in descending order
+            $sortedGroupedNotifications = $groupedNotifications->sortKeysDesc();
+    
+            // Flatten the sorted groups into a single collection
+            $flattenedNotifications = $sortedGroupedNotifications->flatten();
+    
+            // Paginate the flattened notifications manually
+            $paginatedNotifications = $flattenedNotifications->slice(($page - 1) * $limit, $limit);
+    
+            // Map the paginated notifications to the required response structure
+            $responseData = $paginatedNotifications->groupBy(function ($notification) {
+                $notificationDate = Carbon::parse($notification->created_at)->startOfDay();
+                $today = Carbon::now()->startOfDay();
+                $yesterday = Carbon::yesterday()->startOfDay();
+                $startOfWeek = Carbon::now()->startOfWeek();
+                $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
+                $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
+    
+                if ($notificationDate->equalTo($today)) {
+                    return 'Today';
+                } elseif ($notificationDate->equalTo($yesterday)) {
+                    return 'Yesterday';
+                } elseif ($notificationDate->between($startOfWeek, $today)) {
+                    return 'This Week';
+                } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
+                    return 'Last Week';
+                } else {
+                    return 'Older';
+                }
+            })->map(function ($notificationsGroup, $date) {
+                return [
+                    'message_on' => $date,
+                    'message' => $notificationsGroup->map(function ($notification) {
+                        return [
+                            'id' => $notification->id,
+                            'sender_id' => $notification->sender_id,
+                            'receiver_id' => $notification->receiver_id,
+                            'thread_name' => $notification->thread_name,
+                            'is_user1_trash' => $notification->is_user1_trash,
+                            'is_user2_trash' => $notification->is_user2_trash,
+                            'created_at' => $notification->created_at,
+                            'updated_at' => $notification->updated_at,
+                            'time_ago' => time_elapsed_string($notification->created_at),
+                        ];
+                    })
+                ];
+            })->values(); // Ensure we return an indexed array, not associative
+    
+            // Prepare the paginated response
+            $data = [
+                'current_page' => $page,
+                'data' => $responseData,
+                'first_page_url' => $request->url() . '?page=1',
+                'from' => (($page - 1) * $limit) + 1,
+                'next_page_url' => $paginatedNotifications->count() === $limit ? $request->url() . '?page=' . ($page + 1) : null,
+                'path' => $request->url(),
+                'per_page' => $limit,
+                'prev_page_url' => $page > 1 ? $request->url() . '?page=' . ($page - 1) : null,
+                'to' => (($page - 1) * $limit) + $paginatedNotifications->count(),
             ];
-        });
-
-        // Prepare the paginated response
-        $data = [
-            'current_page' => (int) $request->get('page', 1),
-            'data' => $responseData->values(),
-            'first_page_url' => $request->url() . '?page=1',
-            'from' => (($request->get('page', 1) - 1) * $limit) + 1,
-            'next_page_url' => $responseData->count() === $limit ? $request->url() . '?page=' . ($request->get('page', 1) + 1) : null,
-            'path' => $request->url(),
-            'per_page' => $limit,
-            'prev_page_url' => $request->get('page', 1) > 1 ? $request->url() . '?page=' . ($request->get('page', 1) - 1) : null,
-            'to' => (($request->get('page', 1) - 1) * $limit) + $responseData->count(),
-        ];
-
-        return $this->sendResponse($data, trans('message.chat_logs'), 200);
-
-    } catch (Exception $e) {
-        Log::error('Error caught: "chatLogs" ' . $e->getMessage());
-        return $this->sendError($e->getMessage(), [], 400);
+    
+            return $this->sendResponse($data, trans('message.chat_logs'), 200);
+    
+        } catch (Exception $e) {
+            Log::error('Error caught: "chatLogs" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
     }
-}
+    
 
     #----------- PIN/UNPIN MESSAGE -------------------_#
 
