@@ -47,16 +47,17 @@ return new class extends Migration
         });
 
         DB::table('users')->insert([
-            [
+            
                 'name' => 'Doqta',
                 'email' => 'doqta@app.com',
                 'password' => Hash::make('Doqta@2024@(+)'),
                 'created_at' => now(),
                 'role'=>3,
                 'updated_at' => now()
-            ],
+            ]);
 
-            [
+            DB::table('users')->insert([
+
                 'name' => 'AI',
                 'user_name' => 'AI',
                 'email' => "doqtaAi@doqtaapp.com",
@@ -65,8 +66,7 @@ return new class extends Migration
                 'role'=>4,
                 'created_at' => now(),
                 'updated_at' => now()
-            ],
-        ]);
+            ]);
     }
 
     /**
