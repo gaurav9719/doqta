@@ -937,18 +937,41 @@ class JournalController extends BaseController
                 return $this->sendError($validate->errors()->first(), [], 400);
 
             } else {
+                $authId     =   Auth::id();
                 $topicId    =   $request->topic_id;
                 //DB::enableQueryLog();
-                $topic      =   JournalTopic::where('id', $topicId)->first();
+                 $topic      =   JournalTopic::where('id', $topicId)->first();
 
-                $where      =   "(topic_id=" . $topicId." or type=2)";
+                // $where      =   "(topic_id=" . $topicId." or type=2)";
 
-                if (isset($topic->parent_id) && !empty($topic->parent_id)) {
+                // $where      =   "((topic_id=" . $topicId." and user_id='".$authId."') or (topic_id=" . $topicId." and user_id IS NULL)) or type=2)";
 
-                    $where .= " or (topic_id='" . $topic->parent_id . "' and user_id IS NULL)";
-                }
+                // if (isset($topic->parent_id) && !empty($topic->parent_id)) {
 
-                $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderBy('type')->orderBy('symptom')->get();
+                //     $where .= " or (topic_id='" . $topic->parent_id . "' and user_id IS NULL)";
+                // }
+
+                // $symptoms = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')->whereRaw($where)->orderBy('type')->orderBy('symptom')->get();
+
+                $query = PhysicalSymptom::select('id', 'symptom', 'type', 'is_active')
+                ->where(function ($query) use ($topicId, $authId) {
+                    $query->where('topic_id', $topicId)
+                        ->where(function ($query) use ($authId) {
+                            $query->where('user_id', $authId)
+                                ->orWhereNull('user_id');
+                        })
+                        ->orWhere('type', 2);
+                });
+
+            if (isset($topic->parent_id) && !empty($topic->parent_id)) {
+                $query->orWhere(function ($query) use ($topic) {
+                    $query->where('topic_id', $topic->parent_id)
+                        ->whereNull('user_id');
+                });
+            }
+
+            $symptoms = $query->orderBy('type')->orderBy('symptom')->get();
+
 
               //  dd(DB::getQueryLog());
                 
