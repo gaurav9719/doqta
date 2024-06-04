@@ -242,13 +242,13 @@ trait CalculateScore
                 $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
                 $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
     
-                $post->total_count      =       $reaction;
+                $post->total_likes_count =       $reaction;
                 $post->support_count    =       $support_count;
                 $post->helpful_count    =       $helpful_count;
                 $post->unhelpful_count  =       $unhelpful_count;
                 $post->repost_count     =       $rePostCount;
                 #--------- get comment count ------------#
-                $post->totalComments    =       Comment::where(['post_id' => $post->id])->count();
+                $post->total_comment_count    =       Comment::where(['post_id' => $post->id])->count();
                 $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
                 $post->save();
             }
