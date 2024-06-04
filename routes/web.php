@@ -21,7 +21,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 // Route::get('/', [AdminDashboardController::class, 'index']);
+Route::get('/', function () {
+    
+    return view('welcome');
 
+});
 Route::prefix('admin')->group(function(){
 
     Route::resource('login', AdminAuthController::class)->middleware('guest');
