@@ -261,9 +261,11 @@ trait CalculateScore
                 $post->helpful_count    =       $helpful_count;
                 $post->unhelpful_count  =       $unhelpful_count;
                 $post->repost_count     =       $rePostCount;
+
                 #--------- get comment count ------------#
-                $post->total_comment_count    =       Comment::where(['post_id' => $post->id])->count();
+                $post->total_comment_count    =       Comment::where(['post_id' =>$post->id])->count();
                 $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
+                log::info("post".$post);
                 $post->save();
             }
         } catch (Exception $e) {
