@@ -214,7 +214,7 @@ class AiChat extends BaseController
 
 
 
-    public function chatLogs(Request $request)
+    public function chatLogsOLD(Request $request)
     {
         try {
             $myId = Auth::id();
@@ -292,7 +292,84 @@ class AiChat extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
+    public function chatLogs(Request $request)
+    {
+        try {
+            $myId = Auth::id();
+            $limit = $request->get('limit', 10);
+    
+            // Fetch the notifications for the logged-in user
+            $notifications = AiThread::where(function ($query) use ($myId) {
+                $query->where('sender_id', $myId)
+                    ->orWhere('receiver_id', $myId);
+            })->paginate($limit);
+    
+            // Group notifications by date
+            $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) {
+                $notificationDate = Carbon::parse($date->created_at)->startOfDay();
+                $today = Carbon::now()->startOfDay();
+                $yesterday = Carbon::yesterday()->startOfDay();
+                $startOfWeek = Carbon::now()->startOfWeek();
+                $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
+                $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
+    
+                if ($notificationDate->equalTo($today)) {
+                    return 'Today';
+                } elseif ($notificationDate->equalTo($yesterday)) {
+                    return 'Yesterday';
+                } elseif ($notificationDate->between($startOfWeek, $today)) {
+                    return 'This Week';
+                } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
+                    return 'Last Week';
+                } else {
+                    return 'Older';
+                }
+            });
+    
+            // Sort the grouped notifications
+            $sortedGroupedNotifications = collect($groupedNotifications)->sortKeysDesc();
+    
+            // Map the sorted groups to the required response structure
+            $responseData = $sortedGroupedNotifications->map(function ($notificationsGroup, $date) {
+                return [
+                    'message_on' => $date,
+                    'message' => $notificationsGroup->map(function ($notification) {
+                        return [
+                            'id' => $notification->id,
+                            'sender_id' => $notification->sender_id,
+                            'receiver_id' => $notification->receiver_id,
+                            'thread_name' => $notification->thread_name,
+                            'is_user1_trash' => $notification->is_user1_trash,
+                            'is_user2_trash' => $notification->is_user2_trash,
+                            'created_at' => $notification->created_at,
+                            'updated_at' => $notification->updated_at,
+                            'time_ago' => time_elapsed_string($notification->created_at),
+                        ];
+                    })
+                ];
+            })->values(); // Ensure we return an indexed array, not associative
+    
+            // Prepare the response data
+            $data = [
+                'current_page' => $notifications->currentPage(),
+                'data' => $responseData,
+                'first_page_url' => $notifications->url(1),
+                'from' => $notifications->firstItem(),
+                'next_page_url' => $notifications->nextPageUrl(),
+                'path' => $notifications->path(),
+                'per_page' => $notifications->perPage(),
+                'prev_page_url' => $notifications->previousPageUrl(),
+                'to' => $notifications->lastItem(),
+            ];
+    
+            return $this->sendResponse($data, trans('message.chat_logs'), 200);
+             
+        } catch (Exception $e) {
+            Log::error('Error caught: "aiChatLogs" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    
     #----------- PIN/UNPIN MESSAGE -------------------_#
 
     public function pinUnpinMessage(Request $request)

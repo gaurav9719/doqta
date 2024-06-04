@@ -140,7 +140,7 @@ class DicoverService extends BaseController
 
                 })->with(['groupUser' => function ($query) {
 
-                    $query->select('id', 'name', 'profile');
+                    $query->select('id', 'name', 'user_name','profile');
 
                 }, 'communities' => function ($query) {
 

@@ -50,13 +50,10 @@ class VerifyEmail extends BaseController
                 // commented on April 22,2024
 
                 SendVerificationEmailJob::dispatch($emailVerify);
-
                 // commented on April 22,2024
-
                // return $this->sendResponsewithoutData(trans('message.something_went_wrong'));
-                
             } else {
-
+                
                // return $this->sendResponsewithoutData("Something went wrong, Please try it againl!", 422);
             }
         } catch (Exception $e) {
