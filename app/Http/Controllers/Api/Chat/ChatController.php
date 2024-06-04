@@ -61,7 +61,7 @@ class ChatController extends BaseController
             })
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table
-                    return $query->where('U.inboxes', 'LIKE', '%' . $data['search'] . '%');
+                    return $query->where('U.name', 'LIKE', '%' . $data['search'] . '%');
                 })
 
                 ->where(function ($query) use ($myId) {
@@ -70,7 +70,7 @@ class ChatController extends BaseController
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
 
                 })
-                ->select('inboxes.*', 'U.name', 'U.profile','U.user_name', 'U.id as other_user_id')
+                ->select('inboxes.*', 'U.name', 'U.profile','U.user_name', 'U.id as other_user_id','U.is_active as u_is_active')
                 ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
                 ->simplePaginate($limit); // Paginate the results
 

@@ -71,7 +71,7 @@ class likesService extends BaseController
                    
                     $postLike                       =   PostLike::create(['post_id' => $request->post_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
                     $post_reaction_count            =   post_reaction_count(1, $request->reaction, $request->post_id);
-                    $increment = increment('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
+                    // $increment = increment('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
                     $group_post                     =    Post::select('group_id', 'user_id','title')->where(['id' => $request->post_id])->first();
                     $title                          =    $group_post->title;
                     $addActivityLog                 =    new ActivityLog();
