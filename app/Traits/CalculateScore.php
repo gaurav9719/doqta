@@ -206,6 +206,7 @@ trait CalculateScore
             if (isset($post) && !empty($post)) {
                 #User score
                 $reaction   =      PostLike::where('post_id', $post->id)->count();
+                log::info("total_likes".$reaction);
                 $Userlike   =      PostLike::where('post_id', $post->id)
                     ->whereIn('reaction', [1, 2])
                     ->whereHas('checkUserRole', function ($query) {
@@ -213,7 +214,7 @@ trait CalculateScore
                         $query->whereIn('participant_id', [1, 2]);
 
                     })->count();
-    
+                log::info("Userlike".$Userlike);
                 if ($reaction > 0) {
     
                     $uPercent = ($Userlike / $reaction) * 100;
@@ -222,12 +223,16 @@ trait CalculateScore
                     $uPercent = 0;
                 }
                 $uScore                 =       $this->userScore($uPercent);
+
+                log::info("uScore".$uScore);
                 #medical professionl
                 $mFlike                 =       PostLike::where('post_id', $post->id)
                     ->whereIn('reaction', [1, 2])
                     ->whereHas('checkUserRole', function ($query) {
                         $query->whereIn('participant_id', [3]);
                     })->count();
+
+                    log::info("mFlike".$mFlike);
                 if ($mFlike > 0) {
     
                     $mPercent           =      ($mFlike / $reaction) * 100;
@@ -237,11 +242,19 @@ trait CalculateScore
                     $mPercent = 0;
                 }
                 $mScore                 =       $this->medicalProfessionalsScore($mPercent);
+                log::info("mScore".$mScore);
+
                 #---------- update in post table -------------#
-                $support_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 1])->count();
-                $helpful_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 2])->count();
-                $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
+
+                $support_count          =       PostLike::where(['post_id'=>$post->id, 'reaction' => 1])->count();
+                log::info("mScore".$mScore);
+                log::info("support_count".$support_count);
+                $helpful_count          =       PostLike::where(['post_id'=>$post->id, 'reaction' => 2])->count();
+                log::info("helpful_count".$helpful_count);
+                $unhelpful_count        =       PostLike::where(['post_id'=>$post->id, 'reaction' => 3])->count();
+                log::info("unhelpful_count".$unhelpful_count);
                 $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
+                log::info("rePostCount".$rePostCount);
     
                 $post->total_likes_count =       $reaction;
                 $post->support_count    =       $support_count;
