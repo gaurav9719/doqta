@@ -45,10 +45,11 @@ class VerifyEmail extends BaseController
                 $user->otp_expiry_time      =          Carbon::now()->addMinutes(10);
                 $user->save();
                 $emailVerify                =          array('otp' => $otp,'email'=>$user->email);
-                Mail::to($user->email)->send(new verify_email($emailVerify));
+
+                // Mail::to($user->email)->send(new verify_email($emailVerify));
                 // commented on April 22,2024
 
-                // SendVerificationEmailJob::dispatch($emailVerify);
+                SendVerificationEmailJob::dispatch($emailVerify);
 
                 // commented on April 22,2024
 

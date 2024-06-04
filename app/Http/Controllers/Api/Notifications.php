@@ -130,7 +130,7 @@ class Notifications extends BaseController
     //     }
     // }
 
-    public function notifications(Request $request)
+    public function notificationsOLD(Request $request)
     {
         try {
             $userID     = Auth::id();
@@ -201,5 +201,101 @@ class Notifications extends BaseController
             return $notificationDate;
         }
     }
+
+
+    public function notifications(Request $request)
+{
+    try {
+        $userID = Auth::id();
+        $perPage = $request->get('limit', 10);
+
+        $today = Carbon::now()->startOfDay();
+        $yesterday = Carbon::yesterday()->startOfDay();
+        $last7Days = Carbon::now()->subDays(7)->startOfDay();
+        $last30Days = Carbon::now()->subDays(30)->startOfDay();
+
+        // Retrieve notifications with pagination and eager load sender
+        $notifications = Notification::where('receiver_id', $userID)
+            ->where('status', 1)
+            ->orderBy('created_at', 'DESC')
+            ->with('sender:id,name,user_name,email,profile')  // Eager load sender details
+            ->simplePaginate($perPage);
+
+        // Group notifications
+        $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) use ($today, $yesterday, $last7Days, $last30Days) {
+            $notificationDate = Carbon::parse($date->created_at)->startOfDay();
+            if ($notificationDate->equalTo($today)) {
+                return 'Today';
+            } elseif ($notificationDate->equalTo($yesterday)) {
+                return 'Yesterday';
+            } elseif ($notificationDate->greaterThanOrEqualTo($last7Days)) {
+                return 'Last 7 Days';
+            } elseif ($notificationDate->greaterThanOrEqualTo($last30Days)) {
+                return 'Last 30 Days';
+            } else {
+                return 'Older';
+            }
+        });
+
+        // Process each group
+        $groupedNotifications = $groupedNotifications->map(function ($group, $key) use ($userID) {
+            return [
+                'notification_on' => $key,
+                'notifications' => $group->map(function ($notification) use ($userID) {
+                    $notification->sender->profile = $this->addBaseInImage($notification->sender->profile);
+                    $notification->update(['is_read' => 1]);
+                    return [
+                        'id' => $notification->id,
+                        'receiver_id' => $notification->receiver_id,
+                        'sender_id' => $notification->sender_id,
+                        'notification_type' => $notification->notification_type,
+                        'is_read' => $notification->is_read,
+                        'message' => $notification->message,
+                        'like_id' => $notification->like_id,
+                        'community_member_id' => $notification->community_member_id,
+                        'user_plan_id' => $notification->user_plan_id,
+                        'comment_like_id' => $notification->comment_like_id,
+                        'status' => $notification->status,
+                        'created_at' => $notification->created_at,
+                        'updated_at' => $notification->updated_at,
+                        'community_id' => $notification->community_id,
+                        'post_id' => $notification->post_id,
+                        'comment_id' => $notification->comment_id,
+                        'mention_id' => $notification->mention_id,
+                        'parent_id' => $notification->parent_id,
+                        'time_ago' => time_elapsed_string($notification->created_at),
+                        'sender' => $notification->sender,  // Include sender details
+                    ];
+                })
+            ];
+        });
+
+        // Get count of unread notifications
+        $unreadNotificationCount = Notification::where('receiver_id', $userID)
+            ->where('is_read', 0)
+            ->count();
+
+        // Return response
+        return response()->json([
+            'status' => 200,
+            'message' => trans('message.notifications'),
+            'data' => [
+                'current_page' => $notifications->currentPage(),
+                'data' => $groupedNotifications->values(), // Ensure indexed array
+                'first_page_url' => $notifications->url(1),
+                'from' => $notifications->firstItem(),
+                'next_page_url' => $notifications->nextPageUrl(),
+                'path' => $notifications->path(),
+                'per_page' => $notifications->perPage(),
+                'prev_page_url' => $notifications->previousPageUrl(),
+                'to' => $notifications->lastItem(),
+            ],
+            'unread_notification_count' => $unreadNotificationCount,
+        ]);
+    } catch (Exception $e) {
+        Log::error('Error caught: "notifications" ' . $e->getMessage());
+        return response()->json(['error' => 'Something went wrong'], 500);
+    }
+}
     
 }
