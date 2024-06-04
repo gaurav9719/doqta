@@ -159,13 +159,18 @@ class UserController extends BaseController
             if (User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
                 //check user is blocked or not
                 if ($authId != $getUser) {
+
+                    DB::enableQueryLog();
                     $isBlocked = BlockedUser::where(function ($query) use ($authId, $getUser) {
                         // Check if the exact combination exists
                         $query->where(['user_id' => $authId, 'blocked_user_id' => $getUser])
                             ->orWhere(['user_id' => $getUser, 'blocked_user_id' => $authId]);
                     })->exists();
+                    dd(DB::getQueryLog());
                     if ($isBlocked) {
-                        return $this->sendError(trans('message.something_went_wrong'), [], 403);
+
+                        return $this->sendError(trans('message.blocked_user'), [], 403);
+
                     } else {
 
                         $isSupporting   =   UserFollower::where(['user_id' => $getUser, 'follower_user_id' => $authId, 'status' => 2])->exists();

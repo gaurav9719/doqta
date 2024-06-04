@@ -280,6 +280,7 @@ trait CommonTrait
                     $relatedDataId = $postData->id;
 
                 } elseif ($type == 2) {
+
                     $message_type = 6;
                     // Sharing a user profile
                     $userData = User::where(['id' => $request->user_id, 'is_active' => 1])->first();
@@ -324,12 +325,16 @@ trait CommonTrait
 
                     // Share post with user (if type is 1)
                     if ($type == 1) {
+
                         $isCreated = SharePost::updateOrCreate(
                             ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
                             ['message_id' => $lastMessageId]
                         );
+
                         if ($isCreated->wasRecentlyCreated) {
+
                             increment('posts', ['id' => $relatedDataId], 'share_count', 1);
+
                         }
                     }
 
@@ -344,7 +349,9 @@ trait CommonTrait
                 DB::commit();
                 return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
             } else {
+
                 return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
+                
             }
         } catch (Exception $e) {
             DB::rollback();

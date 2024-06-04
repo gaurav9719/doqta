@@ -199,54 +199,63 @@ trait CalculateScore
     #---------------  C A L C U L A T E     C O N F I D E N C E     S C O R E   O F  P O S T  -----------------#
     public function CalculateConfidenceScore($postId)
     {
-        $post           =       Post::find($postId);
+        try {
+            
+            $post           =       Post::find($postId);
 
-        if (isset($post) && !empty($post)) {
-            #User score
-            $reaction   =      PostLike::where('post_id', $post->id)->count();
-            $Userlike   =      PostLike::where('post_id', $post->id)
-                ->whereIn('reaction', [1, 2])
-                ->whereHas('checkUserRole', function ($query) {
-
-                    $query->whereIn('participant_id', [1, 2]);
-                })->count();
-
-            if ($reaction > 0) {
-
-                $uPercent = ($Userlike / $reaction) * 100;
-            } else {
-
-                $uPercent = 0;
+            if (isset($post) && !empty($post)) {
+                #User score
+                $reaction   =      PostLike::where('post_id', $post->id)->count();
+                $Userlike   =      PostLike::where('post_id', $post->id)
+                    ->whereIn('reaction', [1, 2])
+                    ->whereHas('checkUserRole', function ($query) {
+    
+                        $query->whereIn('participant_id', [1, 2]);
+                    })->count();
+    
+                if ($reaction > 0) {
+    
+                    $uPercent = ($Userlike / $reaction) * 100;
+                } else {
+    
+                    $uPercent = 0;
+                }
+                $uScore                 =       $this->userScore($uPercent);
+                #medical professionl
+                $mFlike                 =       PostLike::where('post_id', $post->id)
+                    ->whereIn('reaction', [1, 2])
+                    ->whereHas('checkUserRole', function ($query) {
+                        $query->whereIn('participant_id', [3]);
+                    })->count();
+                if ($mFlike > 0) {
+    
+                    $mPercent           =      ($mFlike / $reaction) * 100;
+    
+                } else {
+    
+                    $mPercent = 0;
+                }
+                $mScore                 =       $this->medicalProfessionalsScore($mPercent);
+                #---------- update in post table -------------#
+                $support_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 1])->count();
+                $helpful_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 2])->count();
+                $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
+                $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
+    
+                $post->total_count      =       $reaction;
+                $post->support_count    =       $support_count;
+                $post->helpful_count    =       $helpful_count;
+                $post->unhelpful_count  =       $unhelpful_count;
+                $post->repost_count     =       $rePostCount;
+                #--------- get comment count ------------#
+                $post->totalComments    =       Comment::where(['post_id' => $post->id])->count();
+                $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
+                $post->save();
             }
-            $uScore                 =       $this->userScore($uPercent);
-            #medical professionl
-            $mFlike                 =       PostLike::where('post_id', $post->id)
-                ->whereIn('reaction', [1, 2])
-                ->whereHas('checkUserRole', function ($query) {
-                    $query->whereIn('participant_id', [3]);
-                })->count();
-            if ($mFlike > 0) {
+        } catch (Exception $e) {
 
-                $mPercent           =      ($mFlike / $reaction) * 100;
-            } else {
-
-                $mPercent = 0;
-            }
-            $mScore                 =       $this->medicalProfessionalsScore($mPercent);
-            #---------- update in post table -------------#
-            $support_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 1])->count();
-            $helpful_count          =       PostLike::where(['post_id', $post->id, 'reaction' => 2])->count();
-            $unhelpful_count        =       PostLike::where(['post_id', $post->id, 'reaction' => 3])->count();
-            $rePostCount            =       Post::where(['parent_id' => $post->id, 'is_active' => 1])->count();
-
-            $post->total_count      =       $reaction;
-            $post->support_count    =       $support_count;
-            $post->helpful_count    =       $helpful_count;
-            $post->unhelpful_count  =       $unhelpful_count;
-            $post->repost_count     =       $rePostCount;
-            #--------- get comment count ------------#
-            $post->totalComments    =       Comment::where(['post_id' => $post->id])->count();
-            $post->is_high_confidence =     ($uScore + $mScore + ($post->ai_score)) >= 8 ? 1 : 0;
+            Log::error('CalculateConfidenceScore.'.$e->getMessage());
+            
         }
     }
     #---------------  C A L C U L A T E     C O N F I D E N C E     S C O R E   O F  P O S T  -----------------#
