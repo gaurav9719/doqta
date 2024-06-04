@@ -60,8 +60,8 @@ return new class extends Migration
             [
                 'name' => 'AI',
                 'user_name' => 'AI',
-                'email' => '',
-                'password' => '',
+                'email' => "doqtaAi@doqtaapp.com",
+                'password' =>null,
                 'profile' => 'app_icon/ai.png',
                 'role'=>4,
                 'created_at' => now(),
