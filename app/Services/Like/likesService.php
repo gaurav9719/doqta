@@ -120,7 +120,7 @@ class likesService extends BaseController
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
 
-                // dd($this->CalculateConfidenceScore($request->post_id));
+                 dd($this->CalculateConfidenceScore($request->post_id));
 
                 dispatch(new AiScoreCalculatedJob($request->post_id));
                 return $this->sendResponse($data, trans('message.post_liked'), 200);
