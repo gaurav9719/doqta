@@ -94,6 +94,7 @@ return [
     "user_unblocked"=>"User unblocked successfully",
     "already_unblocked"=>"No exist in blocked list or already unblocked",
 "blocked_user"=>"Blocked user",
+"no_journal_entries"=>"no journal entries",
 
 
     "already_reported"=>"Report to user already submitted",

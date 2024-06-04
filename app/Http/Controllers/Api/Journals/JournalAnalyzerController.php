@@ -48,9 +48,7 @@ class JournalAnalyzerController extends BaseController
         #check report available for request time
         $start_time     = Carbon::parse($request->start_date)->startOfDay();
         $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
-
         $request_ids    = JournalEntry::where('journal_id', $journal->id)->where('is_active', 1)->whereBetween('created_at', [$start_time, $end_time])->pluck('id')->toArray();
-
         $reports        = JournalReport::where('journal_id', $journal->id)->where('type', $request->type)->where('report_type', 1)->get();
         $ids_count      = count($request_ids);
         $start_id       = reset($request_ids);
@@ -212,7 +210,7 @@ class JournalAnalyzerController extends BaseController
                 }
             }
         } else {
-            return $this->sendResponsewithoutData('No entry found in given journal', 400);
+            return $this->sendResponsewithoutData(trans('message.no_journal_entries'), 400);
         }
     }
 

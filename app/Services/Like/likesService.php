@@ -2,28 +2,29 @@
 
 namespace App\Services\Like;
 
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Api\BaseController;
-use App\Models\Post;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
-use App\Models\PostLike;
-use App\Models\CommentLike;
-use App\Models\ActivityLog;
-use App\Models\Notification;
-use App\Models\User;
 use Exception;
-use App\Services\AddCommunityPost;
-use App\Models\Comment;
-use App\Traits\IsCommunityJoined;
-use App\Traits\postCommentLikeCount;
+use Carbon\Carbon;
+use App\Models\Post;
+use App\Models\User;
 use App\Models\Group;
+use App\Models\Comment;
+use App\Models\PostLike;
+use App\Models\ActivityLog;
+use App\Models\CommentLike;
 use App\Models\SummaryLike;
-use App\Services\NotificationService;
+use App\Models\Notification;
 use Gemini\Foundation\Request;
+use App\Traits\IsCommunityJoined;
+use App\Jobs\AiScoreCalculatedJob;
+use App\Services\AddCommunityPost;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Traits\postCommentLikeCount;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Services\NotificationService;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\BaseController;
 
 /**
  * Class likesService.
@@ -55,8 +56,10 @@ class likesService extends BaseController
                 } else {
 
                     $post->delete();
-                    decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
+                    #--- jun 4 ----#
+                    //decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
                     post_reaction_count(0, $post->reaction, $request->post_id);
+                    dispatch(new AiScoreCalculatedJob($request->post_id));
                     ActivityLog::where(['user_id' => $authId, 'post_id' => $request->post_id, 'action' => 1])->delete();
                     Notification::where(['sender_id' => $authId, 'post_id' => $request->post_id, 'notification_type' => trans('notification_message.post_liked_message_type')])->delete();
                     $data                   =   $this->postLikeCount($request->post_id);
@@ -108,12 +111,15 @@ class likesService extends BaseController
                     $oldreact           =   $post->reaction;
                     $post->reaction     =   $request->reaction;
                     $post->save();
+                    #---- no need to store this ----__#
                     if ($oldreact != $request->reaction) {
                         post_reaction_count(0, $oldreact, $request->post_id);
                         post_reaction_count(1, $request->reaction, $request->post_id);
                     }
+                    #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
+                dispatch(new AiScoreCalculatedJob($request->post_id));
                 return $this->sendResponse($data, trans('message.post_liked'), 200);
                 // return $this->addCommunityPost->getPost($request->post_id,$authId,trans('message.post_liked'));
             }
