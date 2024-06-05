@@ -20,7 +20,7 @@ class Post extends Model
 
     public function post_user(){
         
-        return $this->belongsTo(User::class,'user_id','id');
+        return $this->belongsTo(User::class,'user_id','id')->where('is_active',1);
     }
 
     public function parent_post(){
@@ -48,7 +48,25 @@ class Post extends Model
 
         return $this->hasMany(Comment::class,'post_id','id');
     }
+    public function blockedUsers()
+    {
+        return $this->hasMany(BlockedUser::class, 'user_id', 'user_id');
+    }
 
+    // Users that have blocked this user
+    public function blockedBy()
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id', 'user_id');
+    }
+    public function reportPosts()
+    {
+        return $this->hasMany(ReportPost::class, 'post_id');
+    }
+
+    public function hiddenPosts()
+    {
+        return $this->hasMany(HiddenPost::class, 'post_id');
+    }
     protected $hidden = [
         
         'laravel_through_key'

@@ -1056,7 +1056,7 @@ class DicoverService extends BaseController
             
             // Fetch top health provider
             $topHealthProvider = $this->topHealthProvider($request, $authId, $limit, 1);
-            
+           
             if ($topHealthProvider !== "400") {
 
                 $data['top_health_provider'] = $topHealthProvider; // Use correct variable here
@@ -1137,7 +1137,8 @@ class DicoverService extends BaseController
     
                 $groupIds          =    Group::where('name', 'like', "%{$request->search}%")->pluck('id');
             }
-            $maxLikesPosts         =   Post::selectRaw('
+            DB::enableQueryLog();
+            $maxLikesPosts         =    Post::whereHas('post_user')->selectRaw('
                                             group_id,
                                             user_id,
                                             COUNT(*) as post_count,
@@ -1164,10 +1165,18 @@ class DicoverService extends BaseController
                         ->from('user_followers')
                         ->whereColumn('user_followers.user_id', '=', 'posts.user_id')
                         ->where('user_followers.follower_user_id', '=', $authId);
-                })->with('post_user', function ($query) {
+
+                })->with(['post_user'=>function ($query) {
     
                     $query->select('id', 'name', 'user_name', 'profile');
-                })
+                },'post_user.user_medical_certificate'=>function($q){
+
+                    $q->select('id','user_id','medicial_degree_type','verified_status');
+
+                },'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                }])
     
                 ->where('user_id', '<>', $authId)
                 ->where('is_health_provider', 1)
@@ -1178,6 +1187,8 @@ class DicoverService extends BaseController
                 ->groupBy('user_id')
                 ->havingRaw('total_likes_count > 0')
                 ->orderByDesc('total_likes_count');
+
+               
     
             if (isset($type) && !empty($type)) {
                 

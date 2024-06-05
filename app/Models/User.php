@@ -19,48 +19,48 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-      
-            "id",
-            "social_id",
-            "name",
-            "user_name",
-            "email",
-            "password",
-            "dob",
-            "country_code",
-            "phone_no",
-            "country_id",
-            "state_id",
-            "city_id",
-            "zipcode",
-            "lat",
-            "long",
-            "gender",
-            "pronoun",
-            "ethnicity",
-            "guideline",
-            "complete_step",
-            "login_type",
-            "device_type",
-            "device_token",
-            "profile",
-            "cover",
-            "bio",
-            "stripe_customer_id",
-            "mute_notification",
-            "otp",
-            "otp_expiry_time",
-            "is_email_verified",
-            "signup_process",
-            "email_verified_at",
-            "remember_token",
-            "is_active",
-            "created_at",
-            "updated_at"
-          
-          
-        
-        
+
+        "id",
+        "social_id",
+        "name",
+        "user_name",
+        "email",
+        "password",
+        "dob",
+        "country_code",
+        "phone_no",
+        "country_id",
+        "state_id",
+        "city_id",
+        "zipcode",
+        "lat",
+        "long",
+        "gender",
+        "pronoun",
+        "ethnicity",
+        "guideline",
+        "complete_step",
+        "login_type",
+        "device_type",
+        "device_token",
+        "profile",
+        "cover",
+        "bio",
+        "stripe_customer_id",
+        "mute_notification",
+        "otp",
+        "otp_expiry_time",
+        "is_email_verified",
+        "signup_process",
+        "email_verified_at",
+        "remember_token",
+        "is_active",
+        "created_at",
+        "updated_at"
+
+
+
+
     ];
 
     /**
@@ -92,10 +92,24 @@ class User extends Authenticatable
 
 
 
+    // public function posts()
+    // {
+    //     return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id');
+    // }
+
+
     public function posts()
     {
-        return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id');
+        return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id')
+            ->whereHas('post_user', function ($query) {
+
+                $query->where('is_active', 1);
+
+            });
     }
+
+    
+
 
     // return $this->hasManyThrough(
     //     Post::class,       // Related model that you want to access
@@ -113,32 +127,35 @@ class User extends Authenticatable
 
     public function userPost()
     {
-        return $this->hasMany(Post::class,'user_id','id')->where('is_active',1);
+        return $this->hasMany(Post::class, 'user_id', 'id')->where('is_active', 1);
     }
 
     public function supporter()
     {
-        return $this->hasMany(UserFollower::class,'user_id','id');
+        return $this->hasMany(UserFollower::class, 'user_id', 'id');
     }
 
     public function supporting()
     {
-        return $this->hasMany(UserFollower::class,'follower_user_id','id');
+        return $this->hasMany(UserFollower::class, 'follower_user_id', 'id');
     }
 
 
-    public function userParticipant(){
+    public function userParticipant()
+    {
 
-        return $this->hasMany(UserParticipantCategory::class,'user_id','id');
+        return $this->hasMany(UserParticipantCategory::class, 'user_id', 'id');
     }
-    public function user_activities(){
+    public function user_activities()
+    {
 
-        return $this->hasMany(ActivityLog::class,'user_id','id');
+        return $this->hasMany(ActivityLog::class, 'user_id', 'id');
     }
-    
-    public function user_follow(){
 
-        return $this->belongsTo(UserFollower::class,'id','user_id');
+    public function user_follow()
+    {
+
+        return $this->belongsTo(UserFollower::class, 'id', 'user_id');
     }
 
     public function following()
@@ -147,28 +164,31 @@ class User extends Authenticatable
     }
 
 
-    public function user_group(){
+    public function user_group()
+    {
 
-        return $this->hasMany(GroupMember::class,'user_id','id');
-
+        return $this->hasMany(GroupMember::class, 'user_id', 'id');
     }
 
-    
 
 
-    public function user_interest(){
 
-        return $this->hasMany(UsersInterest::class,'user_id', 'id');
+    public function user_interest()
+    {
+
+        return $this->hasMany(UsersInterest::class, 'user_id', 'id');
     }
 
-    public function user_documents(){
+    public function user_documents()
+    {
 
-        return $this->hasMany(UserDocuments::class,'user_id', 'id');
+        return $this->hasMany(UserDocuments::class, 'user_id', 'id');
     }
 
-    public function user_medical_certificate(){
+    public function user_medical_certificate()
+    {
 
-        return $this->hasMany(UserMedicalCredentials::class,'user_id', 'id');
+        return $this->hasMany(UserMedicalCredentials::class, 'user_id', 'id');
     }
 
     public function blockedUsers()
@@ -186,20 +206,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserFollower::class, 'user_id', 'id');
     }
-    
-   
+    public function reportPosts()
+    {
+        return $this->hasMany(ReportPost::class, 'user_id');
+    }
 
-    
-  
-    public function portfolio(){
-        
-        return $this->hasMany(UserPortfolio::class,'user_id','id');
+ public function hiddenPosts()
+    {
+        return $this->hasMany(HiddenPost::class, 'user_id');
     }
 
 
+    public function portfolio()
+    {
 
-
-    
-
+        return $this->hasMany(UserPortfolio::class, 'user_id', 'id');
+    }
 }
-

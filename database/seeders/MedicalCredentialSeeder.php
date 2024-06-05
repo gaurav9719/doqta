@@ -51,6 +51,7 @@ class MedicalCredentialSeeder extends Seeder
             ['name' => 'Doctor of Health Administration (DHA)', 'type' => 1],
             ['name' => 'Doctor of Health Science (DHSc)', 'type' => 1],
             ['name' => 'Doctor of Education in Nursing Education (EdD)', 'type' => 1],
+            ['name' => 'Other', 'type' => 2],
             // Add more credentials as needed
         ];
         
