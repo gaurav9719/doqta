@@ -412,15 +412,11 @@ class SignStepsController extends BaseController
 
                         // If the specialty name doesn't exist, attempt to add it as a new specialty
                         $newMcredential                =       MedicalCredential::create(['name' => $addMcredential, 'user_id' => $auth_id, 'type' => 3]);
-
                         $degreeType                    =       $newMcredential->id;
-
                     }else{
-
                         $degreeType                    =       $isExistMedicalCre->id;
                     }
                 }
-
                 $specialty          =   $request->specialty;
                 if (is_numeric($specialty)) {
 

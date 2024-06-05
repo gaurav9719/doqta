@@ -213,7 +213,9 @@ class FollowFollowingController extends BaseController
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
             } else {
+
                 $userId     =   $request->user_id;
                 //check is blocked or not
                 $isBlocked = BlockedUser::where(function ($query) use ($authId, $userId) {
@@ -228,9 +230,10 @@ class FollowFollowingController extends BaseController
 
                 if ($request->type == 1) {
                     //check if already follow or not 
-                    $following      =   UserFollower::where(['follower_user_id' => $authId, 'user_id' => $request->user_id])->first();
 
-                    if (isset($following)) {     //remove follow request 
+                    $following                          =   UserFollower::where(['follower_user_id' => $authId, 'user_id' => $request->user_id])->first();
+
+                    if (isset($following)) {                    //remove follow request 
 
                         if ($following->status == 1) {
 
@@ -255,10 +258,10 @@ class FollowFollowingController extends BaseController
                             #delete activity
                             ActivityLog::where('user_id', $authId)->where('support_user_id', $request->user_id)->delete();
                         }
-
                         DB::commit();
-                    } else {// follow
-                        
+
+                    } else {                                // follow
+
                         //check user account is public or private
                         $userData                           =   User::find($request->user_id);
                         $addFollowing                       =   new UserFollower();
@@ -297,10 +300,9 @@ class FollowFollowingController extends BaseController
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                         DB::commit();
                     }
+
                     $count['action']             = $action;
-
                     $count['supporter']         = UserFollower::where('user_id', $request->user_id)->where('status', '2')->count();
-
                     return $this->sendResponse($count, $responseMessage, 200);
 
                 } elseif ($request->type == 2) {
@@ -309,47 +311,51 @@ class FollowFollowingController extends BaseController
                         'action' => 'required|integer|between:1,2'
                     ]);
                     if ($validation->fails()) {
+
                         return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-                    }
+                    }else{
 
-                    $follow = UserFollower::where(['follower_user_id' => $request->user_id, 'user_id' => $authId, 'status' => 1])->first();
-                    if (isset($follow)) {
-                        if ($request->action == 1) { #accept request
-                            $follow->status = 2;
-                            $follow->save();
-                            increment('users', ['id' => $request->user_id], 'followers_count', 1);
-                            increment('users', ['id' => $authId], 'followings_count', 1);
-                            #send notification
-                            $sender        =   Auth::user();
-                            $receiver      =   User::find($request->user_id);
-                            $mesage        =   $sender->user_name . " accepted your support request";
-                            $data          =   ["message" => $mesage];
-                            $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.supporting_you_message_type'), $data);
-                            #-------  A C T I V I T Y -----------# 17may
-                            $activity                   =    new ActivityLog();
-                            $activity->user_id          =    $request->user_id;
-                            $activity->support_user_id  =    $authId;
-                            $activity->action_details   =    "Started suppoting " . $sender->user_name;
-                            $activity->action           =    1;    //Started supporting
-                            $activity->save();
-                            #-------  A C T I V I T Y -----------#
-
-                            #remove notification
-                            Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 8])->delete();
-                            
-                            DB::commit();
-                            return $this->sendResponsewithoutData("Resquest accepted successfully", 200);
-                        } else {    #reject Request
-                            $follow->delete();
-                            #remove notification
-                            
-                            Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => trans('notification_message.support_request_sent_type')])->delete();
-
-                            DB::commit();
-                            return $this->sendResponsewithoutData("Resquest rejected successfully", 200);
+                        $follow = UserFollower::where(['follower_user_id' => $request->user_id, 'user_id' => $authId, 'status' => 1])->first();
+    
+                        if (isset($follow)) {
+                            if ($request->action == 1) { #accept request
+                                $follow->status = 2;
+                                $follow->save();
+                                increment('users', ['id' => $request->user_id], 'followers_count', 1);
+                                increment('users', ['id' => $authId], 'followings_count', 1);
+                                #send notification
+                                $sender        =   Auth::user();
+                                $receiver      =   User::find($request->user_id);
+                                $mesage        =   $sender->user_name . " accepted your support request";
+                                $data          =   ["message" => $mesage];
+                                $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.supporting_you_message_type'), $data);
+                                #-------  A C T I V I T Y -----------# 17may
+                                $activity                   =    new ActivityLog();
+                                $activity->user_id          =    $request->user_id;
+                                $activity->support_user_id  =    $authId;
+                                $activity->action_details   =    "Started suppoting " . $sender->user_name;
+                                $activity->action           =    1;    //Started supporting
+                                $activity->save();
+                                #-------  A C T I V I T Y -----------#
+    
+                                #remove notification
+                                Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => 8])->delete();
+                                
+                                DB::commit();
+                                return $this->sendResponsewithoutData("Resquest accepted successfully", 200);
+                            } else {    #reject Request
+                                $follow->delete();
+                                #remove notification
+                                
+                                Notification::where(['receiver_id' => $authId, 'sender_id' => $request->user_id, 'notification_type' => trans('notification_message.support_request_sent_type')])->delete();
+    
+                                DB::commit();
+                                return $this->sendResponsewithoutData("Resquest rejected successfully", 200);
+                            }
+                        } else {
+    
+                            return $this->sendError(trans('message.something_went_wrong'), [], 403);
                         }
-                    } else {
-                        return $this->sendError(trans('message.something_went_wrong'), [], 403);
                     }
                 }
             }
