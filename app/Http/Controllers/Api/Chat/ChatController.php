@@ -61,7 +61,7 @@ class ChatController extends BaseController
             })
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table
-                    return $query->where('U.name', 'LIKE', '%' . $data['search'] . '%');
+                    return $query->where('U.user_name', 'LIKE', '%' . $data['search'] . '%');
                 })
 
                 ->where(function ($query) use ($myId) {

@@ -6,13 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify email</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap" rel="stylesheet">
-
     <style>
-        
-        
         @import url('https://fonts.googleapis.com/css?family=Open+Sans');
-
         * {
             box-sizing: border-box;
         }
@@ -39,7 +34,7 @@
         
         .c-email__header__title {
             font-size: 23px;
-            font-family: 'Inter', Arial, sans-serif;
+            font-family: 'Open Sans';
             height: 60px;
             line-height: 60px;
             margin: 0;
@@ -87,7 +82,7 @@
         }
         
         .text-title {
-            font-family: 'Inter';
+            font-family: 'Open Sans';
         }
         
         .text-center {
@@ -205,11 +200,11 @@
 
             </tr>
             <tr class="email_body">
-                <td>Hello, This is your corporate email verification code in field:</td>
+                <td>Hello , this is your email verification code in field:</td>
 
             </tr>
             <tr class="email_body_year">
-                <td>{{ $otp }}</td>
+                <td>{{ $data['otp'] }}</td>
 
             </tr>
             <tr class="email_footer">

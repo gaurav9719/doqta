@@ -146,28 +146,48 @@ class DicoverService extends BaseController
 
                     $query->select('id', 'name');
 
-                }])->whereNotExists(function ($query) use ($authId) {
+                }]) // Exclude users followed by the authenticated user
+                ->whereDoesntHave('user.followers', function($query) use ($authId) {
+    
+                    $query->where('follower_user_id', $authId);
+    
+                })->whereHas('user')->whereDoesntHave('user.blockedUsers', function($query) use ($authId) {
 
-                    $query->select(DB::raw(1))
-                        ->from('user_followers')
-                        ->whereColumn('user_followers.user_id', '=', 'group_members.user_id')
-                        ->where('user_followers.follower_user_id', '=', $authId);
+                    $query->where('blocked_user_id', $authId);
                 })
-                ->whereNotExists(function ($query) use ($authId) {
-        
-                    $query->select(DB::raw(1))->from('blocked_users')
+                ->whereDoesntHave('user.blockedBy', function($query) use ($authId) {
+                    $query->where('user_id', $authId);
+                })
+                
+                
+                // ->whereNotExists(function ($query) use ($authId) {
 
-                        ->where(function ($query) use ($authId) {
-                            // Check if the authenticated user has blocked someone
-                            $query->where('user_id', $authId)
-                                ->whereColumn('blocked_users.blocked_user_id', 'group_members.user_id');
-                        })
-                        ->orWhere(function ($query) use ($authId) {
-                            // Check if the authenticated user has been blocked by someone
-                            $query->where('blocked_user_id', $authId)
-                                ->whereColumn('blocked_users.user_id', 'group_members.user_id');
-                        });
-                })->whereIn('group_id', $groupIds)
+                //     $query->select(DB::raw(1))
+                //         ->from('user_followers')
+                //         ->whereColumn('user_followers.user_id', '=', 'group_members.user_id')
+                //         ->where('user_followers.follower_user_id', '=', $authId);
+                // })
+
+                // ->whereNotExists(function ($query) use ($authId) {
+        
+                //     $query->select(DB::raw(1))->from('blocked_users')
+
+                //         ->where(function ($query) use ($authId) {
+                //             // Check if the authenticated user has blocked someone
+                //             $query->where('user_id', $authId)
+                //                 ->whereColumn('blocked_users.blocked_user_id', 'group_members.user_id');
+                //         })
+                //         ->orWhere(function ($query) use ($authId) {
+                //             // Check if the authenticated user has been blocked by someone
+                //             $query->where('blocked_user_id', $authId)
+                //                 ->whereColumn('blocked_users.user_id', 'group_members.user_id');
+                //         });
+                // })
+                
+                
+                
+                
+                ->whereIn('group_id', $groupIds)
 
                     ->where('is_active', 1) // Assuming 'is_active' field is boolean
                     ->where('user_id', '<>', $authId)
@@ -1301,33 +1321,34 @@ class DicoverService extends BaseController
             if (!empty($request->search)) {
 
                 $groupIdsQuery      =    Group::where('name', 'like', "%$request->search%")->where('is_active',1);
-
                 $groupIds           =    $groupIdsQuery->pluck('id');
-
             }
             // Get the member_ids where group_id is in $groupIds and is_active is truthy
             $supportUser            =   GroupMember::with(['groupUser' => function ($query) {
 
-                $query->select('id', 'name', 'profile');
+                $query->select('id', 'name','user_name', 'profile');
 
             }, 'communities' => function ($query) {
 
                 $query->select('id', 'name','description','cover_photo');
 
-            }])->whereNotExists(function ($query) use ($authId) {
+            }])
+             // Exclude users followed by the authenticated user
+            ->whereDoesntHave('user.followers', function($query) use ($authId) {
 
-                $query->select(DB::raw(1))
-                    ->from('user_followers')
-                    ->whereColumn('user_followers.user_id', '=', 'group_members.user_id')
-                    ->where('user_followers.follower_user_id', '=', $authId);
-            });
+                $query->where('follower_user_id', $authId);
 
+            })->whereHas('user');
+            
+            // ->whereDoesntHave('user.followers', function ($query) use ($authId) {
+
+            //     $query->where('follower_user_id', $authId);
+
+            // });
             if (isset($request->search) && !empty($request->search)) {
 
                 $supportUser = $supportUser->whereIn('group_id', $groupIds);
-
             }
-
              $supportUser = $supportUser->where('is_active', 1) // Assuming 'is_active' field is boolean
 
                 ->where('user_id', '<>', $authId)
@@ -1359,8 +1380,6 @@ class DicoverService extends BaseController
                             $suggestMember->communities->cover_photo =   $this->addBaseInImage($suggestMember->communities->cover_photo);
                         }
                     }
-
-
 
                     $suggestMember->is_supporting                =   (UserFollower::where(['user_id' => $suggestMember->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
                 });
@@ -1404,41 +1423,65 @@ class DicoverService extends BaseController
             ->whereHas('userParticipant', function ($query) {
 
                 $query->where('participant_id', 2);
+
             })->with(['user_group' => function ($q) {
 
                 $q->select('id', 'group_id', 'user_id')->limit(1);
+
             }, 'user_group.group' => function ($q) {
 
                 $q->select('id', 'name', 'cover_photo');
+
             }])->whereHas('user_group.group', function ($q) {
 
                 $q->where('is_active', 1);
             })
             ->whereHas('user_group')
 
-            ->whereNotExists(function ($query) use ($authId) {
+            ->whereDoesntHave('blockedUsers', function($query) use ($authId) {
 
-                $query->select(DB::raw(1))
+                $query->where('blocked_user_id', $authId);
 
-                    ->from('blocked_users')
+            })
+            ->whereDoesntHave('user.blockedBy', function($query) use ($authId) {
 
-                    ->where(function ($query) use ($authId) {
-                        // Check if the authenticated user has blocked someone
-                        $query->where('user_id', $authId)
-                            ->whereColumn('blocked_users.blocked_user_id', 'users.id');
-                    })
-                    ->orWhere(function ($query) use ($authId) {
-                        // Check if the authenticated user has been blocked by someone
-                        $query->where('blocked_user_id', $authId)
-                            ->whereColumn('blocked_users.user_id', 'users.id');
-                    });
-            })->whereNotExists(function ($query) use ($authId) {
+                $query->where('user_id', $authId);
 
-                $query->select(DB::raw(1))
-                    ->from('user_followers')
-                    ->whereColumn('user_followers.user_id', '=', 'users.id')
-                    ->where('user_followers.follower_user_id', '=', $authId);
-            })->where('id', '<>', $authId);
+            })->whereDoesntHave('followers', function($query) use ($authId) {
+    
+                $query->where('follower_user_id', $authId);
+
+            });
+
+
+
+
+
+            // ->whereNotExists(function ($query) use ($authId) {
+
+            //     $query->select(DB::raw(1))
+
+            //         ->from('blocked_users')
+
+            //         ->where(function ($query) use ($authId) {
+            //             // Check if the authenticated user has blocked someone
+            //             $query->where('user_id', $authId)
+            //                 ->whereColumn('blocked_users.blocked_user_id', 'users.id');
+            //         })
+            //         ->orWhere(function ($query) use ($authId) {
+            //             // Check if the authenticated user has been blocked by someone
+            //             $query->where('blocked_user_id', $authId)
+            //                 ->whereColumn('blocked_users.user_id', 'users.id');
+            //         });
+            // })
+            
+            // ->whereNotExists(function ($query) use ($authId) {
+
+            //     $query->select(DB::raw(1))
+            //         ->from('user_followers')
+            //         ->whereColumn('user_followers.user_id', '=', 'users.id')
+            //         ->where('user_followers.follower_user_id', '=', $authId);
+            // })->where('id', '<>', $authId);
 
         if (isset($type) && !empty($type)) {
 
@@ -1544,6 +1587,7 @@ class DicoverService extends BaseController
 
             // Filter based on user participant
             $groupMembers->whereHas('user.userParticipant', function($query) {
+
                 $query->whereIn('participant_id', [2]);
             });
 
@@ -1560,8 +1604,8 @@ class DicoverService extends BaseController
                 $query->where('follower_user_id', $authId);
             });
 
-            // Group by user_id to ensure distinct users
-            $groupMembers->groupBy('user_id');
+            // Only include active users
+            $groupMembers->whereHas('user')->groupBy('user_id');
 
             // Apply pagination or limit
             if (isset($type) && !empty($type)) {

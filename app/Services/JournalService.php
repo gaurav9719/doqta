@@ -52,6 +52,14 @@ class JournalService extends BaseController
                 ->orderByDesc('id') // Then order by id in descending order
                 ->simplePaginate($limit);
 
+            if(isset($userJournals[0]) && !empty($userJournals[0])){
+
+                $userJournals->each(function($query){
+
+                    $query->postedAt    = time_elapsed_string($query->created_at);
+                });
+
+            }
             return $this->sendResponse($userJournals, trans("message.journals"), 200);
         } catch (Exception $e) {
 

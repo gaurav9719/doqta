@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'MyCustomFont';
+    src: url('css/fonts/Inter-Regular.ttf') format('truetype');
+    /* You may also use 'url('css/fonts/Inter-Regular.woff2') format('woff2')' for WOFF2 format */
+}
+
+body {
+    font-family: 'MyCustomFont', Arial, sans-serif;
+}

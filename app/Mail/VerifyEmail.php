@@ -34,7 +34,7 @@ class VerifyEmail extends Mailable
             // replyTo: [
             //     new Address('taylor@example.com', 'Taylor Otwell'),
             // ],
-            subject: 'Verify Email',
+            subject: 'Doqta Verification Email',
         );
     }
 
@@ -43,11 +43,12 @@ class VerifyEmail extends Mailable
      */
     public function content(): Content
     {
+        $appImage = asset('public/app_icon/ai.png'); // Adjust the path as necessary
         return new Content(
             view: 'email.forgot_password',
             with: [
                 'data' => $this->data,
-
+                'doqta' => $appImage
             ],
         );
     }

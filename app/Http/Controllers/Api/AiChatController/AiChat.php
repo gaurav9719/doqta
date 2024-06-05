@@ -296,13 +296,19 @@ class AiChat extends BaseController
     public function chatLogs(Request $request)
 {
     try {
-        $myId = Auth::id();
-        $limit = $request->get('limit', 10);
 
-        $notifications = AiThread::where(function ($query) use ($myId) {
-            $query->where('sender_id', $myId)
-                  ->orWhere('receiver_id', $myId);
-        })->orderBy('created_at', 'desc')->paginate($limit);
+        $myId           = Auth::id();
+        $limit          = $request->get('limit', 10);
+        $search = $request->input('search',""); // Get the search parameter f
+       $notifications = AiThread::where(function ($query) use ($myId) {
+        $query->where('sender_id', $myId)
+              ->orWhere('receiver_id', $myId);
+    })
+    ->when($search, function ($query, $search) {
+        return $query->where('thread_name', 'like', '%' . $search . '%');
+    })
+    ->orderBy('created_at', 'desc')
+    ->paginate($limit);
 
         $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) {
             $notificationDate = Carbon::parse($date->created_at)->startOfDay();
