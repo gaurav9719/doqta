@@ -78,7 +78,8 @@ class GetCommunityService extends BaseController
                     'post_user:id,name,user_name,profile',
                     'group:id,name,description,cover_photo,member_count,post_count,created_by',
                     'parent_post' => function ($query) {
-                        $query->select('id', 'is_active', 'user_id', 'group_id')
+
+                        $query->select('*')
                             ->where('is_active', 1)
                             ->with([
                                 'post_user:id,name,user_name,profile,is_active',

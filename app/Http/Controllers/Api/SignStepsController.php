@@ -191,9 +191,9 @@ class SignStepsController extends BaseController
             } else {
 
                 $resons                     =  $request['reasons'];
-                foreach ($resons as $resons) {
+                foreach ($resons as $reson) {
                     UserParticipantCategory::updateOrCreate(
-                        ['user_id' => $auth_id, 'participant_id' => $resons],
+                        ['user_id' => $auth_id, 'participant_id' => $reson],
                         ['is_active' => 1]
                     );
                 }
@@ -358,7 +358,8 @@ class SignStepsController extends BaseController
         try {
 
             $validator = Validator::make($request->all(), [
-                'degree_type'=>'required|integer|exists:medical_credentials,id',
+                // 'degree_type'=>'required|integer|exists:medical_credentials,id',
+                'degree_type'=>'required',
                 'medicial_document' => 'required|file|mimes:jpeg,png,pdf|max:2048', 
             ]);
 
@@ -374,6 +375,12 @@ class SignStepsController extends BaseController
                     return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
 
                 }
+
+
+
+
+
+                
                 $specialty          =   $request->specialty;
 
                 if (is_numeric($specialty)) {
