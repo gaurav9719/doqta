@@ -71,7 +71,8 @@ class GetCommunityService extends BaseController
                 })
                 ->with(['post_user'=>function($query){
 
-                    $query->select('id','name','user_name','profile');
+                        $query->select('id','name','user_name','profile');
+
                     },
                     'group'=>function($query){
                         

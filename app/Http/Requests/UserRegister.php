@@ -36,7 +36,7 @@ class UserRegister extends FormRequest
                     ->mixedCase()  // Must contain both upper and lower case letters
                     ->numbers()    // Must contain at least one number
                     ->symbols()    // Must contain at least one special character
-                    ->uncompromised()],
+                   ],
             'device_type' => 'required|integer|between:1,2',
             'device_token' => 'required|min:10',
             'lat' => ['nullable', 'regex:/^[-]?(([0-8]?[0-9])\.(\d+))|(90(\.0+)?)$/'],

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Services\NotificationService;
 use App\Models\emailPasswordChangeLogs;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Requests\UpdateProfileValidation;
 
@@ -65,7 +66,7 @@ class UserController extends BaseController
                         ->mixedCase()   // Must contain both upper and lower case letters
                         ->numbers()     // Must contain at least one number
                         ->symbols()     // Must contain at least one special character
-                        ->uncompromised()  // Ensure password is not compromised
+                       
                 ]
             ]);
             if ($validator->fails()) {
