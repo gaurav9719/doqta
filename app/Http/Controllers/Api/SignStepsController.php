@@ -26,6 +26,7 @@ use App\Rules\AdultValidation;
 use App\Models\Gender;
 use App\Models\Pronouns;
 use App\Models\Ethnicity;
+use App\Models\MedicalCredential;
 use App\Rules\ExistsInParticipate;
 use App\Models\UserParticipantCategory;
 use App\Rules\ExistsInInterest;
@@ -33,10 +34,11 @@ use App\Models\UsersInterest;
 use App\Models\UserDocuments;
 use App\Models\Specialty;
 use App\Models\UserMedicalCredentials;
+
 class SignStepsController extends BaseController
 {
     //
-    protected $getUser ,$authId;
+    protected $getUser, $authId;
     #--------------  S I G N U P        P R O C E S S  ------------------------#
 
     public function __construct(GetUserService $getUser)
@@ -48,7 +50,8 @@ class SignStepsController extends BaseController
         });
         $this->getUser = $getUser;
     }
-    public function completeSignUpSteps(Request $request){
+    public function completeSignUpSteps(Request $request)
+    {
 
         $auth           =   Auth::user();
         $step           =   $request->step;
@@ -56,25 +59,22 @@ class SignStepsController extends BaseController
         $validator = Validator::make($request->all(), ['step' => 'required', 'between:1,7']);
         // Add custom rule for no special characters        
         if ($validator->fails()) {
-            
-            return $this->sendResponsewithoutData($validator->errors()->first(), 422);
 
+            return $this->sendResponsewithoutData($validator->errors()->first(), 422);
         } else {
 
-            $userStep   =   User::select('complete_step','is_email_verified')->where('id',$auth->id)->first();
-          
-            if($userStep->is_email_verified!=1){
+            $userStep   =   User::select('complete_step', 'is_email_verified')->where('id', $auth->id)->first();
+
+            if ($userStep->is_email_verified != 1) {
 
                 return $this->sendResponsewithoutData(trans("message.Please_verify_account"), 403);
-
             }
-            if($step==1){
+            if ($step == 1) {
 
-                return $this->step1($request,$auth);
+                return $this->step1($request, $auth);
+            } elseif ($step > 1) {
 
-            }elseif ($step>1) {
-               
-                return $this->checkSteps($request,$auth->id);
+                return $this->checkSteps($request, $auth->id);
 
 
                 // $previousCompleted      =   $this->checkPrevious($step,$auth->id);
@@ -93,29 +93,33 @@ class SignStepsController extends BaseController
     #--------------------------------    E N D   ------------------------------#
 
     #---------------*************** S T E P  1 ****************----------------#
-    public function step1($request,$auth){ //complete username and name 
+    public function step1($request, $auth)
+    { //complete username and name 
         DB::beginTransaction();
         try {
-            $validator = Validator::make($request->all(), [
+            $validator = Validator::make(
+                $request->all(),
+                [
 
-                'user_name' =>"required|min:3|regex:/^[a-zA-Z0-9.']+$/|unique:users,user_name,".$auth->id,
-                'name' => ['nullable', 'regex:/^[a-zA-Z\s]+$/']],
-                
-            ['user_name.regex'=>"Use only letter and number",'user_name.min'=>'user name must be 3 character long']);
+                    'user_name' => "required|min:3|regex:/^[a-zA-Z0-9.']+$/|unique:users,user_name," . $auth->id,
+                    'name' => ['nullable', 'regex:/^[a-zA-Z\s]+$/']
+                ],
+
+                ['user_name.regex' => "Use only letter and number", 'user_name.min' => 'user name must be 3 character long']
+            );
             // Add custom rule for no special characters
             // $validator->addRules(['user_name' => new NoSpecialCharacters]);
-            
+
             if ($validator->fails()) {
-                
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
                 $userStep1                  =   User::find($auth->id);
                 // $userStep1              =   new User();
                 // $userStep1->user_name       =   filter_text($request->user_name);
                 $userStep1->user_name       =  $request->user_name;
 
-                if(isset($request->name) && !empty($request->name)){
+                if (isset($request->name) && !empty($request->name)) {
 
                     $userStep1->name        =   filter_text($request->name);
                 }
@@ -136,29 +140,33 @@ class SignStepsController extends BaseController
 
     #---------------*************** S T E P  2 ****************----------------#
 
-    public function step2($request,$auth_id){ //complete username and name 
+    public function step2($request, $auth_id)
+    { //complete username and name 
         DB::beginTransaction();
         try {
-            $validator = Validator::make($request->all(), [
-                'dob' => ['required', 'date', 'date_format:m/d/Y', new AdultValidation],
-                'gender' => ['required', 'integer', 'exists:genders,id'],'pronoun'=>['required', 'integer', 'exists:pronouns,id','ethnicity'=>'required','integer','exists:ethnicities,id']],
-            ['pronouns.exists'=>"Invalid pronoun",'ethnicity.exists'=>'Invalid ethnicity']);
-            
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'dob' => ['required', 'date', 'date_format:m/d/Y', new AdultValidation],
+                    'gender' => ['required', 'integer', 'exists:genders,id'], 'pronoun' => ['required', 'integer', 'exists:pronouns,id', 'ethnicity' => 'required', 'integer', 'exists:ethnicities,id']
+                ],
+                ['pronouns.exists' => "Invalid pronoun", 'ethnicity.exists' => 'Invalid ethnicity']
+            );
+
             if ($validator->fails()) {
-                
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
-               
+
                 //check if step1 is compeleted
                 $userStep2                  =   User::find($auth_id);
-                $userStep2->dob             =   Carbon::createFromFormat('m/d/Y', $request->dob)->format('Y-m-d'); 
+                $userStep2->dob             =   Carbon::createFromFormat('m/d/Y', $request->dob)->format('Y-m-d');
                 $userStep2->gender          =   $request->gender;
                 $userStep2->pronoun         =   $request->pronoun;
                 $userStep2->ethnicity       =   $request->ethnicity;
                 $userStep2->complete_step   =   2;
 
-                $userStep2->save();   
+                $userStep2->save();
                 DB::commit();
                 $userData                  =   $this->getUser->getUser($auth_id);
                 // dd($userData);
@@ -176,18 +184,22 @@ class SignStepsController extends BaseController
 
 
     #---------------*************** S T E P  3 ****************----------------#
-    public function step3($request,$auth_id){               //complete username and name 
+    public function step3($request, $auth_id)
+    {               //complete username and name 
         DB::beginTransaction();
         try {
-            
-            $validator = Validator::make($request->all(), [
-                'reasons' => ['required','array', new ExistsInParticipate],
-                'reasons.*' => ['required', 'integer']],
-            ['reasons.array'=>"Invalid data type"]);
-            
+
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'reasons' => ['required', 'array', new ExistsInParticipate],
+                    'reasons.*' => ['required', 'integer']
+                ],
+                ['reasons.array' => "Invalid data type"]
+            );
+
             if ($validator->fails()) {
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
 
                 $resons                     =  $request['reasons'];
@@ -200,7 +212,7 @@ class SignStepsController extends BaseController
                 //check if step1 is compeleted
                 $userStep3                  =   User::find($auth_id);
                 $userStep3->complete_step   =   3;
-                $userStep3->save();   
+                $userStep3->save();
                 DB::commit();
                 $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
@@ -215,20 +227,24 @@ class SignStepsController extends BaseController
 
 
     #---------------*************** S T E P  4 ****************----------------#
-    public function step4($request,$auth_id){               //complete interest 
+    public function step4($request, $auth_id)
+    {               //complete interest 
 
         DB::beginTransaction();
         try {
-            
-            $validator = Validator::make($request->all(), [
-                'interest' => ['required','array', new ExistsInInterest],
-                'interest.*' => ['required','integer']],
-            ['reasons.array'=>"Invalid data type"]);
-        
+
+            $validator = Validator::make(
+                $request->all(),
+                [
+                    'interest' => ['required', 'array', new ExistsInInterest],
+                    'interest.*' => ['required', 'integer']
+                ],
+                ['reasons.array' => "Invalid data type"]
+            );
+
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
 
                 $interests                     =  $request['interest'];
@@ -241,7 +257,7 @@ class SignStepsController extends BaseController
                 //check if step1 is compeleted
                 $userStep3                  =   User::find($auth_id);
                 $userStep3->complete_step   =   4;
-                $userStep3->save();   
+                $userStep3->save();
                 DB::commit();
                 $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
@@ -258,23 +274,24 @@ class SignStepsController extends BaseController
 
 
     #---------------*************** S T E P  5 ****************----------------#
-    public function step5($request,$auth_id){               //********GUIDELINES*********\\    
+    public function step5($request, $auth_id)
+    {               //********GUIDELINES*********\\    
 
         DB::beginTransaction();
         try {
             $validator = Validator::make($request->all(), [
-                'guidelines' => ['required','in:1']]);
-                
+                'guidelines' => ['required', 'in:1']
+            ]);
+
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
 
                 $userStep3                  =   User::find($auth_id);
                 $userStep3->complete_step   =   5;
                 $userStep3->guideliness     =   1;
-                $userStep3->save();   
+                $userStep3->save();
                 DB::commit();
                 $userData                  =   $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
@@ -291,26 +308,25 @@ class SignStepsController extends BaseController
 
 
     #---------------*************** S T E P  6 ****************----------------#
-    public function step6($request,$auth_id){               //**** IDENTIFY     PROOF ******/ 
+    public function step6($request, $auth_id)
+    {               //**** IDENTIFY     PROOF ******/ 
 
         DB::beginTransaction();
         try {
 
             $validator = Validator::make($request->all(), [
-                'identity_proof' => 'required|file|mimes:jpeg,png,pdf|max:2048', 
-                'identity_type' => 'required|integer|exists:document_types,id', 
+                'identity_proof' => 'required|file|mimes:jpeg,png,pdf|max:2048',
+                'identity_type' => 'required|integer|exists:document_types,id',
             ]);
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
 
-                $isVerified                         =   UserDocuments::where( ['user_id' => $auth_id,'verified_status'=>1])->exists();
-                if($isVerified){
-                   
-                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
+                $isVerified                         =   UserDocuments::where(['user_id' => $auth_id, 'verified_status' => 1])->exists();
+                if ($isVerified) {
 
+                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
                 }
                 if ($request->hasFile('identity_proof')) {
 
@@ -318,26 +334,23 @@ class SignStepsController extends BaseController
                     $useridentity                   =       upload_file($identity_proof, 'useridentity');
                     $document                       =       UserDocuments::updateOrCreate(
                         ['user_id' => $auth_id],
-                        ['document_type' => $request['identity_type'],'document'=>$useridentity,'verified_status'=>0]
+                        ['document_type' => $request['identity_type'], 'document' => $useridentity, 'verified_status' => 0]
 
                     );
                     if ($document->wasRecentlyCreated) {
                         $userStep6                      =   User::find($auth_id);
                         $userStep6->complete_step       =   6;
-                        $userStep6->save();   
-                        
-                    } 
+                        $userStep6->save();
+                    }
 
                     DB::commit();
                     $userData                       =   $this->getUser->getUser($auth_id);
                     return $this->sendResponse($userData, trans("message.steps_completed"), 200);
-                    
                 } else {
 
                     return $this->sendResponsewithoutData("Invalid", 400);
                 }
             }
-
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "step6" ' . $e->getMessage());
@@ -348,61 +361,93 @@ class SignStepsController extends BaseController
 
 
 
-        #---------------*************** S T E P  7 ****************----------------#
+    #---------------*************** S T E P  7 ****************----------------#
 
 
-  
-    public function step7($request,$auth_id){               //*********complete verify credentials *********
-    
+
+    public function step7($request, $auth_id)
+    {               //*********complete verify credentials *********
+
         DB::beginTransaction();
+
         try {
 
             $validator = Validator::make($request->all(), [
                 // 'degree_type'=>'required|integer|exists:medical_credentials,id',
-                'degree_type'=>'required',
-                'medicial_document' => 'required|file|mimes:jpeg,png,pdf|max:2048', 
+                'degree_type' => 'required',
+                'medicial_document' => 'required|file|mimes:jpeg,png,pdf|max:2048',
             ]);
 
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-    
             } else {
 
-                $isVerified                         =   UserMedicalCredentials::where( ['user_id' => $auth_id,'verified_status'=>1])->exists();
-                if($isVerified){
-                   
-                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
+                $isVerified                         =   UserMedicalCredentials::where(['user_id' => $auth_id, 'verified_status' => 1])->exists();
 
+                if ($isVerified) {
+
+                    return $this->sendResponsewithoutData(trans('message.document_already_verified'), 403);
+                }
+                $degreeType         =   $request->degree_type;
+
+                if (is_numeric($degreeType)) {
+
+                    $isExist        =   MedicalCredential::where('id', $degreeType)->exists();
+
+                    if (!$isExist) {
+
+                        return $this->sendResponsewithoutData(trans('message.invalid_degree_type'), 422); //invalid degree
+                    }
+                } else {
+                    // Check if the specialty name exists
+                    $isExistMedicalCre          =   MedicalCredential::where('name', $degreeType)
+                                                    ->where(function ($query) use ($auth_id) {
+                                                        $query->whereNull('user_id')
+                                                            ->orWhere('user_id', $auth_id);
+                                                    })->first();
+                    if (empty($isExistMedicalCre)) {
+
+                        $addMcredential                =        removeSpecialCharsAndFormat($degreeType);
+
+                        // If the specialty name doesn't exist, attempt to add it as a new specialty
+                        $newMcredential                =       MedicalCredential::create(['name' => $addMcredential, 'user_id' => $auth_id, 'type' => 3]);
+
+                        $degreeType                    =       $newMcredential->id;
+
+                    }else{
+
+                        $degreeType                    =       $isExistMedicalCre->id;
+                    }
                 }
 
-
-
-
-
-                
                 $specialty          =   $request->specialty;
-
                 if (is_numeric($specialty)) {
 
                     $isExist        =   Specialty::where('id', $specialty)->exists();
 
-                    if(!$isExist){
+                    if (!$isExist) {
 
                         return $this->sendResponsewithoutData(trans('message.invalid_specialty'), 422);
                     }
-
                 } else {
                     // Check if the specialty name exists
-                    $existingSpecialty      =       Specialty::where('name', $specialty)->whereNull('user_id')->first();
+                    $existingSpecialty = Specialty::where('name', $specialty)
+                                                ->where(function($query) use ($auth_id) {
+                                                    $query->whereNull('user_id')
+                                                        ->orWhere('user_id', $auth_id);
+                                                })->first();
 
                     if (empty($existingSpecialty)) {
 
                         $addSpecialty       =       removeSpecialCharsAndFormat($specialty);
                         // If the specialty name doesn't exist, attempt to add it as a new specialty
-                        $newSpecialty       =       Specialty::create(['name' => $addSpecialty,'user_id'=>$auth_id]);
-                        DB::commit();
+                        $newSpecialty       =       Specialty::create(['name' => $addSpecialty, 'user_id' => $auth_id, 'type' => 3]);
+
                         $specialty          =       $newSpecialty->id;
+                    } else {
+
+                        $specialty          =       $existingSpecialty->id;
                     }
                 }
 
@@ -410,13 +455,12 @@ class SignStepsController extends BaseController
 
                     $identity_proof                     =       $request->file('medicial_document');
                     $userMedicialDoc                    =       upload_file($identity_proof, 'medicial_document');
-                   
                 }
 
                 UserMedicalCredentials::updateOrCreate(
 
                     ['user_id' => $auth_id],
-                    ['medicial_degree_type' => $request['degree_type'],'medicial_document'=>$userMedicialDoc,'specialty'=>$specialty,'is_active'=>1,'verified_status'=>0]
+                    ['medicial_degree_type' => $degreeType, 'medicial_document' => $userMedicialDoc, 'specialty' => $specialty, 'is_active' => 1, 'verified_status' => 0]
                 );
 
                 // $userDocument                       =       new UserMedicalCredentials();
@@ -429,7 +473,7 @@ class SignStepsController extends BaseController
 
                 $userStep7                      =   User::find($auth_id);
                 $userStep7->complete_step       =   7;
-                $userStep7->save();   
+                $userStep7->save();
                 DB::commit();
                 $userData                       =       $this->getUser->getUser($auth_id);
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
@@ -455,56 +499,52 @@ class SignStepsController extends BaseController
 
     #------------   C H E C K       S T E P         W I T H   C A S E -------------------#
 
-    public function checkSteps($request,$userid)
+    public function checkSteps($request, $userid)
     {
         $step     = $request->step;
-       
+
         switch ($step) {
             case '2':
-                return $this->step2($request,$userid);
+                return $this->step2($request, $userid);
                 break;
             case '3':
-                return $this->step3($request,$userid);
+                return $this->step3($request, $userid);
 
                 break;
 
             case '4':
-                return $this->step4($request,$userid);
+                return $this->step4($request, $userid);
                 break;
             case '5':
-                return $this->step5($request,$userid);
+                return $this->step5($request, $userid);
                 break;
             case '6':
-                return $this->step6($request,$userid);
+                return $this->step6($request, $userid);
                 break;
             case '7':
-                return $this->step7($request,$userid);
+                return $this->step7($request, $userid);
                 break;
             default:
                 return $this->sendResponsewithoutData(trans("message.complete_previous_step"), 400);
                 break;
         }
-
     }
 
-    public function checkPrevious($step,$userid){
+    public function checkPrevious($step, $userid)
+    {
 
-        $checkPreviousStep      =   User::select('id','complete_step')->where('id',$userid)->first();
+        $checkPreviousStep      =   User::select('id', 'complete_step')->where('id', $userid)->first();
 
-        if($checkPreviousStep['complete_step']>=$step ){
+        if ($checkPreviousStep['complete_step'] >= $step) {
 
             //step already completed
             return $this->sendResponsewithoutData(trans("message.step_already_completed"), 400);
+        } elseif ($checkPreviousStep['complete_step'] < ($step - 1)) {
 
-
-        }elseif ($checkPreviousStep['complete_step'] < ($step-1)) {
-            
             return $this->sendResponsewithoutData(trans("message.complete_previous_step"), 400);
-
-        }else{
+        } else {
 
             return false;
         }
-
     }
 }

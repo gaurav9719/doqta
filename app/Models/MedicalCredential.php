@@ -9,7 +9,7 @@ class MedicalCredential extends Model
 {
     use HasFactory;
 
-    protected $fillable=['id','name','is_active','created_at','updated_at'];
+    protected $fillable=['id','name','user_id','type','is_active','created_at','updated_at'];
     
 
 
