@@ -56,8 +56,18 @@ class UserController extends BaseController
     {
         try {
             DB::beginTransaction();
-            $validator                 =      Validator::make($request->all(), ['old_password' => 'required', 'new_password' => 'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/']);
-
+            $validator      = Validator::make($request->all(), [
+                'old_password' => 'required',
+                'new_password' => [
+                    'required',
+                    'string',
+                    Password::min(8)  // Minimum length of 8 characters
+                        ->mixedCase()   // Must contain both upper and lower case letters
+                        ->numbers()     // Must contain at least one number
+                        ->symbols()     // Must contain at least one special character
+                        ->uncompromised()  // Ensure password is not compromised
+                ]
+            ]);
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);

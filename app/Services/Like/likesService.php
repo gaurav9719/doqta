@@ -106,7 +106,12 @@ class likesService extends BaseController
                         "community_id"  =>  $group->id,
                         "like_id"       =>  $postLike->id
                     ];
-                    // $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+
+                    if($authId!=$group_post->user_id){  //it will send if post is not posted by me
+
+                        $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+                    }
+
                 } else {
                     // update like
                     $oldreact           =   $post->reaction;
