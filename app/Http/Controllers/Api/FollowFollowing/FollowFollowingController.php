@@ -68,6 +68,7 @@ class FollowFollowingController extends BaseController
             if ($type == 1) { // All
                 $query->where(function ($query) use ($myId) {
                     $query->where('user_followers.user_id', '=', $myId)
+
                           ->orWhere('user_followers.follower_user_id', '=', $myId);
                 });
                 $message = trans('message.supporters_supportings');
@@ -82,6 +83,7 @@ class FollowFollowingController extends BaseController
             }
     
             $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id')
+                            ->groupBy('U.id')
                              ->orderBy('U.id', 'ASC')
                              ->simplePaginate($limit);
 
