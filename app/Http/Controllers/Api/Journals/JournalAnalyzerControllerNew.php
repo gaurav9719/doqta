@@ -142,7 +142,9 @@ class JournalAnalyzerControllerNew extends BaseController
             #----------  3 J U N -----------------#
             if (isset($request->include_chat) && $request->include_chat == 1) {
                 $chat = $this->includeChat($request);
-                $data = array_merge($data, $chat);
+                if(isset($chat) && count($chat) > 0){
+                    $data = array_merge($data, $chat);
+                }
             }
             #----------  3 J U N -----------------#
             // return $data;
