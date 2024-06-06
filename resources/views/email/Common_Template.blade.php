@@ -82,7 +82,7 @@
             <h1>Doqta</h1>
         </div>
         <div class="content">
-            <h1>{{ $message }}</h1>
+            <h1>{{ $message_data }}</h1>
             <p>{{ $body }}</p>
             <div class="code">{{ $otp }}</div>
             <p>This code will expire in 10 minutes.</p>

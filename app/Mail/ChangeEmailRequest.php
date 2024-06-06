@@ -47,9 +47,9 @@ class ChangeEmailRequest extends Mailable
 
             view: 'email.Common_Template',
             with: [
-                'otp' => $this->otp,
-                'doqta' => $appImage,
-                'message' => "Here is your email verification code for Doqta",
+                "otp" => $this->otp,
+                "doqta" => $appImage,
+                "message_data" => "Here is your email verification code for Doqta",
                 "title" => "Change email request verification",
                 "body" => "Use the following code to verify your email address change:"
             ]
