@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+
 use App\Models\User;
 use App\Http\Requests\UserRegister;
 use App\Http\Requests\LoginUser;
@@ -29,6 +30,7 @@ use App\Models\PasswordResetToken;
 use App\Mail\ForgotPasswordEmail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+
 /**
  * Class ForgotPasswordService.
  */
@@ -46,97 +48,94 @@ class ForgotPasswordService extends BaseController
             return $next($request);
         });
         $this->notification = $notification;
-    }  
+    }
 
 
-        /* send otp  */
-        public function sendOtpToMail($checkEmail, $request)
-        {
-            DB::beginTransaction();
+    /* send otp  */
+    public function sendOtpToMail($checkEmail, $request)
+    {
+        DB::beginTransaction();
 
-            try {
-                $otp = rand(111111, 999999);
-                $random = Str::random(40);
-                $otp_expiry_time = Carbon::now()->addMinutes(10);
-                $emailVerify = ['otp' => $otp, 'name' => $checkEmail->name];
-                $SendOtp = PasswordResetToken::updateOrCreate(
-                    ['email' => $request->email], // Primary key column
-                    [
-                        'token' => $random,
-                        'otp' => $otp,
-                        'otp_expiry_time' => $otp_expiry_time,
-                        'created_at' => Carbon::now(),
-                    ]
-                );
-            
-                DB::commit();
-                // Send an email with the OTP
-                Mail::to($request->email)->send(new ForgotPasswordEmail($emailVerify));
-                return $this->sendResponsewithoutData(trans('message.otp_sent_on_your_email'), 200);
-            } catch (Exception $e) {
-                // Rollback the transaction in case of an exception
-                log::error("sendOtpToMail:-".$e->getMessage());
-                DB::rollback();
-                return $this->sendError([], trans('message.failed_to_send_email'));
-            }
-            
+        try {
+            $otp = rand(111111, 999999);
+            $random = Str::random(40);
+            $otp_expiry_time = Carbon::now()->addMinutes(10);
+            $emailVerify = ['otp' => $otp, 'name' => $checkEmail->name];
+            $SendOtp = PasswordResetToken::updateOrCreate(
+                ['email' => $request->email], // Primary key column
+                [
+                    'token' => $random,
+                    'otp' => $otp,
+                    'otp_expiry_time' => $otp_expiry_time,
+                    'created_at' => Carbon::now(),
+                ]
+            );
+
+            DB::commit();
+            // Send an email with the OTP
+            Mail::to($request->email)->send(new ForgotPasswordEmail($emailVerify));
+            return $this->sendResponsewithoutData(trans('message.otp_sent_on_your_email'), 200);
+        } catch (Exception $e) {
+            // Rollback the transaction in case of an exception
+            log::error("sendOtpToMail:-" . $e->getMessage());
+            DB::rollback();
+            return $this->sendError([], trans('message.failed_to_send_email'));
         }
-        /* send otp  */
-    
+    }
+    /* send otp  */
 
-        #-------------------********* V E R I F Y       O T P  ********-----------------------#
 
-        public function verifyOtp(Request $request)
-        {
-            DB::beginTransaction();
-        
-            try {
+    #-------------------********* V E R I F Y       O T P  ********-----------------------#
 
-                $validation     =   Validator::make($request->all(),['otp'=>'required|integer|digits:6']);
+    public function verifyOtp(Request $request)
+    {
+        DB::beginTransaction();
 
-                if($validation->fails()){
-    
-                    return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-    
-                }else{
+        try {
 
-                    $otpExist       = PasswordResetToken::where('email', $request->email)->first();
-        
-                    if (!$otpExist || empty($otpExist->otp) || empty($otpExist->otp_expiry_time)) {
-    
-                        return $this->sendResponsewithoutData(trans('message.invalid_email'), 400);
-    
-                    }
-            
-                    $expiryTime = strtotime($otpExist->otp_expiry_time);
-                    $currentTime = strtotime(Carbon::now());
-            
-                    if ($currentTime >= $expiryTime) {
-                        // Clear expired OTP
-                        $otpExist->update([
-                            'token' => null,
-                            'otp_expiry_time' => null,
-                            'otp' => null,
-                        ]);
-                        DB::commit();
-                        return $this->sendResponsewithoutData(trans('message.otp_expired'), 400);
-                    }
-            
-                    if ($otpExist->otp != $request->otp) {
-                        return $this->sendResponsewithoutData(trans('message.invalid_otp'), 400);
-                    }
-            
-                    DB::commit();
-                    return $this->sendResponse($otpExist->token, trans('message.otp_verified'), 200);
+            $validation     =   Validator::make($request->all(), ['otp' => 'required|integer|digits:6']);
+
+            if ($validation->fails()) {
+
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+            } else {
+
+                $otpExist       = PasswordResetToken::where('email', $request->email)->first();
+
+                if (!$otpExist || empty($otpExist->otp) || empty($otpExist->otp_expiry_time)) {
+
+                    return $this->sendResponsewithoutData(trans('message.invalid_email'), 400);
                 }
-            } catch (Exception $e) {
-                // Rollback the transaction in case of an exception
-                log::error("verifyOtp:-".$e->getMessage());
-                DB::rollback();
-                return $this->sendError([], $e->getMessage());
+
+                $expiryTime = strtotime($otpExist->otp_expiry_time);
+                $currentTime = strtotime(Carbon::now());
+
+                if ($currentTime >= $expiryTime) {
+                    // Clear expired OTP
+                    $otpExist->update([
+                        'token' => null,
+                        'otp_expiry_time' => null,
+                        'otp' => null,
+                    ]);
+                    DB::commit();
+                    return $this->sendResponsewithoutData(trans('message.otp_expired'), 400);
+                }
+
+                if ($otpExist->otp != $request->otp) {
+                    return $this->sendResponsewithoutData(trans('message.invalid_otp'), 400);
+                }
+
+                DB::commit();
+                return $this->sendResponse($otpExist->token, trans('message.otp_verified'), 200);
             }
+        } catch (Exception $e) {
+            // Rollback the transaction in case of an exception
+            log::error("verifyOtp:-" . $e->getMessage());
+            DB::rollback();
+            return $this->sendError([], $e->getMessage());
         }
-        #-------------------********* V E R I F Y       O T P  ********-----------------------#
+    }
+    #-------------------********* V E R I F Y       O T P  ********-----------------------#
 
 
     #-----------------------************ R E S E T       P A S S W O R D ***********------------------------------#   
@@ -144,17 +143,16 @@ class ForgotPasswordService extends BaseController
     {
         DB::beginTransaction();
         try {
-            $validation                           =   Validator::make($request->all(),['password'=>'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/','confirm_password'=>'required|same:password','token'=>'required|']);
-            if($validation->fails()){
+            $validation                           =   Validator::make($request->all(), ['password' => 'required|min:8|string|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/', 'confirm_password' => 'required|same:password', 'token' => 'required|']);
+            if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+            } else {
 
-            }else{
-
-                $resetPassword                    =   PasswordResetToken::where(['email' => $request->email,'token'=>$request->token])->first();
+                $resetPassword                    =   PasswordResetToken::where(['email' => $request->email, 'token' => $request->token])->first();
                 if ((isset($resetPassword) && !empty($resetPassword)) && !empty($resetPassword['token'])) {
                     //check validation of expiry time of reset password
-                    $setUserPassword              =   User::where('email',$request->email)->first();
+                    $setUserPassword              =   User::where('email', $request->email)->first();
                     $setUserPassword->password    =    Hash::make($request->password);
                     if ($setUserPassword->save()) {
 
@@ -164,13 +162,12 @@ class ForgotPasswordService extends BaseController
                         $resetPassword->save();
                         DB::commit();
                         #send notification
-                        $receiver= User::find($setUserPassword->id);
-                        $sender= User::where('role', 3)->first();
+                        $receiver = User::find($setUserPassword->id);
+                        $sender = User::where('role', 3)->first();
                         $sender = isset($sender) ? $sender : $receiver;
-                        $data=["message"=> trans('notification_message.password_changed_successfully_message')];
+                        $data = ["message" => trans('notification_message.password_changed_successfully_message')];
                         $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.password_changed_successfully_type'), $data);
                         return $this->sendResponsewithoutData(trans('message.changed_password'), 200);
-                        
                     } else {
                         return $this->sendResponsewithoutData(trans('message.password_not_updated'), 200);
                     }
@@ -179,9 +176,8 @@ class ForgotPasswordService extends BaseController
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 400);
                 }
             }
-            
         } catch (Exception $e) {
-            log::error("reset_password:-".$e->getMessage());
+            log::error("reset_password:-" . $e->getMessage());
             // Rollback the transaction in case of an exception
             DB::rollback();
             return $this->sendError([], $e->getMessage());
