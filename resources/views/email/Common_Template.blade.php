@@ -78,7 +78,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ $doqta }}" alt="Doqta Logo">
+            <img src="{{$doqta}}" alt="Doqta Logo">
             <h1>Doqta</h1>
         </div>
         <div class="content">

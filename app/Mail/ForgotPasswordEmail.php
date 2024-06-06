@@ -43,8 +43,20 @@ class ForgotPasswordEmail extends Mailable
      */
     public function content(): Content
     {
+       
+
+
+        $appImage   =   asset('storage/app_icon/ai.png'); // Adjust the path as necessary
         return new Content(
-            view: 'email.forgot',
+
+            view: 'email.Common_Template',
+            with: [
+                "otp" => $this->data->otp,
+                "doqta" => $appImage,
+                "message_data" => "Here is your email verification code for Doqta",
+                "title" => "Forgot password Email Verification",
+                "body" => "Use the following code to verify your email address:"
+            ]
         );
     }
 

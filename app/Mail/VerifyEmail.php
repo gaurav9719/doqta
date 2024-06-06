@@ -43,13 +43,18 @@ class VerifyEmail extends Mailable
      */
     public function content(): Content
     {
-        $appImage = asset('public/app_icon/ai.png'); // Adjust the path as necessary
+       
+        $appImage   =   asset('storage/app_icon/ai.png'); // Adjust the path as necessary
         return new Content(
-            view: 'email.forgot_password',
+
+            view: 'email.Common_Template',
             with: [
-                'data' => $this->data,
-                'doqta' => $appImage
-            ],
+                "otp" => $this->data->otp,
+                "doqta" => $appImage,
+                "message_data" => "Here is your email verification code for Doqta",
+                "title" => "Email Verification",
+                "body" => "Use the following code to verify your email address:"
+            ]
         );
     }
 
