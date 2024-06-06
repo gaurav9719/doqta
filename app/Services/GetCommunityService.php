@@ -50,29 +50,34 @@ class GetCommunityService extends BaseController
 
                 $limit      =       $request->limit;
             }
+
             $user = User::findOrFail($authId);
 
             $homeScreenPosts = $user->posts()
+            
                 ->where('posts.is_active', 1)
+
                 ->whereDoesntHave('reportPosts', function ($query) use ($user) {
+
                     $query->where('user_id', $user->id);
                 })
                 ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
                     $query->where('blocked_user_id', $authId);
                 })
                 ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
                     $query->where('user_id', $authId);
                 })
                 ->whereDoesntHave('hiddenPosts', function ($query) use ($authId) {
+
                     $query->where('user_id', $authId);
                 })
                 ->where(function ($query) {
                     $query->whereDoesntHave('parent_post')
                         ->orWhereHas('parent_post', function ($query) {
                             $query->where('is_active', 1)
-                                ->whereHas('post_user', function ($query) {
-                                    $query->where('is_active', 1);
-                                });
+                                ->whereHas('post_user');
                         });
                 })
                 ->with([

@@ -102,7 +102,7 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Post::class, GroupMember::class, 'user_id', 'group_id', 'id', 'group_id')
             ->whereHas('post_user', function ($query) {
-
+                
                 $query->where('is_active', 1);
 
             });

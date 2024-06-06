@@ -1176,10 +1176,14 @@ class DicoverService extends BaseController
                 },'post_user.user_medical_certificate.medical_certificate'=>function($q){
 
                     $q->select('id','name');
-                }])
+
+                }])->whereHas('post_user.userParticipant',function($q){  //check user medical or not
+
+                    $q->where('participant_id',[3]);
+                })
     
                 ->where('user_id', '<>', $authId)
-                ->where('is_health_provider', 1)
+                // ->where('is_health_provider', 1)
                 ->when($request->search, function ($query) use ($request, $groupIds) {
     
                     $query->whereIn('group_id', $groupIds);
@@ -1188,7 +1192,7 @@ class DicoverService extends BaseController
                 ->havingRaw('total_likes_count > 0')
                 ->orderByDesc('total_likes_count');
 
-               
+            //    dd(DB::getQueryLog());
     
             if (isset($type) && !empty($type)) {
                 
