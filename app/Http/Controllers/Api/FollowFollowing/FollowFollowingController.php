@@ -79,7 +79,7 @@ class FollowFollowingController extends BaseController
     
             } elseif ($type == 3) { // Followers
                 $query->where('user_followers.user_id', '=', $myId);
-             $message = trans('message.supporters');
+                $message = trans('message.supporters');
             }
     
             $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
