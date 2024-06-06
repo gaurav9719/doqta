@@ -366,7 +366,6 @@ class JournalAnalyzerControllerNew extends BaseController
                     'feeling' => function ($query) {
 
                         $query->select('id', 'name'); // Rename 'id' and 'name'
-
                     }
                 ])->select('id', 'feeling_id', 'pain')->where(['user_id'=>$authId,'is_active'=>1]);
 
@@ -374,14 +373,14 @@ class JournalAnalyzerControllerNew extends BaseController
 
                     $insights = $insights->where('journal_id', $request->journal_id);
                 }
-                $insights = $insights->whereDate('journal_on', '=', $date)->get();
+                $insights = $insights->whereDate('created_at', '=', $date)->get();
 
                 if ($insights->isNotEmpty()) {
 
                     $query = JournalEntry::where('is_active', 1);
 
                     if (!empty($request->journal_id)) {
-                        
+
                         $query->where('journal_id', $request->journal_id);
                     }
                     $moodAvg    =   $query->whereDate('created_at', $date)
