@@ -41,8 +41,8 @@ class ChangeEmailRequest extends Mailable
      */
     public function content(): Content
     {
-        $appImage = asset('public/app_icon/ai.png'); // Adjust the path as necessary
-
+        $appImage   =   asset('storage/app_icon/ai.png'); // Adjust the path as necessary
+        
         return new Content(
 
             view: 'email.Common_Template',
