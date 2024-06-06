@@ -171,16 +171,19 @@ class UserController extends BaseController
                 //check user is blocked or not
                 if ($authId != $getUser) {
 
-                    DB::enableQueryLog();
+                   
                     $isBlocked = BlockedUser::where(function ($query) use ($authId, $getUser) {
-                        $query->where([
-                            ['user_id', $authId],
-                            ['blocked_user_id', $getUser]
-                        ])->orWhere([
-                            ['user_id', $getUser],
-                            ['blocked_user_id', $authId]
-                        ]);
+                        // Check if the exact combination exists
+                        $query->where(['user_id' => $authId, 'blocked_user_id' => $getUser])
+                        
+                            ->orWhere(function($query) use($authId, $getUser){
+                                
+                                 $query->where(['user_id' => $getUser, 'blocked_user_id' => $authId]);
+                                
+                            });
+                                
                     })->exists();
+
                     if ($isBlocked) {
 
                         return $this->sendError(trans('message.blocked_user'), [], 403);

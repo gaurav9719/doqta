@@ -23,6 +23,7 @@ use GeminiAPI\Resources\Parts\ImagePart;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
+use App\Models\AiMessageFeedback;
 
 class AiChat extends BaseController
 {
@@ -1093,4 +1094,60 @@ public function insights(Request $request){
     }
 }
     
+
+    #------------------- C H A T         F E E D B A C K -----------______#
+    public function chatFeedback(Request $request){
+        DB::beginTransaction();
+
+        try {
+
+            if ($request->isMethod('post')) {
+              
+                $validator      =  Validator::make($request->all(),['message_id'=>'required|integer|exists:ai_messages,id','feedback'=>'nullable|string|max:200']);
+
+                if($validator->fails()){
+        
+                    return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+        
+                }else{
+                    $authId     =   Auth::id();
+                    $exist      =   AiMessage::where('id',$request->message_id)->whereHas('thread')->exists();
+        
+                    $feedBack   =   $request->feedback??null;
+                    $reaction   =   $request->reaction??0;
+        
+                    if($exist){
+        
+                        if(!empty($feedBack) || !empty($reaction)){
+
+                            $added  =   AiMessageFeedback::updateOrCreate(['message_id'=>$request->message_id,'user_id'=>$authId],['reaction'=>$reaction,'feedback'=>$feedBack]);
+
+                            $getFeedback    =AiMessageFeedback::find($added->id);
+                            DB::commit();
+
+                            return $this->sendResponse($getFeedback, "Feedback submit successfully", 200);
+
+                        }else{
+        
+                            return $this->sendResponsewithoutData("feedback or reaction is required", 422);
+                        }
+                    }else{
+
+                        return $this->sendResponsewithoutData("Invalid message", 422);
+                    }
+                }
+            } else {
+
+                return $this->sendError("invalid method", [], 403);
+
+            }
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "chatFeedback" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------------- C H A T         F E E D B A C K -----------______#
+
+
 }

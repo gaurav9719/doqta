@@ -221,8 +221,16 @@ class FollowFollowingController extends BaseController
                 $isBlocked = BlockedUser::where(function ($query) use ($authId, $userId) {
                     // Check if the exact combination exists
                     $query->where(['user_id' => $authId, 'blocked_user_id' => $userId])
-                        ->orWhere(['user_id' => $userId, 'blocked_user_id' => $authId]);
+                    
+                        ->orWhere(function($query) use($authId, $userId){
+                            
+                             $query->where(['user_id' => $userId, 'blocked_user_id' => $authId]);
+                            
+                        });
+                            
                 })->exists();
+
+
                 if ($isBlocked) {
                     return $this->sendError(trans('message.something_went_wrong'), [], 403);
                 }
@@ -430,6 +438,7 @@ class FollowFollowingController extends BaseController
                     return $this->sendError(trans("message.something_went_wrong"), [], 403);
                 }
                 $hasBlocked     =   BlockedUser::where(['user_id' => $authId, 'blocked_user_id' => $request->user_id])->first();
+                
                 if($request->type==1){                              // block User
 
                     if (isset($hasBlocked) && !empty($hasBlocked)) { //already blocked
