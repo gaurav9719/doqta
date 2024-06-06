@@ -20,6 +20,7 @@ use App\Models\GroupMemberRequest;
 use App\Traits\IsLikedPostComment;
 use App\Models\PostLike;
 use App\Traits\postCommentLikeCount;
+use App\Traits\CommonTrait;
 use App\Models\ActivityLog;
 use App\Models\Comment;
 
@@ -29,7 +30,7 @@ use App\Models\Comment;
 class GetCommunityService extends BaseController
 {
 
-    use IsLikedPostComment, postCommentLikeCount;
+    use IsLikedPostComment, postCommentLikeCount,CommonTrait;
     protected $addCommunityPost, $notification;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
     {
@@ -135,10 +136,17 @@ class GetCommunityService extends BaseController
                 $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
             });
 
+            $new_health_insight_available     =   $this->checkNewHealthInsights($authId);
 
             $notification_count     =   notification_count();
-
-            return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200, $notification_count);
+            return response()->json([
+                'status'                    => 200,
+                'message'                   => trans("message.home_screen_post"),
+                'data'                      => $homeScreenPosts,
+                'notification'              => $notification_count,
+                'is_new_insights_available' => $new_health_insight_available
+            ]);
+            // return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200, $notification_count);
         } catch (Exception $e) {
 
             Log::error('Error caught: "getPost" ' . $e->getMessage());

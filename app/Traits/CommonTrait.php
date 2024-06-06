@@ -9,17 +9,18 @@ use App\Models\User;
 use App\Models\Inbox;
 use App\Models\Journal;
 use App\Models\Message;
-use App\Models\JournalTopic;
-use App\Models\PhysicalSymptom;
 use App\Models\SharePost;
+use App\Models\JournalTopic;
 use App\Models\UserFollower;
+use App\Models\JournalReport;
+use App\Models\PhysicalSymptom;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use GeminiAPI\Laravel\Facades\Gemini;
 use GeminiAPI\Resources\Parts\TextPart;
 use GeminiAPI\Resources\Parts\ImagePart;
-use App\Traits\postCommentLikeCount;
 
 trait CommonTrait
 {
@@ -28,6 +29,28 @@ trait CommonTrait
 
 
     use postCommentLikeCount;
+
+
+    public function checkNewHealthInsights($user_id){
+
+        $time   = Carbon::now()->subHours(6);
+        $report = JournalReport::where('user_id', $user_id)->where('updated_at', '>', $time)->orderBy('updated_at', 'desc')->first();
+        if(isset($report)){
+
+            $response = 1;
+        }
+        else{
+            
+            $response = 0;
+        }
+        return $response;
+    }
+
+
+
+
+
+
     public function createSymtomByTopic($journalId, $topic)
     {
         try {
