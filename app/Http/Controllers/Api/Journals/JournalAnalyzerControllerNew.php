@@ -351,7 +351,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
     function getInsightSymptoms($request)
     {
-
+        $authId             =   Auth::id();
         $start_date         = $request->start_date;
         $end_date           = $request->end_date;
         $dates              = getDatesBetween($start_date, $end_date);
@@ -368,7 +368,7 @@ class JournalAnalyzerControllerNew extends BaseController
                         $query->select('id', 'name'); // Rename 'id' and 'name'
 
                     }
-                ])->select('id', 'feeling_id', 'pain')->where('is_active', 1);
+                ])->select('id', 'feeling_id', 'pain')->where(['user_id'=>$authId,'is_active'=>1]);
 
                 if (isset($request->journal_id) && !empty($request->journal_id)) {
 
