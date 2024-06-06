@@ -22,7 +22,7 @@ class ChangeEmailRequest extends Mailable
     public function __construct($otp)
     {
         //
-        $this->otp= $otp;
+        $this->otp = $otp;
     }
 
     /**
@@ -32,7 +32,7 @@ class ChangeEmailRequest extends Mailable
     {
         return new Envelope(
             from: new Address('doqta@app.com', 'Doqta App'),
-            subject: 'Corporate Email Verification',
+            subject: 'Change Email request',
         );
     }
 
@@ -45,9 +45,14 @@ class ChangeEmailRequest extends Mailable
 
         return new Content(
 
-            view: 'email.emailChangeRequest',
-            with: ['otp' => $this->otp,
-            'doqta' => $appImage]
+            view: 'email.Common_Template',
+            with: [
+                'otp' => $this->otp,
+                'doqta' => $appImage,
+                'message' => "Here is your email verification code for Doqta",
+                "title" => "Change email request verification",
+                "body" => "Use the following code to verify your email address change:"
+            ]
         );
     }
 

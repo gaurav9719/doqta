@@ -80,7 +80,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(GeniminControlle
     
     
 });
-Route::middleware(['with_fast_api_key','is_verified_email'])->controller(InputsOptions::class)->group(function () {
+Route::middleware(['with_fast_api_key','is_verified_email','auth:api'])->controller(InputsOptions::class)->group(function () {
     Route::get('inputSelection','inputSelection');
 });
 

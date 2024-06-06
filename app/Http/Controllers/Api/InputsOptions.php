@@ -45,7 +45,9 @@ class InputsOptions extends BaseController
 
             }else{
 
-                $type               =   $request->type;
+                $type                   =  $request->type;
+                $authId                 =  Auth::id();
+                // dd($authId);
                 if($type==2){ 
 
                     $data['ethnicity']  =   Ethnicity::where('is_active',1)->get();
@@ -64,7 +66,7 @@ class InputsOptions extends BaseController
 
                             if(isset($query->image) && !empty($query->image)){
 
-                                $query->image   = asset('storage/'.$query->image);   
+                                $query->image   =       asset('storage/'.$query->image);   
                             }
                         });
                     }
@@ -73,7 +75,8 @@ class InputsOptions extends BaseController
 
                 }elseif ($type==4) {        //interest
                     
-                    $interest       =       Interest::where('is_active',1)->get();
+                    $interest                   =       Interest::where('is_active',1)->get();
+
                     if(isset($interest) && !empty($interest)){
 
                         $interest->each(function($query){
@@ -95,8 +98,32 @@ class InputsOptions extends BaseController
 
                 }elseif ($type==7) {        // medical conditions
 
-                    $medical['medical_credentials']  =   MedicalCredential::where('is_active',1)->get();
-                    $medical['specialty']  =   Specialty::where('is_active',1)->whereNull('user_id')->get();
+                    $medical['medical_credentials']  =   MedicalCredential::where('is_active',1)->where(function($query) use($authId){
+
+                        $query->where('type','<>',3);
+
+                        $query->orWhere(function($q)use($authId){
+
+                            $q->where('user_id',$authId);
+                        });
+
+                    })->get();
+
+
+                    $medical['specialty']   =   Specialty::where('is_active',1)->where(function($query) use($authId){
+
+                        $query->where('type','<>',3);
+
+                        $query->orWhere(function($q)use($authId){
+
+                            $q->where('user_id',$authId);
+                        });
+
+                    })->get();
+
+
+
+                    // $medical['specialty']            =   Specialty::where('is_active',1)->whereNull('user_id')->get();
                     return $this->sendResponse($medical, trans("message.medical_credentials_list"), 200);
 
                 }else{
