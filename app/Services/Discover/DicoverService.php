@@ -1126,7 +1126,6 @@ class DicoverService extends BaseController
 
     #------------------- G E T       T O P      H E A L T H         P R O V I D E R  ------------------------#
 
-
     public function topHealthProvider($request, $authId, $limit, $type = "")
     {
         try {
@@ -1136,8 +1135,9 @@ class DicoverService extends BaseController
             if (isset($request->search) && !empty($request->search)) {
     
                 $groupIds          =    Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+                $userIds           =    User::whereHas('')->where('user_name', 'like', "%{$request->search}%")->pluck('id');
             }
-            DB::enableQueryLog();
+           
             $maxLikesPosts         =    Post::whereHas('post_user')->selectRaw('
                                             group_id,
                                             user_id,
@@ -1159,6 +1159,7 @@ class DicoverService extends BaseController
                                 ->whereColumn('blocked_users.user_id', 'user_id');
                         });
                 })
+
                 ->whereNotExists(function ($query) use ($authId) {
 
                     $query->select(DB::raw(1))
@@ -1169,6 +1170,7 @@ class DicoverService extends BaseController
                 })->with(['post_user'=>function ($query) {
     
                     $query->select('id', 'name', 'user_name', 'profile');
+                    
                 },'post_user.user_medical_certificate'=>function($q){
 
                     $q->select('id','user_id','medicial_degree_type','verified_status');
@@ -1184,9 +1186,10 @@ class DicoverService extends BaseController
     
                 ->where('user_id', '<>', $authId)
                 // ->where('is_health_provider', 1)
-                ->when($request->search, function ($query) use ($request, $groupIds) {
+                ->when($request->search, function ($query) use ($request, $userIds) {
     
-                    $query->whereIn('group_id', $groupIds);
+                    //$query->whereIn('group_id', $groupIds);
+                    $query->whereIn('group_id', $userIds);
                 })
                 ->groupBy('user_id')
                 ->havingRaw('total_likes_count > 0')

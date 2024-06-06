@@ -57,7 +57,7 @@ class ChatAnalyzerController extends BaseController
             $start_id   = reset($request_ids);
             $end_id     = end($request_ids);
             $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
-            if($ids_count > 0){
+            if($ids_count > 10){ // TO SHOW MESSAGE INSUFFICENT
                 if(count($reports) > 0){
                     
                     foreach($reports as $report){
@@ -166,7 +166,7 @@ class ChatAnalyzerController extends BaseController
                             }
                         }
                         
-                        $finalReport = $this->getInsights($newReport->id, 1); //type: 1=insights, 2=suggestion, 3=chat insights
+                        $finalReport = $this->getInsights($newReport->id); //type: 1=insights, 2=suggestion, 3=chat insights
 
                         return response()->json([
                             'status' => 200,
@@ -177,12 +177,11 @@ class ChatAnalyzerController extends BaseController
                 }
                 else{
     
-                    return response()->json($insight, 201);
+                    return $this->sendResponse(null,'Insufficent data', 201);
                 }
             }
             else{
-    
-                return $this->sendResponse(null,'No message found', 200);
+                return $this->sendResponse(null,'No message found', 201);
             }
         }
         else{
