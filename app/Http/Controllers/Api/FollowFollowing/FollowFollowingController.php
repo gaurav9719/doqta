@@ -82,8 +82,9 @@ class FollowFollowingController extends BaseController
              $message = trans('message.supporters');
             }
     
-            $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id')
+            $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
                             ->groupBy('U.id')
+                            ->where('U.is_active',1)
                              ->orderBy('U.id', 'ASC')
                              ->simplePaginate($limit);
 
