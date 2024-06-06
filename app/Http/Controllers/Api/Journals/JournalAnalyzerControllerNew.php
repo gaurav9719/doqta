@@ -381,9 +381,11 @@ class JournalAnalyzerControllerNew extends BaseController
                     $query = JournalEntry::where('is_active', 1);
 
                     if (!empty($request->journal_id)) {
+                        
                         $query->where('journal_id', $request->journal_id);
                     }
-                    $moodAvg    =   $query->whereDate('journal_on', $date)
+                    $moodAvg    =   $query->whereDate('created_at', $date)
+
                         ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
                         ->first();
 
