@@ -6,7 +6,7 @@ return [
     'invalidUser'=>"Invalid request user", // when recruiter try to access dater api
     'sent_email_verification_code'=>"Verification code send to your email!",
     'otp_verified'=>"OTP verified",
-    'invalid_otp'=>"Invalid OTP!",
+    'invalid_otp'=>"Invalid Code",
     'otp_expired'=>"OTP expired, please try again!",
     'email_verified'=>"your email verified successfully",
     "account_not_active"=>"Your account is not active", // login
@@ -127,6 +127,7 @@ return [
     "account_deleted_or_inactive"=>"you account inactive or deleted, Please contact to Doqta admin",
     "journal_not_exist"=>"Journal not exist",
     "insight"=>"Insights",
+    "report"=>"Report",
     "trail_already_used"=>"You have already used trial.",
     "this_payment_account_already_used"=>"This account is already used by other user",
     "plan_activates_successfully"=>"Plan activated successfully",

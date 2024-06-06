@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('journal_reports', function (Blueprint $table) {
 
             $table->id();
-            $table->unsignedBigInteger('journal_id')->nullable()->index();
             $table->unsignedBigInteger('ai_thread_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->string('start_date')->nullable()->index();
@@ -27,9 +26,9 @@ return new class extends Migration
             $table->string('chat_end_id')->nullable();
             $table->string('chat_ids_count')->nullable();
             $table->json('report')->nullable();
+            $table->json('ids')->nullable();
             $table->tinyInteger('type')->nullable()->comment('1=insights_and_suggestion, 2=report,3 chat insight');
             $table->tinyInteger('report_type')->nullable()->comment('1=journal_report, 2=chat_report');
-            $table->foreign('journal_id')->references('id')->on('journals')->onDelete('cascade');
             $table->foreign('ai_thread_id')->references('id')->on('ai_threads')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();

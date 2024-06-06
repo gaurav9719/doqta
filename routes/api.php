@@ -16,13 +16,15 @@ use App\Http\Controllers\Api\SignStepsController;
 use App\Http\Controllers\Api\Likes\LikeController;
 use App\Http\Controllers\Api\AiChatController\AiChat;
 use App\Http\Controllers\Api\Gemini\GeniminController;
+use App\Http\Controllers\Api\Search\SearchController;;
 use App\Http\Controllers\Api\Dater\PortfolioController;
 use App\Http\Controllers\Api\Journals\JournalController;
 use App\Http\Controllers\Api\Payments\PaymentController;
 use App\Http\Controllers\Api\Discover\DiscoverController;
 use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
+use App\Http\Controllers\Api\Journals\JournalAnalyzerControllerNew;
+use App\Http\Controllers\Api\AiChatController\ChatAnalyzerController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
-use App\Http\Controllers\Api\Search\SearchController;;
 
 /*
 |--------------------------------------------------------------------------
@@ -167,6 +169,8 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
      Route::get('journal/insights', [JournalAnalyzerController::class, 'generateReport']);
+     Route::get('journal/viewInsightsEntries', [JournalAnalyzerControllerNew::class, 'viewInsightsEntries']);
+    Route::get('journal/viewInsightsEntries', [JournalAnalyzerControllerNew::class, 'viewInsightsEntries']);
 
 
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
@@ -232,6 +236,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('aiChat/insights', [AiChat::class,'insights']);
     Route::get('aiChat/shareMedia', [AiChat::class,'shareMedia']);
     Route::get('aiChat/threadMessage', [AiChat::class,'threadMessage']);
+    Route::get('aiChat/insights', [ChatAnalyzerController::class,'insightsNew']);
 
     Route::post('aiChat/feedback', [AiChat::class,'chatFeedback']);
     Route::resource('aiChat', AiChat::class);
