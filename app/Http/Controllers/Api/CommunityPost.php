@@ -51,7 +51,7 @@ class CommunityPost extends BaseController
     {
         $limit = 10;
         $authId = Auth::id();
-
+// dd($authId);
         if (isset($request->limit) && !empty($request->limit)) {
 
             $limit = $request->limit;

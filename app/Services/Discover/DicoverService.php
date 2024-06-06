@@ -1126,6 +1126,79 @@ class DicoverService extends BaseController
 
     #------------------- G E T       T O P      H E A L T H         P R O V I D E R  ------------------------#
 
+    public function topHealthProviderNew($request, $authId, $limit, $type = "")
+{
+    try {
+        $limit = $request->limit ?? 10;
+        $groupIds = ['0'];
+        $userIds = [];
+
+        if (!empty($request->search)) {
+            $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+            $userIds = User::where('user_name', 'like', "%{$request->search}%")
+                ->whereDoesntHave('blockedUsers', fn($query) => $query->where('blocked_user_id', $authId))
+                ->whereDoesntHave('blockedBy', fn($query) => $query->where('user_id', $authId))
+                ->pluck('id');
+        }
+
+        $maxLikesPostsQuery = Post::whereHas('post_user')
+            ->selectRaw('group_id, user_id, COUNT(*) as post_count, SUM(support_count + helpful_count) as total_likes_count')
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))->from('blocked_users')
+                    ->where(fn($query) => $query->where('user_id', $authId)->whereColumn('blocked_users.blocked_user_id', 'user_id'))
+                    ->orWhere(fn($query) => $query->where('blocked_user_id', $authId)->whereColumn('blocked_users.user_id', 'user_id'));
+            })
+            ->whereNotExists(fn($query) => $query->select(DB::raw(1))->from('user_followers')->whereColumn('user_followers.user_id', 'posts.user_id')->where('user_followers.follower_user_id', $authId))
+            ->where('user_id', '<>', $authId)
+            ->when($request->search, fn($query) => $query->whereIn('group_id', $groupIds)->orWhere(fn($q) => $q->whereIn('group_id', $userIds)))
+            ->groupBy('user_id')
+            ->havingRaw('total_likes_count > 0')
+            ->orderByDesc('total_likes_count')
+            ->with([
+                'post_user' => fn($query) => $query->select('id', 'name', 'user_name', 'profile'),
+                'post_user.user_medical_certificate' => fn($query) => $query->select('id', 'user_id', 'medicial_degree_type', 'verified_status'),
+                'post_user.user_medical_certificate.medical_certificate' => fn($query) => $query->select('id', 'name')
+            ])
+            ->whereHas('post_user.userParticipant', fn($query) => $query->where('participant_id', 3));
+
+        if (!empty($type)) {
+            $maxLikesPosts = $maxLikesPostsQuery->get()->take($limit);
+
+            $maxLikesPosts->each(function ($post) use ($authId) {
+                if (!empty($post->post_user->profile)) {
+                    $post->post_user->profile = $this->addBaseInImage($post->post_user->profile);
+                }
+                $post->is_supporting = UserFollower::where(['user_id' => $post->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists() ? 1 : 0;
+            });
+
+            return $maxLikesPosts;
+        } else {
+            $maxLikesPosts = $maxLikesPostsQuery->simplePaginate($limit);
+            $uniqueUserIds = collect();
+
+            $maxLikesPosts->getCollection()->transform(function ($post) use ($uniqueUserIds, $authId) {
+                if (!empty($post->post_user->profile)) {
+                    $post->post_user->profile = $this->addBaseInImage($post->post_user->profile);
+                }
+                $post->is_supporting = UserFollower::where(['user_id' => $post->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists() ? 1 : 0;
+
+                if (!$uniqueUserIds->contains($post->user_id)) {
+                    $uniqueUserIds->push($post->user_id);
+                    return $post;
+                }
+                return null;
+            })->filter()->values();
+
+            $notification_count = notification_count();
+            return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200, $notification_count);
+        }
+    } catch (Exception $e) {
+        Log::error('Error caught: "topHealthProvider"' . $e->getMessage());
+        return $this->sendError($e->getMessage(), [], 400);
+    }
+}
+
+
     public function topHealthProvider($request, $authId, $limit, $type = "")
     {
         try {
@@ -1134,16 +1207,24 @@ class DicoverService extends BaseController
             $groupIds              =    ['0'];
             if (isset($request->search) && !empty($request->search)) {
     
-                $groupIds          =    Group::where('name', 'like', "%{$request->search}%")->pluck('id');
-                $userIds           =    User::whereHas('')->where('user_name', 'like', "%{$request->search}%")->pluck('id');
+                $groupIds          =    Group::where('name', 'like', "%{$request->search}%")->pluck('id')->toArray();
+                $userIds           =    User::where('user_name', 'like', "%{$request->search}%")->where('is_active',1)->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                        $query->where('blocked_user_id', $authId);
+
+                    })->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                        $query->where('user_id', $authId);
+                    })->pluck('id')->toArray();
+
             }
-           
-            $maxLikesPosts         =    Post::whereHas('post_user')->selectRaw('
+            DB::enableQueryLog();
+            $maxLikesPosts         =    Post::selectRaw('
                                             group_id,
                                             user_id,
                                             COUNT(*) as post_count,
                                             SUM(support_count + helpful_count) as total_likes_count
-                                        ')
+                                        ')->whereHas('post_user')
                 ->whereNotExists(function ($query) use ($authId) {
     
                     $query->select(DB::raw(1))->from('blocked_users')
@@ -1170,7 +1251,7 @@ class DicoverService extends BaseController
                 })->with(['post_user'=>function ($query) {
     
                     $query->select('id', 'name', 'user_name', 'profile');
-                    
+
                 },'post_user.user_medical_certificate'=>function($q){
 
                     $q->select('id','user_id','medicial_degree_type','verified_status');
@@ -1182,20 +1263,22 @@ class DicoverService extends BaseController
                 }])->whereHas('post_user.userParticipant',function($q){  //check user medical or not
 
                     $q->where('participant_id',[3]);
+
                 })
-    
                 ->where('user_id', '<>', $authId)
-                // ->where('is_health_provider', 1)
-                ->when($request->search, function ($query) use ($request, $userIds) {
-    
-                    //$query->whereIn('group_id', $groupIds);
-                    $query->whereIn('group_id', $userIds);
+                ->where('is_active', 1)
+                ->when($request->search, function ($query) use ($groupIds, $userIds) {
+                    $query->whereIn('group_id', $groupIds)
+                        ->orWhere(function ($query) use ($groupIds, $userIds) {
+                              $query->whereIn('user_id', $userIds);
+                                  
+                          });
                 })
                 ->groupBy('user_id')
                 ->havingRaw('total_likes_count > 0')
                 ->orderByDesc('total_likes_count');
 
-            //    dd(DB::getQueryLog());
+             //dd(DB::getQueryLog());
     
             if (isset($type) && !empty($type)) {
                 
@@ -1246,7 +1329,7 @@ class DicoverService extends BaseController
                 $notification_count     =   notification_count();
                 return $this->sendResponse($maxLikesPosts, trans('message.discover_media'), 200,$notification_count);
             }
-           // dd(DB::getQueryLog());
+         
         } catch (Exception $e) {
             
             Log::error('Error caught: "topHealthProvider"' . $e->getMessage());
