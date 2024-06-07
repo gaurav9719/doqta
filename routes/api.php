@@ -118,8 +118,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
     Route::resource('communityPosts', CommunityPost::class);
-
-    
+    Route::post('summarizeComment', [CommunityPost::class, 'summarizeComment']); #------- summarize comment------#
 });
 
 

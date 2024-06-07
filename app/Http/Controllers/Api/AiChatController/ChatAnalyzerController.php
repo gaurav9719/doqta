@@ -154,7 +154,7 @@ class ChatAnalyzerController extends BaseController
                             $sugg = ChatInsight::create([
                                 'report_id' => $newReport->id,
                                 'type'      => 2,
-                                'details'   => $insights['text'],
+                                'details'   => $suggestion['text'],
                             ]);
                         
                             foreach($suggestion['ids'] as $id){

@@ -1126,7 +1126,6 @@ class JournalController extends BaseController
                          } else {
                              return $this->validateSymptoms($data, $count + 1);
                          }
-                     
                  } else {
                      return $this->validateSymptoms($data, $count + 1);
                  }

@@ -792,4 +792,115 @@ class CommunityPost extends BaseController
     }
     #---------------  S H A R E         P O S T      I N    C H A T    ----------------#
 
+
+
+    
+    #=================== SUMMARIZE COMMENT 7 JUNE ========================#
+    function summarizeComment(Request $request){
+        $validate = Validator::make($request->all(), [
+            'post_id' => 'required|integer|exists:posts,id',
+        ]);
+        if ($validate->fails()) {
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+        }
+        $post= Post::find($request->post_id);
+        $comments = Comment::where('post_id', $request->post_id)->where('is_active', 1)->get();
+
+        $data =array(["text" => "Post Title: $post->title" ], ["text" => "Post Description: $post->content" ]);
+        if(count($comments) > 0){
+
+            foreach($comments as $comment){
+                $details    = "Comment: $comment->comment";
+                array_push($data, ['text' => $details]);
+            }
+            
+        }
+
+
+        
+        array_push($data, 
+            array("text" => "---------------------------------------------------------------------------"),
+            array("text" => "Summrize the comment of the post in simple text language and easy to understand"),
+            array("text" => "These comments are related to medical field, so summarize the comments accordingly"),
+            array("text" => "give response in simple text, do not add headning or any style in the text"),
+        );
+        // return $data;
+
+        $response = $this->summarizeCommentAi($data);
+        return $response;
+
+    }
+
+
+
+
+    function summarizeCommentAi($content, $count= 1)
+    {
+
+        if ($count > 3) {
+            return null;
+        }
+
+        // Define your API key
+        $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
+        // Define the URL
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+
+        // return $data;
+        $data = array(
+            "contents" => array(
+                array(
+                    "role" => "user",
+                    "parts" => $content
+                )
+            )
+        );
+        // return $data;
+        // Initialize cURL session
+        $curl = curl_init($url);
+        // Set cURL options
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        // Execute cURL request
+        $response = curl_exec($curl);
+        // Check for errors
+        if ($response === false) {
+            $error = curl_error($curl);
+            $response = [
+                'status' => 400,
+                "message" => "Curl Error",
+                "data" => $error,
+            ];
+            return $response;
+
+        } else {
+            // Close cURL session
+            curl_close($curl);
+            $response = json_decode($response, true);
+            // return $response;
+            try {
+                if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
+
+                    $result = $response['candidates'][0]['content']['parts'][0]['text'];
+
+                    $finalResponse = $this->convertIntoJson($result);
+                    return $finalResponse;
+                    
+                } else {
+                    return $this->validateSymptoms($data, $count + 1);
+                }
+            } catch (Exception $e) {
+                Log::error('Error while creating journal report: ' . $e->getMessage());
+                return [
+                    'status' => 400,
+                    "message" => "Exception Error",
+                    'data' => $e->getMessage()
+                ];
+            }
+        }
+
+    }
+
 }
