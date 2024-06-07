@@ -1205,6 +1205,7 @@ class DicoverService extends BaseController
 
             $limit                 =    $request->limit ?? 10;
             $groupIds              =    ['0'];
+            $userIds               =    ['0'];
             if (isset($request->search) && !empty($request->search)) {
     
                 $groupIds          =    Group::where('name', 'like', "%{$request->search}%")->pluck('id')->toArray();

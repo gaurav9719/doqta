@@ -29,7 +29,7 @@ class CorporateEmailVerification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('doqta@app.com', 'Doqta App'),
+            from: new Address('noreply@doqta.co', 'Doqta App'),
             subject: 'Corporate Email Verification',
         );
     }
