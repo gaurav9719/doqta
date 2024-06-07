@@ -169,7 +169,18 @@ Route::middleware(['with_fast_api_key', 'auth:api'])->group(function(){
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
      Route::get('journal/insights', [JournalAnalyzerController::class, 'generateReport']);
+
+
+
+
+
      Route::get('journal/viewInsightsEntries', [JournalAnalyzerControllerNew::class, 'viewInsightsEntries']);
+
+     Route::get('journal/checkPdf', [JournalAnalyzerControllerNew::class, 'checkPdf']);
+
+
+
+
      Route::get('journal/insightsNew', [JournalAnalyzerControllerNew::class, 'generateReportNew']);
 
 

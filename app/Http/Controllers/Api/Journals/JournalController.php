@@ -397,6 +397,22 @@ class JournalController extends BaseController
                 return $this->sendError('Either symptom or other_symptom must be present', [], 400);
 
             }
+
+            #---------- validation symptom  with AI--------------#
+            // if(isset($request->extra_symptom)){
+            //     $symptomValidity = $this->validateSymptoms($request->extra_symptom);
+
+            //     if(isset($symptomValidity['status']) && isset($symptomValidity['data']) && $symptomValidity['status'] == 200){
+
+            //         if($symptomValidity['data'] == 0){
+
+            //             return $this->sendError('Incorrect symptom', [], 400);
+            //         }
+            //     }
+            // }
+
+            #---------- validation symptom  with AI--------------#
+
             $userId = Auth::id();
             $journalId = $request->journal_id;
             $journalExists = Journal::find($journalId);
@@ -497,14 +513,13 @@ class JournalController extends BaseController
             }
 
             if (!$physicalSymptom) {
-                $physicalSymptom = PhysicalSymptom::create([
+                $physicalSymptom = PhysicalSymptom::updateOrCreate([
                     'symptom' => $extraSymptom,
                     'is_active' => 1,
                     'user_id' => $userId,
                     'topic_id' => $journalTopic->id,
                 ]);
             }
-
             JournalSymptoms::updateOrCreate(
                 ['journal_entry_id' => $journalEntryId, 'symptom_id' => $physicalSymptom->id],
                 ['is_active' => 1]
@@ -1035,5 +1050,96 @@ class JournalController extends BaseController
     }
     #----------   G E T         J O U R N A L       B Y     D A T E    ----------------__#
 
+
+
+     #======================= SYMPTOMS VALIDATION USING AI ========================#
+     function validateSymptoms($symptom, $count = 1)
+     {
+         if ($count > 3) {
+             return null;
+         }
+         // Define your API key
+         $API_KEY = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
+         $symptoms = implode(', ', $symptom);
+         // Define the URL
+         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+         $data =[
+             array("text" => "Medical Symptoms: $symptoms"),
+             array("text" => "validate these symptoms, Is it right or wrong."),
+             array("text" => "give the response in json format in response key, response shold only true or false"),
+             array("text" => "do not give true if symptoms spelling is incorrect. only give true in case of currect symptom with currect spelling of the symptoms"),
+             array("text" => "format must be in this format => \n  {\"response\": \"true\"}\n"),
+         ];
+ 
+         // return $data;
+         $data = array(
+             "contents" => array(
+                 array(
+                     "role" => "user",
+                     "parts" => $data
+                 )
+             )
+         );
+         // Initialize cURL session
+         $curl = curl_init($url);
+         // Set cURL options
+         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+         curl_setopt($curl, CURLOPT_POST, true);
+         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+         // Execute cURL request
+         $response = curl_exec($curl);
+         // Check for errors
+         if ($response === false) {
+             $error = curl_error($curl);
+             $response = [
+                 'status' => 400,
+                 "message" => "Curl Error",
+                 "data" => $error,
+             ];
+             return $response;
+ 
+         } else {
+             // Close cURL session
+             curl_close($curl);
+             $response = json_decode($response, true);
+             // return $response;
+             try {
+                 if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
+ 
+                     $result = $response['candidates'][0]['content']['parts'][0]['text'];
+ 
+                     $finalResponse = $this->convertIntoJson($result);
+                     $finalResponse = json_decode($finalResponse, true);
+                     // return $finalResponse;
+                         if (isset($finalResponse['response'])) {
+ 
+                             if($finalResponse['response'] == "true")
+                             {
+ 
+                                 return ['status' => 200, 'data' => 1];
+                             }
+                             else
+                             {
+                                 return ['status' => 200, 'data' => 0];
+                             }
+                         } else {
+                             return $this->validateSymptoms($data, $count + 1);
+                         }
+                     
+                 } else {
+                     return $this->validateSymptoms($data, $count + 1);
+                 }
+             } catch (Exception $e) {
+                 Log::error('Error while creating journal report: ' . $e->getMessage());
+                 return [
+                     'status' => 400,
+                     "message" => "Exception Error",
+                     'data' => $e->getMessage()
+                 ];
+             }
+         }
+ 
+     }
 
 }

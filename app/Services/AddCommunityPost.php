@@ -82,6 +82,7 @@ class AddCommunityPost extends BaseController
             $post->save();
             $postId                     = $post->id;
             DB::commit();
+
             try {
                 // Dispatch Job1 and chain Job2 and Job3
                 dispatch(new SummarizePostJob($postId))
@@ -106,7 +107,7 @@ class AddCommunityPost extends BaseController
             //  scoreCalculation::dispatch($postId);
 
             // Dispatch JobThree to 'queue-three'
-            //$this->calculateScoreByAi($postId);
+            // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);
@@ -693,6 +694,7 @@ class AddCommunityPost extends BaseController
                                 ->whereColumn('blocked_users.user_id', 'comments.user_id');
                         });
                 })->first();
+                
             if (isset($comment) && !empty($comment)) {
                 if ($comment->commentUser && $comment->commentUser->profile) {
                     $comment->commentUser->profile = $this->addBaseInImage($comment->commentUser->profile);
@@ -732,7 +734,6 @@ class AddCommunityPost extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
     #-------------- G E T       P O S T   / C O M M E N T       L I K E S   C O U N T -----------------#
 
 }

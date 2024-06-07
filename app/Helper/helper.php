@@ -201,7 +201,9 @@ if (!function_exists('upload_file')) {
             return $filePath;
         } catch (Exception $e) {
 
-            dd($e->getMessage());
+            Log::error('Error caught: "getJournalReport" ' . $e->getLine());
+
+          
         }
     }
 }

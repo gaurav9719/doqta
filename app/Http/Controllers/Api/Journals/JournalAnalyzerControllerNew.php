@@ -2,20 +2,26 @@
 
 namespace App\Http\Controllers\Api\Journals;
 
-use App\Models\ChatInsight;
-use App\Models\ChatInsightEntry;
+use PDF;
+use Exception;
 use Carbon\Carbon;
 use App\Models\Journal;
 use App\Models\AiThread;
 use App\Models\AiMessage;
+use App\Models\ChatInsight;
+use Illuminate\Support\Str;
 use App\Models\JournalEntry;
 use Illuminate\Http\Request;
 use App\Models\JournalReport;
 use App\Models\JournalInsight;
+use App\Models\ChatInsightEntry;
 use App\Models\JournalInsideEntry;
 use Illuminate\Support\Facades\Log;
 use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+ //use Barryvdh\DomPDF\PDF;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 
@@ -42,42 +48,58 @@ class JournalAnalyzerControllerNew extends BaseController
         $user_id = Auth::id();
 
         #Check if any journals belong to a different user
-        if(isset($request->journal_ids) && count($request->journal_ids) > 0){
+        if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
+
             $invalidJournals = Journal::whereIn('id', $request->journal_ids)
-            ->where('user_id', '<>', $user_id)
-            ->count();
+                ->where('user_id', '<>', $user_id)
+                ->count();
 
             if ($invalidJournals > 0) {
+
                 return $this->sendResponsewithoutData("Invailed journals", 422);
             }
         }
 
         $start_time     = Carbon::parse($request->start_date)->startOfDay();
         $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
-        
-        if(isset($request->journal_ids) && count($request->journal_ids) > 0){
+
+        if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
+
             $journal_ids = $request->journal_ids;
-        }
-        else{
+
+        } else {
+
             $journal_ids = Journal::where('user_id', $user_id)->pluck('id')->toArray();
-            if(count($journal_ids) == 0){
+
+            if (count($journal_ids) == 0) {
+
                 return $this->sendResponsewithoutData("Journal not available", 422);
             }
         }
-        
+
         $moodPain       =   $this->getInsightSymptoms($request);
-        
+
         #check report available
         $availableReport = $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
+        
+
+        // $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
         // dd($availableReport);
-        if(isset($availableReport) && count($availableReport) > 0){
-            
-            return response()->json([
-                'status' => 200,
-                'message' => $request->type == 1 ? trans('message.insight') : trans('message.report'),
-                'data' =>  $availableReport,
-                'moodPain' => isset($moodPain) ? $moodPain : null,
-            ], 200);
+        //  echo response()->json($availableReport, 200);
+
+        if (isset($availableReport) && count($availableReport['data']) > 0) {
+
+          
+            $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
+       
+            return response()->json($availableReport, 200);
+            // return response()->json([
+            //     'status' => 200,
+            //     'message' => $request->type == 1 ? trans('message.insight') : trans('message.report'),
+            //     'data' =>  $availableReport,
+            //     'moodPain' => isset($moodPain) ? $moodPain : null,
+
+            // ], 200);
         }
 
 
@@ -86,8 +108,8 @@ class JournalAnalyzerControllerNew extends BaseController
             ->whereBetween('created_at', [$start_time, $end_time])
             ->pluck('id')
             ->toArray();
-        $data= array();
-        foreach($journal_ids as $journal_id){
+        $data = array();
+        foreach ($journal_ids as $journal_id) {
 
             $journal = Journal::find($journal_id);
 
@@ -95,8 +117,8 @@ class JournalAnalyzerControllerNew extends BaseController
             $entries_id    = JournalEntry::where('journal_id', $journal->id)->where('is_active', 1)->whereBetween('created_at', [$start_time, $end_time])->pluck('id')->toArray();
 
             if (count($entries_id) > 0) {
-                
-                $journalData = array(['text'=> "-------------------------------------------------------------------------"],['text' => "Journal Name : $journal->title"], ['text' => "Disease: " . $journal->topic->name], ['text' => 'Journal Entries']);
+
+                $journalData = array(['text' => "-------------------------------------------------------------------------"], ['text' => "Journal Name : $journal->title"], ['text' => "Disease: " . $journal->topic->name], ['text' => 'Journal Entries']);
                 #preparing journal entries as input in array
                 $entries = JournalEntry::where('journal_id', $journal->id)->whereBetween('created_at', [$start_time, $end_time])->with(['feeling', 'feeling_types.feeling_type_details', 'symptom.journalSymtom'])->get();
 
@@ -107,7 +129,7 @@ class JournalAnalyzerControllerNew extends BaseController
                     #entry id
                     $details = "id: " . $entry->id;
                     #mood
-                    $details = $details.", Mood: " . $entry->feeling->name;
+                    $details = $details . ", Mood: " . $entry->feeling->name;
                     #feeling
                     $felling_types  = $entry->feeling_types->pluck('feeling_type_details.name')->implode(", ");
                     $details        = $details . ", Feelings: $felling_types";
@@ -130,19 +152,17 @@ class JournalAnalyzerControllerNew extends BaseController
                     #description
                     $details    = $details . ". Description: $entry->content";
                     array_push($journalData, ['text' => $details]);
-
                 }
-                
+
                 $data = array_merge($data, $journalData);
-                
             }
         }
 
-        if(count($data) > 0){
+        if (count($data) > 0) {
             #----------  3 J U N -----------------#
             if (isset($request->include_chat) && $request->include_chat == 1) {
                 $chat = $this->includeChat($request);
-                if(isset($chat) && count($chat) > 0){
+                if (isset($chat) && count($chat) > 0) {
                     $data = array_merge($data, $chat);
                 }
             }
@@ -188,7 +208,7 @@ class JournalAnalyzerControllerNew extends BaseController
             #insert in database if success
             if (isset($report['status']) && $report['status'] == "200") {
 
-                $response= json_encode($report['data']);
+                $response = json_encode($report['data']);
                 $data1   = [
                     'user_id'           => $user_id,
                     'request_ids'       => $request_ids,
@@ -200,19 +220,14 @@ class JournalAnalyzerControllerNew extends BaseController
                     'is_chat_included'  => $request->include_chat,
                     'type'              => $request->type,
                 ];
-                
-                return $this->insertReport($response, $data1, $moodPain);
 
-            }
-            else{
+                return $this->insertReport($response, $data1, $moodPain);
+            } else {
                 return response()->json($report, $report['status']);
             }
-            
-        }
-        else {
+        } else {
             return $this->sendResponsewithoutData('No entry found in given journal', 400);
         }
-        
     }
 
 
@@ -282,15 +297,15 @@ class JournalAnalyzerControllerNew extends BaseController
                     $finalResponse = json_decode($finalResponse, true);
                     // return $finalResponse;
 
-                    if ($type == 1 ) {
+                    if ($type == 1) {
                         if (isset($finalResponse['insights']) && isset($finalResponse['suggestions']) && count($finalResponse['insights']) > 0 && count($finalResponse['suggestions']) > 0) {
-                            $validate= Validator::make($finalResponse, [
+                            $validate = Validator::make($finalResponse, [
                                 'insights.*.ids' => 'required|array|min:1|distinct',
-                                'insights.*.ids.*' => 'required|integer|exists:journal_entries,id',    
+                                'insights.*.ids.*' => 'required|integer|exists:journal_entries,id',
                                 'suggestions.*.ids' => 'required|array|min:1|distinct',
-                                'suggestions.*.ids.*' => 'required|integer|exists:journal_entries,id',    
+                                'suggestions.*.ids.*' => 'required|integer|exists:journal_entries,id',
                             ]);
-                            if($validate->fails()){
+                            if ($validate->fails()) {
                                 return $this->generateReportAI($data, $type, $count + 1);
                             }
 
@@ -304,9 +319,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
                             return $this->generateReportAI($data, $type, $count + 1);
                         }
-                    }
-                    
-                     elseif ($type == 2) {
+                    } elseif ($type == 2) {
                         if (isset($finalResponse['symptoms']) && isset($finalResponse['mood']) && isset($finalResponse['pain']) && isset($finalResponse['questions_to_ask_your_doctor']) && count($finalResponse['symptoms']) > 0 && count($finalResponse['mood']) > 0 && count($finalResponse['pain']) > 0  && count($finalResponse['questions_to_ask_your_doctor']) > 0) {
                             $finalResult = [
                                 'status' => 200,
@@ -367,7 +380,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
                         $query->select('id', 'name'); // Rename 'id' and 'name'
                     }
-                ])->select('id', 'feeling_id', 'pain')->where(['user_id'=>$authId,'is_active'=>1]);
+                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
 
                 if (isset($request->journal_id) && !empty($request->journal_id)) {
 
@@ -495,7 +508,7 @@ class JournalAnalyzerControllerNew extends BaseController
             ->whereBetween('created_at', [$start_time, $end_time])
             ->pluck('id')
             ->toArray();
-        
+
         $reports = JournalReport::where('user_id', $user_id)
             ->where('type', $request->type)
             ->where('report_type', 1)
@@ -508,9 +521,9 @@ class JournalAnalyzerControllerNew extends BaseController
             if (isset($request->include_chat) && $request->include_chat == 1) {
                 # Get chat ids
                 $inbox_ids = AiThread::where(function ($query) use ($user_id) {
-                        $query->where('sender_id', $user_id)
-                            ->orWhere('receiver_id', $user_id);
-                    })
+                    $query->where('sender_id', $user_id)
+                        ->orWhere('receiver_id', $user_id);
+                })
                     ->pluck('id')
                     ->toArray();
 
@@ -524,7 +537,7 @@ class JournalAnalyzerControllerNew extends BaseController
                         ->whereBetween('created_at', [$start_time, $end_time])
                         ->pluck('id')
                         ->toArray();
-                    
+
                     $chat_ids_count = count($chat_request_ids);
                     $chat_start_id = reset($chat_request_ids);
                     $chat_end_id = end($chat_request_ids);
@@ -544,19 +557,43 @@ class JournalAnalyzerControllerNew extends BaseController
                             ->toArray();
 
                         $reportIds = json_decode($report->ids, true);
-                            
+
                         if ($ids_count == $report->ids_count && $chat_ids_count == $report->chat_ids_count) {
-                            
+
                             if ($chat_start_id == $report->chat_start_id && $chat_end_id == $report->chat_end_id) {
-                                
+
                                 if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids)) && empty(array_diff($chatReportIds, $chat_request_ids)) && empty(array_diff($chat_request_ids, $chatReportIds))) {
-                                    if($request->type == 1){
+                                    $reportLink      =  JournalReport::select('pdf_link')->where('id',$report->id)->first();
+                                    if ($request->type == 1) {
                                         $finalReport = $this->getInsights($report->id, 1);
-                                        return $finalReport;
-                                    }
-                                    elseif($request->type == 2){
+
+                                        // return $finalReport;
+
+
+                                        $typeMessage = $request->type == 1 ? trans('message.insight') : trans('message.report');
+                                        return array(
+                                            'status' => 200,
+                                            'message' => $typeMessage,
+                                            'data' => $finalReport,
+                                            'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                        );
+
+
+                                    } elseif ($request->type == 2) {
+
                                         $finalReport = json_decode($report->report, true);
-                                        return $finalReport;
+                                        $typeMessage = $request->type == 1 ? trans('message.insight') : trans('message.report');
+                                        
+                                        $ar= array(
+                                            'status' => 200,
+                                            'message' => $typeMessage,
+                                            'data' => $finalReport,
+                                            'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                        );
+
+                                        return $ar;
+
+                                        // return $finalReport;
                                     }
                                 }
                             }
@@ -572,43 +609,60 @@ class JournalAnalyzerControllerNew extends BaseController
     }
 
     #---------------------- CHECK REPORT AVAILABLE WITHOUT CHAT ----------------------#
-    function CheckreportWithoutChat($request, $request_ids,$user_id)
+    function CheckreportWithoutChat($request, $request_ids, $user_id)
     {
         $reports  = JournalReport::where('user_id', $user_id)->where('type', $request->type)->where('report_type', 1)->where('is_chat_included', '<>', 1)->get();
 
-            if (count($reports) > 0) {
-                foreach ($reports as $report) {
-                    $reportIds = json_decode($report->ids);
-                    
-                    
-                    if (count($request_ids) == $report->ids_count) {
-                        if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
-                            if($request->type == 1){
-                                $finalReport = $this->getInsights($report->id, 1);
-                                return $finalReport;
-                            }
-                            elseif($request->type == 2){
-                                $finalReport = json_decode($report->report, true);
-                                return $finalReport;
-                            }
+        if (count($reports) > 0) {
+            foreach ($reports as $report) {
+                $reportIds = json_decode($report->ids);
+
+
+                if (count($request_ids) == $report->ids_count) {
+                    if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
+                        $reportLink      =  JournalReport::select('pdf_link')->where('id',$report->id)->first();
+                        if ($request->type == 1) {
+                            $finalReport = $this->getInsights($report->id, 1);
+
+                            return array(
+                                'status' => 200,
+                                'message' => trans('message.insight'),
+                                'data' => $finalReport,
+                                'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                            );
+
+                            // return $ar;
+                            // return $finalReport;
+                        } elseif ($request->type == 2) {
+                            $finalReport     = json_decode($report->report, true);
+                            return array(
+                                'status' => 200,
+                                'message' => trans('message.insight'),
+                                'data' => $finalReport,
+                                'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                            );
+
+                           // return $finalReport;
                         }
                     }
                 }
             }
+        }
     }
 
     #---------------------- INCLUDE CHAT ----------------------#
-    function includeChat($request){
+    function includeChat($request)
+    {
         $myId = Auth::id();
         $inbox_ids = AiThread::where(function ($query) use ($myId) {
             $query->where('sender_id', $myId)
-            ->orWhere('receiver_id', $myId);
-            })
+                ->orWhere('receiver_id', $myId);
+        })
             ->pluck('id')
             ->toArray();
-        
+
         if (count($inbox_ids) > 0) {
-            
+
             #check report available for request time
             $start_time     = Carbon::parse($request->start_date)->startOfDay();
             $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
@@ -620,19 +674,19 @@ class JournalAnalyzerControllerNew extends BaseController
                     ->orWhere('is_user2_trash', '!=', $myId);
             })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
 
-            $chatData = array(['text'=> "-------------------------------------------------------------------------"],['text'=> "Chat Data:"]);
+            $chatData = array(['text' => "-------------------------------------------------------------------------"], ['text' => "Chat Data:"]);
 
             foreach ($messages as $message) {
 
-                $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
-                $details= "Date:".$date;
-                $details.= ", Sender: ".$message->sender->name;
-                $details.= ", Message: ".$message->message;
-                if(isset($message->media) && !empty($message->media)){
+                $date = Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                $details = "Date:" . $date;
+                $details .= ", Sender: " . $message->sender->name;
+                $details .= ", Message: " . $message->message;
+                if (isset($message->media) && !empty($message->media)) {
                     $media  =   $this->addBaseInImage($message->media);
-                    $details.= ", Media link: ".$media;
+                    $details .= ", Media link: " . $media;
                 }
-                array_push($chatData, ['text'=> $details]);
+                array_push($chatData, ['text' => $details]);
             }
 
             return $chatData;
@@ -641,7 +695,8 @@ class JournalAnalyzerControllerNew extends BaseController
 
     #======================= GET JOURNAL ENTRIES DETAILS =============================#
 
-    function viewInsightsEntries(Request $request){
+    function viewInsightsEntries(Request $request)
+    {
 
         $validate = Validator::make($request->all(), [
             'type'              => 'required|integer|between:1,2',
@@ -650,45 +705,45 @@ class JournalAnalyzerControllerNew extends BaseController
         if ($validate->fails()) {
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
-        if($request->type == 1){
+        if ($request->type == 1) {
             $validate = Validator::make($request->all(), [
                 'id'                => 'required|integer|exists:journal_insights,id',
             ]);
             if ($validate->fails()) {
                 return $this->sendResponsewithoutData($validate->errors()->first(), 422);
             }
-            
-            $response= JournalInsight::find($request->id);
+
+            $response = JournalInsight::find($request->id);
             $ids = JournalInsideEntry::where('insight_id', $request->id)->pluck('entry_id')->toArray();
-            $response['entries']= [];
-            if(count($ids) > 0){
-                $response['entries']= JournalEntry::whereIn('id', $ids)->with(['journal:id,title',
-                'feeling:id,name,feeling,selected',
-    
-                'feeling_types' => function ($q) {
-    
-                    $q->select('id', 'journal_entry_id', 'feeling_type');
-                },
-                'feeling_types.feeling_type' => function ($q) {
-    
-                    $q->select('id', 'name');
-                }, 'feeling' => function ($q) {
-    
-                    $q->select('id', 'name');
-                }, 'symptom' => function ($q) {
-    
-                    $q->select('id', 'symptom_id', 'journal_entry_id');
-                },
-                'symptom.journalSymtom' => function ($q) {
-    
-                    $q->select('id', 'symptom');
-                }
+            $response['entries'] = [];
+            if (count($ids) > 0) {
+                $response['entries'] = JournalEntry::whereIn('id', $ids)->with([
+                    'journal:id,title',
+                    'feeling:id,name,feeling,selected',
+
+                    'feeling_types' => function ($q) {
+
+                        $q->select('id', 'journal_entry_id', 'feeling_type');
+                    },
+                    'feeling_types.feeling_type' => function ($q) {
+
+                        $q->select('id', 'name');
+                    }, 'feeling' => function ($q) {
+
+                        $q->select('id', 'name');
+                    }, 'symptom' => function ($q) {
+
+                        $q->select('id', 'symptom_id', 'journal_entry_id');
+                    },
+                    'symptom.journalSymtom' => function ($q) {
+
+                        $q->select('id', 'symptom');
+                    }
                 ])->get();
             }
-    
+
             return $this->sendResponse($response, "Insight entries details", 200);
-        }
-        elseif($request->type == 2){
+        } elseif ($request->type == 2) {
             $validate = Validator::make($request->all(), [
                 'id'                => 'required|integer|exists:chat_insights,id',
             ]);
@@ -698,15 +753,25 @@ class JournalAnalyzerControllerNew extends BaseController
 
             $response               = ChatInsight::find($request->id);
             $ids                    = ChatInsightEntry::where('insight_id', $request->id)->pluck('entry_id')->toArray();
-            $response['entries']    = AiMessage::whereIn('id',$ids)->with('sender:id,name,user_name,profile')->get(['id', 'message','sender_id']);
+
+            $response['entries']    = AiMessage::whereIn('id',$ids)->with(['sender' => function($query){
+
+                $query->select('id', 'name', 'user_name', 'profile');
+
+            } ])->get(['id', 'message','sender_id']);
+
+            if (count($response['entries']) > 0) {
+                foreach($response['entries'] as $entry){
+                    $entry->sender->profile=$this->addBaseInImage($entry->sender->profile);
+                }
+            }
             return $response;
-
         }
-
     }
 
 
-    function insertReport($report, $data1, $moodPain){
+    function insertReport($report, $data1, $moodPain)
+    {
         $user_id                = $data1['user_id'];
         $start_time             = $data1['start_time'];
         $end_time               = $data1['end_time'];
@@ -715,14 +780,14 @@ class JournalAnalyzerControllerNew extends BaseController
         $request_ids          = $data1['request_ids'];
 
         #if chat include
-        if(isset($is_chat_included) && $is_chat_included == 1){
+        if (isset($is_chat_included) && $is_chat_included == 1) {
             $inbox_ids = AiThread::where(function ($query) use ($user_id) {
                 $query->where('sender_id', $user_id)
-                ->orWhere('receiver_id', $user_id);
-                })
+                    ->orWhere('receiver_id', $user_id);
+            })
                 ->pluck('id')
                 ->toArray();
-            
+
             if (count($inbox_ids) > 0) {
                 $chat_request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
                     ->where(function ($query) use ($user_id) {
@@ -736,11 +801,12 @@ class JournalAnalyzerControllerNew extends BaseController
                 $chat_end_id     = end($chat_request_ids);
             }
         }
-        $result= json_decode($report, true);
+        $result = json_decode($report, true);
 
         // $newReport = JournalReport::where('user_id', $user_id)->where('type', $request_type)->where('report_type', 1)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->where('is_chat_included', $is_chat_included)->first();
         // if (empty($newReport)) {
-            $newReport = new JournalReport;
+        $newReport                      = new JournalReport;
+        
         // }
         // else{
         //     JournalInsight::where('report_id', $newReport->id)->delete();
@@ -761,19 +827,20 @@ class JournalAnalyzerControllerNew extends BaseController
         $newReport->type                = $request_type;
         $newReport->report_type         = 1;
         $newReport->save();
-        
-
+        $reportId       =   $newReport->id;
+         #----------- generate pdf -------------#
+        $this->getJournalReport($reportId);
         #insights & suggestion
-        if($request_type == 1){
-            foreach($result['insights'] as $insights){
-    
+        if ($request_type == 1) {
+            foreach ($result['insights'] as $insights) {
+
                 $insig = JournalInsight::create([
                     'report_id' => $newReport->id,
                     'type'      => 1,
                     'details'   => $insights['text'],
                 ]);
-    
-                foreach($insights['ids'] as $id){
+
+                foreach ($insights['ids'] as $id) {
                     JournalInsideEntry::create([
                         'report_id'     => $newReport->id,
                         'insight_id'    => $insig->id,
@@ -781,16 +848,16 @@ class JournalAnalyzerControllerNew extends BaseController
                     ]);
                 }
             }
-    
-            foreach($result['suggestions'] as $suggestion){
-    
+
+            foreach ($result['suggestions'] as $suggestion) {
+
                 $sugg = JournalInsight::create([
                     'report_id' => $newReport->id,
                     'type'      => 2,
                     'details'   => $suggestion['text'],
                 ]);
-            
-                foreach($suggestion['ids'] as $id){
+
+                foreach ($suggestion['ids'] as $id) {
                     JournalInsideEntry::create([
                         'report_id'     => $newReport->id,
                         'insight_id'    => $sugg->id,
@@ -798,38 +865,86 @@ class JournalAnalyzerControllerNew extends BaseController
                     ]);
                 }
             }
-            
-            $finalReport = $this->getInsights($newReport->id, 1); //type: 1=insights, 2=suggestion, 3=chat insights
+            $finalReport =  $this->getInsights($reportId, 1); //type: 1=insights, 2=suggestion, 3=chat insights
+            $pdfLink     =  JournalReport::select('pdf_link')->where('id',$reportId)->first();
+
 
             return response()->json([
                 'status' => 200,
                 'message' => trans('message.insight'),
                 'data' =>  $finalReport,
                 'moodPain' => $moodPain,
+                'pdf_link'=> (isset($pdfLink) && !empty($pdfLink['pdf_link']))?  $this->addBaseInImage($pdfLink->pdf_link):null,
             ], 200);
         }
 
         #Journal report
-        elseif($request_type == 2){
-            
+        elseif ($request_type == 2) {
+            $pdfLink     =  JournalReport::select('pdf_link')->where('id',$reportId)->first();
             return response()->json([
                 'status' => 200,
                 'message' => trans('message.report'),
                 'data' =>  $result,
-                // 'moodPain' => $moodPain,
+                'moodPain' => $moodPain,
+                'pdf_link'=> (isset($pdfLink) && !empty($pdfLink['pdf_link']))?  $this->addBaseInImage($pdfLink['pdf_link']):null,
             ], 200);
         }
-
-
     }
 
 
-    function getInsights($report_id, $type){
-        $data= [];
-        if($type == 1){
-            $data['insights']= JournalInsight::where('report_id', $report_id)->where('type', 1)->get(['id', 'details']);
-            $data['suggestions']= JournalInsight::where('report_id', $report_id)->where('type', 2)->get(['id', 'details']);
+    function getInsights($report_id, $type)
+    {
+        $data = [];
+        if ($type == 1) {
+            $data['insights'] = JournalInsight::where('report_id', $report_id)->where('type', 1)->get(['id', 'details']);
+            $data['suggestions'] = JournalInsight::where('report_id', $report_id)->where('type', 2)->get(['id', 'details']);
         }
         return $data;
     }
+
+    #----------   G E T         J O U R N A L       R E P O R T    ----------------__#
+    //5 June 2023
+
+    public function getJournalReport($reportId)
+    {
+        try {
+
+            // Fetch the report by ID
+            $report = JournalReport::find($reportId);
+            // Check if the report exists
+            if ($report) {
+                // Generate PDF from view
+                $pdf            =   PDF::loadView('Journal_report.journalReport', compact('report'));
+                $currentYear    =   date('Y');
+                $currentMonth   =   date('m');
+                $directory      =   "uploads/pdf/{$currentYear}/{$currentMonth}";
+                // Store the QR code image directly into the storage disk
+                $filename       = $directory . '/' . Str::uuid() . '.pdf';
+                Storage::disk('public')->put($filename,$pdf->output());
+                // Return the path to the stored QR code image
+                // Save PDF to storage and update the report's PDF link
+                $report->pdf_link = $filename;
+                $report->save();
+
+            } else {
+                Log::warning('Report not found: ID ' . $reportId);
+               // return $this->sendError(trans('message.report_not_found'), [], 404);
+            }
+        } catch (Exception $e) {
+            Log::error('Error in getJournalReport: ' . $e->getMessage() . ' at line ' . $e->getLine());
+           // return $this->sendError(trans('message.something_went_wrong'), [], 500);
+        }
+    }
+    
+
+     public function checkPdf()
+        {
+           
+            return $this->getJournalReport(4);
+
+          
+        }
+
+
+
 }

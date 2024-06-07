@@ -30,6 +30,7 @@ return new class extends Migration
             $table->tinyInteger('type')->nullable()->comment('1=insights_and_suggestion, 2=report,3 chat insight');
             $table->tinyInteger('report_type')->nullable()->comment('1=journal_report, 2=chat_report');
             $table->foreign('ai_thread_id')->references('id')->on('ai_threads')->onDelete('cascade');
+            $table->string('pdf_link')->nullable();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->timestamps();
         });

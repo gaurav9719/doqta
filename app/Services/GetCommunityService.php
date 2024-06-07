@@ -37,22 +37,16 @@ class GetCommunityService extends BaseController
         $this->addCommunityPost = $addCommunityPost;
         $this->notification = $notification;
     }
-
-
     #------********  G E T      C O M M U N I T Y       P O S T   *********------------#
-
     public function homeScreen($request, $authId)
     {
         try {
-
             $limit          =       10;
             if (isset($request->limit) && !empty($request->limit)) {
 
                 $limit      =       $request->limit;
             }
-
             $user = User::findOrFail($authId);
-
             $homeScreenPosts = $user->posts()
             
                 ->where('posts.is_active', 1)
