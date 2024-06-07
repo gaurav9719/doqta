@@ -49,11 +49,11 @@ class CommunityPost extends BaseController
     }
     public function index(Request $request)
     {
-        $limit = 10;
-        $authId = Auth::id();
+        $limit          = 10;
+        $authId         = Auth::id();
         if (isset($request->limit) && !empty($request->limit)) {
 
-            $limit = $request->limit;
+            $limit      = $request->limit;
         }
         return $this->getCommunityPost->homeScreen($request, $authId);
     }
@@ -87,7 +87,6 @@ class CommunityPost extends BaseController
                 }
             }
             return $this->addCommunityPost->addPost($request, $authId);
-
         } else {
 
             return $this->sendError(trans("message.invalid_group"), [], 403);
@@ -123,17 +122,15 @@ class CommunityPost extends BaseController
     {
         //
         $authId         = Auth::id();
-        
+
         $isExist        = Post::whereHas('group_post', function ($query) {
 
             $query->where('is_active', 1);
-
         })->where(['id' => $id, 'user_id' => $authId])->exists(); // check post is your or not
 
         if ($isExist) {   // edit the post
 
             return $this->addCommunityPost->editPost($request, $authId, $id);
-
         } else {        //invalid post
 
             return $this->sendError(trans("message.invalid_post"), [], 403);
@@ -209,7 +206,6 @@ class CommunityPost extends BaseController
                 if (!$isExist) {
 
                     return $this->sendError(trans("message.no_post_found"), [], 422);
-
                 } else {
 
                     $post = PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
@@ -382,7 +378,7 @@ class CommunityPost extends BaseController
                             return $this->sendError(trans("message.not_community_member"), [], 403);
                         }
                     }
-                    return $this->getPost($repostId,$authId,($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
+                    return $this->getPost($repostId, $authId, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
                 }
             }
         } catch (Exception $e) {
@@ -694,12 +690,12 @@ class CommunityPost extends BaseController
 
                 $savedPosts->each(function ($savedPost) use ($authId) {
 
-                    if (isset ($savedPost->post->media_url) && !empty ($savedPost->post->media_url)) {
+                    if (isset($savedPost->post->media_url) && !empty($savedPost->post->media_url)) {
 
                         $savedPost->post->media_url = asset('storage/' . $savedPost->post->media_url);
                     }
-                    if (isset ($savedPost->post->post_user) && !empty ($savedPost->post->post_user)) {
-                        if (isset ($savedPost->post->post_user->profile) && !empty ($savedPost->post->post_user->profile)) {
+                    if (isset($savedPost->post->post_user) && !empty($savedPost->post->post_user)) {
+                        if (isset($savedPost->post->post_user->profile) && !empty($savedPost->post->post_user->profile)) {
                             $savedPost->post->post_user->profile = asset('storage/' . $savedPost->post->post_user->profile);
                         }
                     }
@@ -757,43 +753,41 @@ class CommunityPost extends BaseController
 
         $validate = Validator::make($request->all(), [
             'type' => 'required|integer|between:1,2',
-            'post_id' => ['required_if:type,1','integer', 'exists:posts,id'],
-            'user_id' => ['required_if:type,2','integer', 'exists:users,id'],
+            'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
+            'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
             'receiver_id' => 'required|exists:users,id',
-        ],['post_id.required_if'=>"post id requierd",'user_id.required_if'=>"user id requierd"]);
+        ], ['post_id.required_if' => "post id requierd", 'user_id.required_if' => "user id requierd"]);
 
         if ($validate->fails()) {
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
-
         } else {
             $myId     = Auth::id();
             $reciever = $request->receiver_id;
-            if($request->type==1){      //share post
+            if ($request->type == 1) {      //share post
                 $postData = Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
 
                 if (empty($postData)) {
-    
+
                     return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
                 }
                 // if ($myId == $reciever) {
-    
+
                 //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
                 // }
                 // return $this->sharePostInChat($request, $myId, $reciever);
-            }else {                     // share user profile
-                
+            } else {                     // share user profile
+
                 $userData = User::where(['id' => $request->user_id, 'is_active' => 1])->first();
 
                 if (empty($userData)) {
-    
+
                     return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
                 }
                 // return $this->shareUserInChat($request, $myId, $reciever);
             }
 
             return $this->shareInChat($request, $myId, $reciever);
-            
         }
     }
     #---------------  S H A R E         P O S T      I N    C H A T    ----------------#

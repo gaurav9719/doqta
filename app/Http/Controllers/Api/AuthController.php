@@ -2,32 +2,34 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\BaseController;
-use App\Http\Requests\UserRegister;
-use App\Http\Requests\LoginUser;
+use Exception;
 use App\Models\User;
 use App\Models\UserDevice;
-use Exception;
+use App\Traits\CommonTrait;
+use Laravel\Passport\Token;
 use Illuminate\Http\Request;
+use App\Traits\CalculateScore;
+use App\Http\Requests\LoginUser;
+use App\Services\GetUserService;
+use App\Http\Requests\verifyEmail;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Laravel\Passport\RefreshToken;
+use App\Http\Requests\Social_login;
+use App\Http\Requests\UserRegister;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\ForgotPassword;
 use App\Services\RegisterUserService;
 use Illuminate\Contracts\Cache\Store;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Crypt;
-use App\Http\Requests\verifyEmail;
-use App\Services\VerifyEmail as verifyEmailService;
-use App\Http\Requests\ForgotPassword;
-use App\Http\Requests\Social_login;
 use App\Services\ForgotPasswordService;
-use Laravel\Passport\Token;
-use Laravel\Passport\RefreshToken;
-use App\Services\GetUserService;
-use App\Traits\CommonTrait;
-use App\Traits\CalculateScore;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Api\Notifications;
+use App\Http\Controllers\Api\BaseController;
 use App\Jobs\CalculateScore\scoreCalculation;
+use App\Models\Notification;
+use App\Services\VerifyEmail as verifyEmailService;
 
 
 class AuthController extends BaseController
@@ -290,6 +292,8 @@ class AuthController extends BaseController
                 Token::whereIn('id', $tokens)
                     ->update(['revoked'=> true]);
                 RefreshToken::whereIn('access_token_id', $tokens)->update(['revoked' => true]);
+                Notification::where('sender_id',$myuser_id)->update(['is_active'=>0]);
+
                 DB::commit();
                 // Perform standard logout logic (e.g., clearing session)
                 return $this->sendResponsewithoutData("User Deleted Successfully!", 200);

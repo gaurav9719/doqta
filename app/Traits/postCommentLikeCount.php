@@ -158,48 +158,60 @@ use IsLikedPostComment;
                     $group->cover_photo = $this->addBaseInImage($group->cover_photo);
                 }
 
-                $isGroupMember = GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                $isGroupMember              =       GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
 
                 if (isset($isGroupMember) && !empty($isGroupMember)) {
 
-                    $group->is_joined    = 1; // not join the group
-                    $group->role = $isGroupMember->role;
+                    $group->is_joined       =       1; // not join the group
+                    $group->role            =       $isGroupMember->role;
                     
                 } else {
 
-                    $request            = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+                    $request                =       GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
                     if (isset($request) && !empty($request)) {
                         if ($request->status == "pending") {
+
                             $group->is_joined = 2; // pending request
+
                         } elseif ($request->status == "rejected") {
+
                             $group->is_joined = 3; // rejected
+
                         }
                     } else {
+
                         $group->is_joined = 0; // not join the group
+
                     }
+
                     $group->role = null;
                 }
             }
-            $isGroupMember = GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
+            $isGroupMember          =   GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
             if (!$isGroupMember) {
 
                 return response()->json(['status' => 201, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
             }
 
-            $limit               = 10;
+            $limit                  =   10;
+
             if (isset($request['limit']) && !empty($request['limit'])) {
-                $limit           = $request['limit'];
+
+                $limit              =   $request['limit'];
             }
           
             $posts = Post::whereHas('post_user', function ($query) {
 
-                $query->where('is_active', 1);
+                $query->where('is_active', 1);      #----- 
 
             })->with([
+
                     'group:id,name,description,cover_photo,post_count',
                     'post_user:id,user_name,name,profile'
 
                 ])->with(['parent_post' => function ($query) {
+
                     $query->select('*')
                         ->where('is_active', 1)
                         ->with([
@@ -207,8 +219,11 @@ use IsLikedPostComment;
                                 $query->select('id', 'name','user_name', 'profile');
                             }
                         ]);
+                        
                 },'parent_post.group'=>function($query){
+
                     $query->select('id','name','description','created_by');
+
                 }])
                 ->where('group_id', $community_id)
                 ->where('is_active', 1)

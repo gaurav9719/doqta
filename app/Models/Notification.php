@@ -29,7 +29,7 @@ class Notification extends Model
 
     public function sender(){
         
-        return $this->belongsTo(User::class, 'sender_id','id');
+        return $this->belongsTo(User::class, 'sender_id','id')->where('is_active',1);
     }
 
     public function user(){
