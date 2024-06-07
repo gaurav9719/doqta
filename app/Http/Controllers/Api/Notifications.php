@@ -144,7 +144,7 @@ class Notifications extends BaseController
             $yesterdayDate = Carbon::yesterday()->format('Y-m-d');
     
             // Retrieve grouped notifications with pagination
-            $notifications = Notification::whereHas('sender')->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d') AS notification_on")
+            $notifications = Notification::selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d') AS notification_on")
                 ->where(['receiver_id' => $userID, 'status' => 1])
                 ->groupBy('notification_on')
                 ->orderBy('notification_on', 'DESC')
@@ -154,7 +154,7 @@ class Notifications extends BaseController
             $notifications->each(function ($group) use ($userID ,$todayDate, $yesterdayDate)  {
 
                 $notificationDate = $group->notification_on;
-                $dateNotifications = Notification::whereHas('sender')->where('receiver_id', $userID)
+                $dateNotifications = Notification::where('receiver_id', $userID)
                     ->where('status', 1)
                     ->whereDate('created_at', $notificationDate)
                     ->with('sender:id,name,user_name,email,profile')
