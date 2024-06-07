@@ -292,7 +292,7 @@ class AuthController extends BaseController
                 Token::whereIn('id', $tokens)
                     ->update(['revoked'=> true]);
                 RefreshToken::whereIn('access_token_id', $tokens)->update(['revoked' => true]);
-                Notification::where('sender_id',$myuser_id)->update(['is_active'=>0]);
+                // Notification::where('sender_id',$myuser_id)->update(['is_active'=>0]);
 
                 DB::commit();
                 // Perform standard logout logic (e.g., clearing session)

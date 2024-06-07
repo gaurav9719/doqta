@@ -204,9 +204,10 @@ class Notifications extends BaseController
 
 
     public function notifications(Request $request)
-{
+    {
     try {
         $userID = Auth::id();
+        
         $perPage = $request->get('limit', 10);
 
         $today = Carbon::now()->startOfDay();
@@ -215,11 +216,13 @@ class Notifications extends BaseController
         $last30Days = Carbon::now()->subDays(30)->startOfDay();
 
         // Retrieve notifications with pagination and eager load sender
-        $notifications = Notification::where('receiver_id', $userID)
+        $notifications = Notification::where('receiver_id', $userID)->whereHas('sender')
             ->where('status', 1)
             ->orderBy('created_at', 'DESC')
             ->with('sender:id,name,user_name,email,profile')  // Eager load sender details
             ->simplePaginate($perPage);
+
+           
 
         // Group notifications
         $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) use ($today, $yesterday, $last7Days, $last30Days) {
@@ -270,6 +273,8 @@ class Notifications extends BaseController
             ];
         });
 
+        // dd($groupedNotifications);
+
         // Get count of unread notifications
         $unreadNotificationCount = Notification::where('receiver_id', $userID)
             ->where('is_read', 0)
@@ -294,7 +299,7 @@ class Notifications extends BaseController
         ]);
     } catch (Exception $e) {
         Log::error('Error caught: "notifications" ' . $e->getMessage());
-        return response()->json(['error' => 'Something went wrong'], 500);
+        return response()->json(['message' => $e->getMessage()], 400);
     }
 }
     

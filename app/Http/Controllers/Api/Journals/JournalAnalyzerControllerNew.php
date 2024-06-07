@@ -765,7 +765,9 @@ class JournalAnalyzerControllerNew extends BaseController
                     $entry->sender->profile=$this->addBaseInImage($entry->sender->profile);
                 }
             }
-            return $response;
+            // return $response;
+            return $this->sendResponse($response, "Insight entries details", 200);
+
         }
     }
 
