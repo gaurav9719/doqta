@@ -35,6 +35,25 @@ class AddPostRequest extends FormRequest
             'link' => ['nullable', 'url'],
             'wrote_by' => ['nullable','integer'],
             'media_type' => 'required|between:0,4',
+            'thumbnail' => [
+                'required_if:media_type,2', // Media is required if media_type is 1, 2, or 3
+                'file', // Must be a file upload
+                function ($attribute, $value, $fail) {
+
+                    $allowedMimeTypes = [];
+    
+                    if ($this->media_type == 2) { // For video types
+
+                        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
+
+                    }
+                    // Check if the uploaded file MIME type is in the allowedMimeTypes array
+                    if (!in_array($value->getMimeType(), $allowedMimeTypes)) {
+
+                        $fail('The ' . $attribute . ' must be a valid file of the specified type.');
+                    }
+                },
+            ],
             'media' => [
                 'required_if:media_type,1,2,3', // Media is required if media_type is 1, 2, or 3
                 'file', // Must be a file upload
@@ -81,7 +100,8 @@ class AddPostRequest extends FormRequest
             'user_id.exists' => 'The selected user ID is invalid.',
             'post_type.in' => 'The post type must be either "normal" or "community".',
             'post_category.between' => 'The post category must be between :min and :max.',
-            'community_id.integer'=>"Invalid community id"
+            'community_id.integer'=>"Invalid community id",
+            'thumbnail.required_if'=>"A thumbnail is necessary when uploading a video",
         ];
     }
 

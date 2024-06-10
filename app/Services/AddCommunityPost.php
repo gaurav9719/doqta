@@ -45,13 +45,16 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
+        
         try {
+
             $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
             $post = new Post();
             $post->user_id = $authId;
             $post->title = $request->title;
             $post->content = $request->content;
             $post->is_health_provider = $is_health_provider; // add true is user is health provider
+
             if ($request->hasFile('media')) {
 
                 $post_image     = $request->file('media');
@@ -59,6 +62,15 @@ class AddCommunityPost extends BaseController
                 $post->media_url = $Uploaded;
                 $post->media_type = $request->media_type;
             }
+            if ($request->hasFile('thumbnail')) {
+
+                $thumbnail          = $request->file('thumbnail');
+                $Uploaded           = upload_file($post_image, 'post_thumbnail');
+                $post->thumbnail    = $Uploaded;
+                
+            }
+
+
             if (isset($request->lat) && !empty($request->lat)) {
 
                 $post->lat = $request->lat;
