@@ -489,7 +489,7 @@ class DicoverService extends BaseController
 
         try {
 
-            $topVideos         =       Post::whereHas('group_post', function ($is_active, $authId) { // check group is active or not
+            $topVideos         =       Post::whereHas('group_post', function ($is_active) use($authId) { // check group is active or not
 
                 $is_active->where('is_active', 1)
 
@@ -1454,9 +1454,10 @@ class DicoverService extends BaseController
             $supportUser            =   GroupMember::with(['groupUser' => function ($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
+
             }, 'communities' => function ($query) {
 
-                $query->select('id', 'name', 'description', 'cover_photo');
+                $query->select('id', 'name', 'description', 'cover_photo','member_count','post_count');
             }])
 
                 ->whereHas('groupUser', function ($query) use ($authId) {
@@ -1577,16 +1578,22 @@ class DicoverService extends BaseController
             ->whereHas('userParticipant', function ($query) {
 
                 $query->where('participant_id', 2);
+
             })->with(['user_group' => function ($q) {
 
                 $q->select('id', 'group_id', 'user_id')->limit(1);
+
             }, 'user_group.group' => function ($q) {
 
                 $q->select('id', 'name', 'cover_photo');
-            }])->whereHas('user_group.group', function ($q) {
 
-                $q->where('is_active', 1);
-            })
+            }])
+            // ->whereHas('user_group.group', function ($q) {
+
+            //     $q->where('is_active', 1);
+            // })
+
+            ->whereHas('user_group.group')
             ->whereHas('user_group')
 
             ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
@@ -1724,7 +1731,7 @@ class DicoverService extends BaseController
 
             // Eager load related models with selected fields
             $groupMembers->with([
-                'communities:id,name,cover_photo',
+                'communities:id,name,cover_photo,member_count,post_count',
                 'user:id,name,user_name,profile'
             ]);
 

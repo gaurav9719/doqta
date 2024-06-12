@@ -25,7 +25,10 @@ class Group extends Model
         return $this->belongsTo(User::class,'created_by','id');
     }
 
+    public function member(){
 
+        return $this->hasMany(GroupMember::class, 'group_id','id');
+    }
 
 
 

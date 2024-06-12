@@ -192,9 +192,9 @@ class GetCommunityService extends BaseController
 
                 ->whereHas('group', function ($query) use ($authId) {
 
-                    $query->where('is_active', 1)
+                    // $query->where('is_active', 1)
                     
-                    ->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+                    $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
                         $query->where('user_id', $authId);
 

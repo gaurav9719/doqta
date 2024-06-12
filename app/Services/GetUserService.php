@@ -12,6 +12,7 @@ use Illuminate\Auth\Middleware\Authenticate;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Contracts\Auth\Authenticatable;
 use App\Models\Ethnicity;
+use App\Models\Gender;
 use App\Models\Pronouns;
 use App\Models\Post;
 use Carbon\Carbon;
@@ -87,8 +88,18 @@ class GetUserService extends BaseController
 
     public function getUser($userId,$auth_user="")
     {
-        
-        $userDetail = User::with([
+        $userDetail = User::where(function($q) use($auth_user){
+
+            $q->whereDoesntHave('blockedUsers', function ($query) use ($auth_user) {
+                // Check if the user is not blocked by the authenticated user
+                $query->where('blocked_user_id', $auth_user);
+            })
+            ->whereDoesntHave('blockedBy', function ($query) use ($auth_user) {
+                // Check if the user has not blocked the authenticated user
+                $query->where('user_id', $auth_user);
+            });
+            
+        })->with([
 
             'user_interest.interest' => function ($query) {
 
@@ -121,20 +132,20 @@ class GetUserService extends BaseController
 
                 $query->select('id', 'name', 'reason');
             },
-            // 'userPost' => function ($query) {
-
-            //     $query->take(10)->when(isset($query->media_url), function ($subQuery) {
-            //         $subQuery->update(['media_url' => asset('storage/' . $subQuery->media_url)]);
-            //     });
-
-            // },'user_activities'=>function($query){
-            //     $query->take(10);
-            // }
         ])->withCount(['userPost', 'supporter','supporting'])
+
         ->where('id', $userId)->first();
 
         if ($userDetail) {
+                #-- check gender -------#
+                $userDetail->gender_name   =    null;
 
+                if(isset($userDetail->gender) && !empty($userDetail->gender)){
+
+                    $gender  =  Gender::select('name')->where('id',$userDetail->gender)->first();
+
+                    $userDetail->gender_name =  $gender->name??null;
+                }
                 $isSupporting               =   UserFollower::where(['user_id'=>$userId , 'follower_user_id'=>$auth_user])->first();
 
                 $userDetail->is_supporting  =   (isset($isSupporting) && !empty($isSupporting))?$isSupporting->status:0;
@@ -146,7 +157,6 @@ class GetUserService extends BaseController
                 $interest->icon = asset('storage/' . $interest->icon);
 
             });
-
 
             if(isset($userDetail->user_documents) && !empty($userDetail->user_documents[0])){
 
