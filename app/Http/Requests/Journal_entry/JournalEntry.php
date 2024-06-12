@@ -27,8 +27,8 @@ class JournalEntry extends FormRequest
             'content' => 'required|string|min:3',
             'link' => 'nullable|url',
             'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
-            'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
-           
+            // 'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
+            'audio' => 'nullable|file|mimes:application/octet-stream,audio/mpeg,mpga,mp3,wav,3gp|max:9048',
         ];
     }
 
@@ -42,7 +42,6 @@ class JournalEntry extends FormRequest
             'feeling.integer' => 'Invalid feeling',
             'feeling_type.array' => 'Invalid feeling type',
             'pain.*' => 'Invalid pain',
-            
             'symptom.array' => 'Invalid symptom',
             'other_symptom.array' => 'Invalid other symptom',
             'symptom.required_without' => 'Either symptom or other_symptom must be present.',

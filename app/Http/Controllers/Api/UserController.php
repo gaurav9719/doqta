@@ -370,6 +370,14 @@ class UserController extends BaseController
                     $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
                 }
 
+
+                if (isset($homeScreenPost->post_details->thumbnail) && !empty($homeScreenPost->post_details->thumbnail)) {
+
+                    $homeScreenPost->post_details->thumbnail      =  $this->addBaseInImage($homeScreenPost->post_details->thumbnail);
+                }
+
+
+
                 if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
 
                     $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
@@ -404,6 +412,12 @@ class UserController extends BaseController
                     if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
 
                         $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
+                    }
+
+
+                    if (isset($homeScreenPost->post_details->parent_post->thumbnail) && !empty($homeScreenPost->post_details->parent_post->thumbnail)) {
+
+                        $homeScreenPost->post_details->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->thumbnail);
                     }
                     $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $loginId);
                     $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];

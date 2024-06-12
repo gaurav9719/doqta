@@ -30,7 +30,7 @@ use App\Models\Comment;
 class GetCommunityService extends BaseController
 {
 
-    use IsLikedPostComment, postCommentLikeCount,CommonTrait;
+    use IsLikedPostComment, postCommentLikeCount, CommonTrait;
     protected $addCommunityPost, $notification;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
     {
@@ -42,13 +42,15 @@ class GetCommunityService extends BaseController
     {
         try {
             $limit          =       10;
+
             if (isset($request->limit) && !empty($request->limit)) {
 
                 $limit      =       $request->limit;
             }
             $user = User::findOrFail($authId);
+
             $homeScreenPosts = $user->posts()
-            
+
                 ->where('posts.is_active', 1)
 
                 ->whereDoesntHave('reportPosts', function ($query) use ($user) {
@@ -87,16 +89,23 @@ class GetCommunityService extends BaseController
                             ]);
                     }
                 ])
+
                 ->withCount(['total_likes', 'total_comment'])
                 ->orderByDesc('id')
                 ->simplePaginate($limit);
-            
+
             $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
 
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
                     $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
                 }
+
+                if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
+
+                    $homeScreenPost->thumbnail      =  $this->addBaseInImage($homeScreenPost->thumbnail);
+                }
+
 
                 if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
@@ -114,16 +123,26 @@ class GetCommunityService extends BaseController
                 $isExist                         =   $this->IsPostLiked($homeScreenPost->id, $authId);
                 $homeScreenPost->is_liked        =   $isExist['is_liked'];
                 $homeScreenPost->reaction        =   $isExist['reaction'];
-                $isRepost                        =   Post::where(['parent_id' => $homeScreenPost->id, 'user_id' => $authId, 'is_active' => 1])->exists();
-                $homeScreenPost->is_reposted     =  ($isRepost) ? 1 : 0;
+                $homeScreenPost->is_reposted     =   $isExist['is_reposted'];
+
                 #------------ parent post data-----------------#
+
                 if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
 
                     if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
 
                         $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
                     }
+
+                    if (isset($homeScreenPost->parent_post->thumbnail) && !empty($homeScreenPost->parent_post->thumbnail)) {
+
+                        $homeScreenPost->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
+                    }
+
+
                     $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
+
+
                     $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
                     $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
                     $homeScreenPost->parent_post->total_likes_count =   $isExist['total_likes_count'];
@@ -132,6 +151,8 @@ class GetCommunityService extends BaseController
                     $homeScreenPost->parent_post->is_reposted     =  ($isRepost) ? 1 : 0;
                     $homeScreenPost->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->parent_post->created_at);
                 }
+
+
                 $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
             });
 
@@ -153,7 +174,121 @@ class GetCommunityService extends BaseController
         }
     }
 
+    public function homeScreenComponent($request, $authId)
+    {
+        try {
 
+            $limit          =       10;
+
+            if (isset($request->limit) && !empty($request->limit)) {
+
+                $limit      =       $request->limit;
+            }
+            $user           =       User::findOrFail($authId);
+
+            $homeScreenPosts = $user->posts()
+
+                ->where('posts.is_active', 1)
+
+                ->whereHas('group', function ($query) use ($authId) {
+
+                    $query->where('is_active', 1)
+                    
+                    ->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+
+                        $query->where('user_id', $authId);
+
+                    })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+
+                        $query->where('blocked_user_id', $authId);
+
+                    });
+                })
+
+                ->whereDoesntHave('reportPosts', function ($query) use ($user) {
+
+                    $query->where('user_id', $user->id);
+                })
+                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                    $query->where('blocked_user_id', $authId);
+                })
+                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                    $query->where('user_id', $authId);
+                })
+                ->whereDoesntHave('hiddenPosts', function ($query) use ($authId) {
+
+                    $query->where('user_id', $authId);
+                })
+                #- jun 10 
+                ->where(function ($query) use ($authId) {
+
+                    $query->whereDoesntHave('parent_post', function ($query) use ($authId) {
+
+                        $query->where('is_active', 1)
+
+                            ->whereHas('post_user', function ($query) use ($authId) {
+                                // Check if authenticated user is not blocked by the post user
+                                $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                    $query->where('user_id', $authId);
+                                });
+                            });
+                    })
+                        ->orWhereHas('parent_post', function ($query) use ($authId) {
+                            $query->where('is_active', 1)
+                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                    // Check if post user is not blocked by the authenticated user
+                                    $query->where('blocked_user_id', $authId);
+                                });
+                        });
+                })
+                ->with([
+                    'post_user:id,name,user_name,profile',
+                    'group:id,name,description,cover_photo,member_count,post_count,created_by',
+                    'parent_post' => function ($query) {
+
+                        $query->select('*')
+                            ->where('is_active', 1)
+                            ->with([
+                                'post_user:id,name,user_name,profile,is_active',
+                                'group:id,name,description,created_by'
+                            ]);
+                    }
+                ])
+                ->withCount(['total_likes', 'total_comment'])
+                ->orderByDesc('id')
+                ->simplePaginate($limit);
+
+            $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
+
+                return transformPostData($homeScreenPost, $authId);
+                #------------ parent post data-----------------#
+
+                if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
+
+                    return transformParentPostData($homeScreenPost, $authId);
+                }
+            });
+
+            $new_health_insight_available     =   $this->checkNewHealthInsights($authId);
+
+            $notification_count     =   notification_count();
+            return response()->json([
+                'status'                    => 200,
+                'message'                   => trans("message.home_screen_post"),
+                'data'                      => $homeScreenPosts,
+                'notification'              => $notification_count,
+                'is_new_insights_available' => $new_health_insight_available
+            ]);
+            // return $this->sendResponse($homeScreenPosts, trans("message.home_screen_post"), 200, $notification_count);
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "getPost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
 
 
 
@@ -243,6 +378,12 @@ class GetCommunityService extends BaseController
                     $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
                 }
 
+                if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
+
+                    $homeScreenPost->thumbnail      =  $this->addBaseInImage($homeScreenPost->thumbnail);
+                }
+
+
                 if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
                     $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
@@ -268,13 +409,18 @@ class GetCommunityService extends BaseController
 
                         $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
                     }
+
+                    if (isset($homeScreenPost->parent_post->thumbnail) && !empty($homeScreenPost->parent_post->thumbnail)) {
+
+                        $homeScreenPost->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
+                    }
+  
                     $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
                     $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
                     $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
                     $homeScreenPost->parent_post->total_likes_count =   $isExist['total_likes_count'];
                     $homeScreenPost->parent_post->total_comment_count =   Comment::where('post_id', $homeScreenPost->parent_post->id)->count();
-                    $isRepost                                     =   Post::where(['parent_id' => $homeScreenPost->parent_post->id, 'user_id' => $authId, 'is_active' => 1])->exists();
-                    $homeScreenPost->parent_post->is_reposted     =  ($isRepost) ? 1 : 0;
+                    $homeScreenPost->parent_post->is_reposted     =  $isExist['is_reposted'];
                     $homeScreenPost->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->parent_post->created_at);
                 }
                 $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
@@ -293,18 +439,44 @@ class GetCommunityService extends BaseController
 
     #------********  G E T      C O M M U N I T Y       P O S T   *********------------#
 
-    public function getCommunityById($communityId, $userid, $message)
+    public function getCommunityById($communityId, $authId, $message)   #---- changed on jun 11
     {
         try {
             $community = Group::with([
-                'groupMember' => function ($query) {
-                    $query->limit(10);
+                
+                'groupMember' => function ($query) use ($authId) {
+
+                    $query->limit(10)
+                    
+                        ->whereDoesntHave('groupUser.blockedBy', function ($query) use ($authId) {
+                            $query->where('user_id', $authId);
+                        })
+                        ->whereDoesntHave('groupUser.blockedUsers', function ($query) use ($authId) {
+
+                            $query->where('blocked_user_id', $authId);
+                        });
                 }
             ])
-                ->withCount(['groupMember'])
-                ->findOrFail($communityId);
-            if ($community->cover_photo) {
-                $community->cover_photo = asset('storage/' . $community->cover_photo);
+            ->withCount(['groupMember'])
+
+            ->whereHas('groupOwner', function ($query) use ($authId) {
+
+                $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                    $query->where('user_id', $authId);
+                })
+
+                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                    $query->where('blocked_user_id', $authId);
+
+                });
+            })
+            ->findOrFail($communityId);
+
+            if (isset($community->cover_photo) && !empty($community->cover_photo)) {
+
+                $community->cover_photo =  addBaseUrl($community->cover_photo);
             }
             return $this->sendResponse($community, $message, 200);
         } catch (Exception $e) {
@@ -322,6 +494,7 @@ class GetCommunityService extends BaseController
         if ($request->filled('search')) {
 
             return $this->getCommunityBySearch($request, $authId);
+
         } else {
 
             return $this->getJoinedCommunity($request, $authId);
@@ -341,16 +514,41 @@ class GetCommunityService extends BaseController
 
                 $limit = $request->limit;
             }
-            $communitiesQuery = GroupMember::where('user_id', $authId)
+            // $communitiesQuery = GroupMember::where('user_id', $authId)
 
-                ->whereHas('communities', function ($query) {
-                    $query->where('is_active', 1);
-                })->pluck('group_id');
+            //     ->whereHas('communities', function ($query) {
+
+            //         $query->where('is_active', 1);
+
+            //     })->pluck('group_id');
+
+
+                $communitiesQuery = GroupMember::where('user_id', $authId)  #------ changed on 11 jun
+
+                    ->whereHas('communities', function ($query) use ($authId) {
+
+                        $query->where('is_active', 1)
+
+                            ->whereHas('groupOwner', function ($query) use ($authId) {
+                                
+                                $query->where('is_active', 1) // Ensure group owner is active
+
+                                    ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                        $query->where('user_id', $authId);
+                                    })
+                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                                        $query->where('blocked_user_id', $authId);
+
+                                    });
+                            });
+                            
+                    })->pluck('group_id');
 
             $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
-
-
             return $this->communityLoop($communities, $authId);
+
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "getJoinedCommunity" ' . $e->getMessage());
@@ -361,19 +559,40 @@ class GetCommunityService extends BaseController
 
 
     #------------------------ G E T     C O M M U N I T Y   B Y     S E A R C H  -----------------------#
-    public function getCommunityBySearch($request, $authId)
+    public function getCommunityBySearch($request, $authId) #--- changed on 11 jun
     {
-
         try {
+
             $limit = 10;
 
             if (isset($request->limit) && !empty($request->limit)) {
 
-                $limit = $request->limit;
+                $limit  = $request->limit;
             }
-            $communities = Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->orderBy('name', 'asc')->simplePaginate($limit);
+
+            $communities = Group::where('name', 'LIKE', "%$request->search%")
+                            ->where('is_active', 1)
+                            ->whereHas('groupOwner', function ($query) use ($authId) {
+                                $query->where('is_active', 1) // Check if group owner is active
+
+                                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                    $query->where('user_id', $authId);
+
+                                })
+                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                                    $query->where('blocked_user_id', $authId);
+
+                                });
+                            })
+                            ->orderBy('name', 'asc')
+                            ->simplePaginate($limit);
+
+            // $communities    =   Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->orderBy('name', 'asc')->simplePaginate($limit);
 
             return $this->communityLoop($communities, $authId);
+
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "getCommunityBySearch" ' . $e->getMessage());
@@ -392,7 +611,7 @@ class GetCommunityService extends BaseController
 
                 if (isset($community->cover_photo) && !empty($community->cover_photo)) {
 
-                    $community->cover_photo = asset('storage/' . $community->cover_photo);
+                    $community->cover_photo = $this->addBaseInImage($community->cover_photo);
                 }
             }
             //check i am the member of the community or not
@@ -437,6 +656,7 @@ class GetCommunityService extends BaseController
         if ($request->type == 1) {
 
             return $this->joinCommunity($request, $authId, $group);
+
         } else {
 
             return $this->removeCommunity($request, $authId, $group);
@@ -452,11 +672,20 @@ class GetCommunityService extends BaseController
         DB::beginTransaction();
 
         try {
+
             $alreadyMember                  =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
 
             if ($alreadyMember) {
 
                 return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
+            }
+
+            $isBlocked              =   IsCommunityOwnerBlocked($request->community_id, $authId);
+
+            if(!$isBlocked){
+
+                return $this->sendResponsewithoutData(trans('message.invalid_group'), 409);
+
             }
             if ($group->visibility == 1) {         ##--------- PUBLIC COMMUNITIES ------------#
 
@@ -468,6 +697,7 @@ class GetCommunityService extends BaseController
                 if ($addGroupMember->save()) {
                     // increment in group member
                     incrementMemberWithAuth($request->community_id, 1);
+
                     $group         =   Group::find($request->community_id);
                     $sender        =   Auth::user();
                     $receiver      =   User::find($group->created_by);
@@ -490,7 +720,7 @@ class GetCommunityService extends BaseController
                     $activity->save();
                     #-------  A C T I V I T Y -----------#
                     DB::commit();
-                    $result                 =   $this->communityMemberCount($request->community_id, $authId);
+                    $result                         =   $this->communityMemberCount($request->community_id, $authId);
                     return $this->sendResponse($result, trans('message.community_joined_successfully'), 200);
                 }
             } else {                              ##--------- PRVATE COMMUNITIES ------------#
@@ -518,7 +748,6 @@ class GetCommunityService extends BaseController
                 }
             }
         } catch (Exception $e) {
-
             DB::rollback();
             Log::error('Error caught: "removeCommunity" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);

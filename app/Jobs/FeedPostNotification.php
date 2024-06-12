@@ -54,11 +54,12 @@ class FeedPostNotification implements ShouldQueue
 
                 foreach($allMembers as $member){
 
-                    $receiver                   =   User::where(['id'=>$member->user_id,'is_active'=>1])->first();
+                    $receiver                                   =   User::where(['id'=>$member->user_id,'is_active'=>1])->first();
 
                     if(isset($receiver) && !empty($receiver)){
 
-                        $message                =      "New post in ".$group->name . " by ". $sender['user_name'];
+                        $message                                =      "New post in ".$group->name . " by ". $sender['user_name'];
+
                         if(isset($message) && !empty($message)){
                             // Create a new notification
                             $notification                       =   new Notification();

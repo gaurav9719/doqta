@@ -306,6 +306,7 @@ class FollowFollowingController extends BaseController
                         $action                          =   1;
                         #send notification
                         $sender        =   Auth::user();
+                        // $mesage        =   $sender->user_name ." ".$message;
                         $mesage        =   $sender->user_name ." ".$message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);

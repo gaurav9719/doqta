@@ -52,6 +52,7 @@ return [
     "hidden_post_cannot_saved"=>"You cannot save hidden post",
     "updated_successfully"=>"Updated successfully",
     "saved_post_successfully"=>"Post saved successfully",
+    "saved_posts"=>"Saved posts",
     "repost_removed_successfully"=>"Repost removed successfully",
     "report_to_post_successfully"=>"Report submitted successfully",
     "home_screen_post"=>"Home screen post",

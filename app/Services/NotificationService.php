@@ -40,7 +40,7 @@ class NotificationService
                     // $devtoken              =   $token->device_token;
                     if ($token->device_type == 1) {
                         // Handle iOS device notification
-                        //IosPush($token,$message,$section,$notification_data);
+                        IosPush($token,$message,$section,$notification_data);
                         // You can add your iOS notification logic here
                     } else {
                         // Handle Android device notification

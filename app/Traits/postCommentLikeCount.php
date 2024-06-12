@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Traits;
 
 use Exception;
@@ -14,62 +15,68 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 
-trait postCommentLikeCount {
-use IsLikedPostComment;
-    public function postLikeCount($post_id) {
+trait postCommentLikeCount
+{
+    use IsLikedPostComment;
+    public function postLikeCount($post_id)
+    {
 
         $userId                 =       Auth::id();
-        $postLike['total_likes_count']           =       PostLike::where(['post_id'=>$post_id])->count();
-        $hasLiked               =       PostLike::where(['post_id'=>$post_id,'user_id'=>$userId])->first();
-        $postLike['is_liked']   =       (isset($hasLiked) && !empty($hasLiked))?1:0;
-        $postLike['reaction']   =       (isset($hasLiked) && !empty($hasLiked))?$hasLiked->reaction:0;
+        $postLike['total_likes_count']           =       PostLike::where(['post_id' => $post_id])->count();
+        $hasLiked               =       PostLike::where(['post_id' => $post_id, 'user_id' => $userId])->first();
+        $postLike['is_liked']   =       (isset($hasLiked) && !empty($hasLiked)) ? 1 : 0;
+        $postLike['reaction']   =       (isset($hasLiked) && !empty($hasLiked)) ? $hasLiked->reaction : 0;
         return $postLike;
-        
     }
 
-    public function commentLikeCount($comment_id) {
+    public function commentLikeCount($comment_id)
+    {
 
         $userId                         =       Auth::id();
-        $postLike['total_likes_count']  =       CommentLike::where(['comment_id'=>$comment_id])->count();
-        $hasLiked                       =       CommentLike::where(['comment_id'=>$comment_id,'user_id'=>$userId])->first();
-        $postLike['is_liked']           =       (isset($hasLiked) && !empty($hasLiked))?1:0;
-        $postLike['reaction']           =       (isset($hasLiked) && !empty($hasLiked))?$hasLiked->reaction:0;
+        $postLike['total_likes_count']  =       CommentLike::where(['comment_id' => $comment_id])->count();
+        $hasLiked                       =       CommentLike::where(['comment_id' => $comment_id, 'user_id' => $userId])->first();
+        $postLike['is_liked']           =       (isset($hasLiked) && !empty($hasLiked)) ? 1 : 0;
+        $postLike['reaction']           =       (isset($hasLiked) && !empty($hasLiked)) ? $hasLiked->reaction : 0;
         return $postLike;
-        
     }
-    public function addBaseInImage($cover_photo){
-        
-        if(isset($cover_photo) && !empty($cover_photo)){
+    public function addBaseInImage($cover_photo)
+    {
 
-            return (filter_var($cover_photo, FILTER_VALIDATE_URL))? $cover_photo : asset('storage/'.$cover_photo);
-            
-        }else{
+        if (isset($cover_photo) && !empty($cover_photo)) {
+
+            return (filter_var($cover_photo, FILTER_VALIDATE_URL)) ? $cover_photo : asset('storage/' . $cover_photo);
+        } else {
 
             return null;
         }
     }
 
 
-    public function getPost($postId, $authId,$mesage)
+    public function getPost($postId, $authId, $mesage)
     {
         try {
-            $user           =      User::findOrFail($authId);
 
-            $homeScreenPost =      Post::where(['posts.is_active'=>1,'id'=>$postId])
+            $user           =      User::findOrFail($authId);
+            $homeScreenPost =      Post::where(['posts.is_active' => 1, 'id' => $postId])
 
                 ->whereNotExists(function ($query) use ($user) {
+
                     $query->select(DB::raw(1))
+
                         ->from('report_posts')
                         ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('report_posts.user_id', '=', $user->id); // Check if the current user has reported the post
+                })
 
+                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                    $query->where('blocked_user_id', $authId);
                 })
-                ->whereNotExists(function ($query) use ($authId) {
-                    $query->select(DB::raw(1))
-                        ->from('blocked_users')
-                        ->where('user_id', '=', $authId)                              // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
-                        ->where('blocked_users.blocked_user_id','=','posts.user_id'); // Check if the current user has reported the post
+                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                    $query->where('user_id', $authId);
                 })
+
                 ->whereNotExists(function ($query) use ($authId) {
 
                     $query->select(DB::raw(1))
@@ -77,66 +84,104 @@ use IsLikedPostComment;
                         ->whereColumn('hidden_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
                 })
-                ->with(['post_user'=>function($query){
+                #----- check if post user blocked or login user blocked to post user
+                ->where(function ($query) use ($authId) {
 
-                    $query->select('id','name','user_name','profile');
+                    $query->whereDoesntHave('parent_post', function ($query) use ($authId) {
+
+                        $query->where('is_active', 1)
+
+                            ->whereHas('post_user', function ($query) use ($authId) {
+                                // Check if authenticated user is not blocked by the post user
+                                $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                    $query->where('user_id', $authId);
+                                });
+                            });
+                    })
+                        ->orWhereHas('parent_post', function ($query) use ($authId) {
+                            $query->where('is_active', 1)
+                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                    // Check if post user is not blocked by the authenticated user
+                                    $query->where('blocked_user_id', $authId);
+                                });
+                        });
+                })
+
+                #----- check if post user blocked or login user blocked to post user
+                ->with([
+                    'post_user' => function ($query) {
+
+                        $query->select('id', 'name', 'user_name', 'profile');
                     },
-                    'group'=>function($query){
-                        $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
+                    'group' => function ($query) {
+                        $query->select('id', 'name', 'description', 'cover_photo', 'member_count', 'post_count', 'created_by');
                     },
                     'parent_post' => function ($query) {
                         $query->select('*')
                             ->where('is_active', 1)
                             ->with([
                                 'post_user' => function ($query) {
-                                    $query->select('id', 'name','user_name', 'profile');
+
+                                    $query->select('id', 'name', 'user_name', 'profile');
                                 }
                             ]);
                     }
-                ])->withCount(['total_likes','total_comment'])->first();
+                ])->withCount(['total_likes', 'total_comment'])->first();
 
-                    if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                        $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
-                    }
+            if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                    if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
+                $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
+            }
 
-                        $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
-                    }
+            if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
 
-                    if (isset($homeScreenPost->post_user) &&  !empty($homeScreenPost->post_user->profile)) {
+                $homeScreenPost->thumbnail      =  $this->addBaseInImage($homeScreenPost->thumbnail);
+            }
 
-                        $homeScreenPost->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_user->profile);
-                    }
-                    if ($homeScreenPost->group &&  $homeScreenPost->group->cover_photo) {
+            if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
-                        $homeScreenPost->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->group->cover_photo );
-                    }
-                    $isExist                         =   $this->IsPostLiked($homeScreenPost->id, $authId);
-                    $homeScreenPost->is_liked        =   $isExist['is_liked'];
-                    $homeScreenPost->reaction        =   $isExist['reaction'];
-                    $isRepost                        =   Post::where(['parent_id'=>$homeScreenPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $homeScreenPost->is_reposted     =  ($isRepost)?1:0;
+                $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
+            }
 
-                    $homeScreenPost->post_category_name = post_category($homeScreenPost->post_category);
-                    #------------ parent post data-----------------#
-                    if(isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)){
+            if (isset($homeScreenPost->post_user) &&  !empty($homeScreenPost->post_user->profile)) {
 
-                        if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
+                $homeScreenPost->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_user->profile);
+            }
+            if ($homeScreenPost->group &&  $homeScreenPost->group->cover_photo) {
 
-                            $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
-                        }
-                        $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
-                        $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
-                        $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
-                        $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                        $homeScreenPost->parent_post->is_reposted     =  ($isRepost)?1:0;
-                        $homeScreenPost->postedAt                     =  time_elapsed_string($homeScreenPost->parent_post->created_at);
-                    }
-                    $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
+                $homeScreenPost->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->group->cover_photo);
+            }
+            $isExist                         =   $this->IsPostLiked($homeScreenPost->id, $authId);
+            $homeScreenPost->is_liked        =   $isExist['is_liked'];
+            $homeScreenPost->reaction        =   $isExist['reaction'];
+            $isRepost                        =   Post::where(['parent_id' => $homeScreenPost->id, 'user_id' => $authId, 'is_active' => 1])->exists();
+            $homeScreenPost->is_reposted     =  ($isRepost) ? 1 : 0;
+
+            $homeScreenPost->post_category_name = post_category($homeScreenPost->post_category);
+            #------------ parent post data-----------------#
+            if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
+
+                if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
+
+                    $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
+                }
+
+                if (isset($homeScreenPost->parent_post->thumbnail) && !empty($homeScreenPost->parent_post->thumbnail)) {
+
+                    $homeScreenPost->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
+                }
+
+
+                $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
+                $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
+                $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
+                $homeScreenPost->parent_post->is_reposted     =  $isExist['is_reposted'];
+                $homeScreenPost->postedAt                     =  time_elapsed_string($homeScreenPost->parent_post->created_at);
+            }
+            $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
             return $this->sendResponse($homeScreenPost, $mesage, 200);
-
         } catch (Exception $e) {
 
             Log::error('Error caught: "getPost" ' . $e->getLine());
@@ -145,7 +190,7 @@ use IsLikedPostComment;
     }
 
     #----------- G E T      C O M M U N I T Y           P O S T         B Y     I D ------------------_#
-    public function getCommunityPost($community_id, $authId, $request)
+    public function getCommunityPostOLD($community_id, $authId, $request)
     {
         try {
             // check if i have join the community or not
@@ -164,7 +209,6 @@ use IsLikedPostComment;
 
                     $group->is_joined       =       1; // not join the group
                     $group->role            =       $isGroupMember->role;
-                    
                 } else {
 
                     $request                =       GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
@@ -200,31 +244,29 @@ use IsLikedPostComment;
 
                 $limit              =   $request['limit'];
             }
-          
+
             $posts = Post::whereHas('post_user', function ($query) {
 
                 $query->where('is_active', 1);      #----- 
 
             })->with([
 
-                    'group:id,name,description,cover_photo,post_count',
-                    'post_user:id,user_name,name,profile'
+                'group:id,name,description,cover_photo,post_count',
+                'post_user:id,user_name,name,profile'
 
-                ])->with(['parent_post' => function ($query) {
+            ])->with(['parent_post' => function ($query) {
 
-                    $query->select('*')
-                        ->where('is_active', 1)
-                        ->with([
-                            'post_user' => function ($query) {
-                                $query->select('id', 'name','user_name', 'profile');
-                            }
-                        ]);
-                        
-                },'parent_post.group'=>function($query){
+                $query->select('*')
+                    ->where('is_active', 1)
+                    ->with([
+                        'post_user' => function ($query) {
+                            $query->select('id', 'name', 'user_name', 'profile');
+                        }
+                    ]);
+            }, 'parent_post.group' => function ($query) {
 
-                    $query->select('id','name','description','created_by');
-
-                }])
+                $query->select('id', 'name', 'description', 'created_by');
+            }])
                 ->where('group_id', $community_id)
                 ->where('is_active', 1)
                 ->whereNotExists(function ($query) use ($authId) {
@@ -232,7 +274,7 @@ use IsLikedPostComment;
                         ->from('hidden_posts')
                         ->whereColumn('hidden_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
-    
+
                 })
                 ->whereNotExists(function ($query) use ($authId) {
                     $query->select(DB::raw(1))
@@ -240,75 +282,288 @@ use IsLikedPostComment;
                         ->where('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('report_posts.user_id', '=', $authId); // Check if the current user has reported the post
                 })
+                // ->whereNotExists(function ($query) use ($authId) {
+
+                //     $query->select(DB::raw(1))
+
+                //         ->from('blocked_users')
+
+                //         ->where('user_id', '=', $authId) // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                //         ->where('blocked_users.blocked_user_id', '=', 'posts.user_id'); // Check if the current user has reported the post
+                // });
+                #------ jun 10 ----------#
                 ->whereNotExists(function ($query) use ($authId) {
 
-                    $query->select(DB::raw(1))
-
-                        ->from('blocked_users')
-
-                        ->where('user_id', '=', $authId) // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
-                        ->where('blocked_users.blocked_user_id', '=', 'posts.user_id'); // Check if the current user has reported the post
+                    $query->select(DB::raw(1))->from('blocked_users')
+                        ->where(fn ($query) => $query->where('user_id', $authId)->whereColumn('blocked_users.blocked_user_id', 'posts.user_id'))
+                        ->orWhere(fn ($query) => $query->where('blocked_user_id', $authId)->whereColumn('blocked_users.user_id', 'posts.user_id'));
                 });
+            #------ jun 10 ----------#
             if (isset($request['post_category_id']) && !empty($request['post_category_id'])) {
 
                 $posts->where('post_category', $request['post_category_id']);
             }
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
-       
+
             //dd(DB::getQueryLog());
             $posts->getCollection()->transform(function ($post) use ($authId) {
 
-                if(isset($post->parent_post) && !empty($post->parent_post)){
+                if (isset($post->parent_post) && !empty($post->parent_post)) {
 
 
-                    if ($post->parent_post->post_user && $post->parent_post->post_user->profile) {
-    
-                        $post->parent_post->post_user->profile       = $this->addBaseInImage($post->parent_post->post_user->profile);
-                    }
-                    if (isset($post->parent_post->media_url) && !empty($post->parent_post->media_url)) {
-    
-                        $post->parent_post->media_url        =       $this->addBaseInImage($post->parent_post->media_url);
-                    }
-                    $isExist                                 =       $this->IsPostLiked($post->id, $authId,1);
-                    $post->parent_post->is_liked             =       $isExist['is_liked'];
-                    $post->parent_post->reaction             =       $isExist['reaction'];
-                    $post->parent_post->total_likes_count    =       $isExist['total_likes_count'];
-                    $post->parent_post->total_comment_count  =       $isExist['total_comment_count'];
-                    $isRepost                                =       Post::where(['parent_id'=>$post->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                    $post->parent_post->is_reposted          =       ($isRepost)?1:0;
-                    $post->parent_post->postedAt                          =      time_elapsed_string($post->created_at);
+                    return transformParentPostData($post, $authId);
+
+                    // if ($post->parent_post->post_user && $post->parent_post->post_user->profile) {
+
+                    //     $post->parent_post->post_user->profile       = $this->addBaseInImage($post->parent_post->post_user->profile);
+                    // }
+
+                    // if (isset($post->parent_post->media_url) && !empty($post->parent_post->media_url)) {
+
+                    //     $post->parent_post->media_url        =       $this->addBaseInImage($post->parent_post->media_url);
+                    // }
+
+                    // if (isset($post->parent_post->thumbnail) && !empty($post->parent_post->thumbnail)) {
+
+                    //     $post->parent_post->thumbnail        =       $this->addBaseInImage($post->parent_post->thumbnail);
+                    // }
+
+                    // $isExist                                 =       $this->IsPostLiked($post->parent_post->id, $authId,1);
+                    // $post->parent_post->is_liked             =       $isExist['is_liked'];
+                    // $post->parent_post->reaction             =       $isExist['reaction'];
+                    // $post->parent_post->total_likes_count    =       $isExist['total_likes_count'];
+                    // $post->parent_post->total_comment_count  =       $isExist['total_comment_count'];
+                    // $isRepost                                =       Post::where(['parent_id'=>$post->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                    // $post->parent_post->is_reposted          =       ($isRepost)?1:0;
+                    // $post->parent_post->postedAt             =      time_elapsed_string($post->created_at);
 
                 }
-                $isRepost                                    =      Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                $post->is_reposted                           =      ($isRepost)?1:0;
-                $isExist                                     =      $this->IsPostLiked($post->id, $authId,1);
-                $post->is_liked =       $isExist['is_liked'];
-                $post->reaction =       $isExist['reaction'];
-                $post->total_likes_count = $isExist['total_likes_count'];
-                $post->total_comment_count = $isExist['total_comment_count'];
-                if (isset ($post->media_url) && !empty ($post->media_url)) {
 
-                    $post->media_url = $this->addBaseInImage($post->media_url);
-                }
-                if ($post->group && $post->group->cover_photo) {
 
-                    $post->group->cover_photo = $this->addBaseInImage($post->group->cover_photo);
-                }
-                // Check if the post has a user associated with it and user profile is set
-                if ($post->post_user && $post->post_user->profile) {
+                return transformPostData($post, $authId);
+                // $isRepost                                    =      Post::where(['parent_id'=>$post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                // $post->is_reposted                           =      ($isRepost)?1:0;
+                // $isExist                                     =      $this->IsPostLiked($post->id, $authId,1);
+                // $post->is_liked =       $isExist['is_liked'];
+                // $post->reaction =       $isExist['reaction'];
+                // $post->total_likes_count = $isExist['total_likes_count'];
+                // $post->total_comment_count = $isExist['total_comment_count'];
 
-                    $post->post_user->profile = $this->addBaseInImage($post->post_user->profile);
-                }
-                $post->postedAt = time_elapsed_string($post->created_at);
+                // if (isset ($post->media_url) && !empty ($post->media_url)) {
 
-                $post->is_reposted = (Post::where('parent_id', $post->id)
-                    ->where('user_id', $authId)
-                    ->where('is_active', 1)
-                    ->exists())?1:0;
-                $post->post_category_name = post_category($post->post_category);
+                //     $post->media_url = $this->addBaseInImage($post->media_url);
+                // }
 
-                return $post;
+                // if (isset ($post->thumbnail) && !empty ($post->thumbnail)) {
+
+                //     $post->thumbnail = $this->addBaseInImage($post->thumbnail);
+                // }
+
+                // if ($post->group && $post->group->cover_photo) {
+
+                //     $post->group->cover_photo = $this->addBaseInImage($post->group->cover_photo);
+                // }
+
+                // // Check if the post has a user associated with it and user profile is set
+                // if ($post->post_user && $post->post_user->profile) {
+
+                //     $post->post_user->profile = $this->addBaseInImage($post->post_user->profile);
+                // }
+                // $post->postedAt = time_elapsed_string($post->created_at);
+
+                // $post->is_reposted = (Post::where('parent_id', $post->id)
+                //     ->where('user_id', $authId)
+                //     ->where('is_active', 1)
+                //     ->exists())?1:0;
+                // $post->post_category_name = post_category($post->post_category);
+
+                // return $post;
             });
+
+
+
+
+            if (isset($group) && !empty($group)) {
+
+                if (isset($group->cover_photo) && !empty($group->cover_photo)) {
+
+                    $group->cover_photo = $this->addBaseInImage($group->cover_photo);
+                }
+                //check role of community
+                $isGroupMember = GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                if (isset($isGroupMember) && !empty($isGroupMember)) {
+                    $group->is_joined = 1; // not join the group
+                    $group->role = $isGroupMember->role;
+                } else {
+                    $request = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+                    if (isset($request) && !empty($request)) {
+
+                        if ($request->status == "pending") {
+
+                            $group->is_joined = 2; // pending request
+
+                        } elseif ($request->status == "rejected") {
+
+                            $group->is_joined = 3; // rejected
+                        }
+                    } else {
+
+                        $group->is_joined = 0; // not join the group
+                    }
+                    $group->role = null;
+                }
+            }
+            return response()->json(['status' => 200, 'message' => trans('message.community_post'), 'data' => $posts, 'group' => $group]);
+        } catch (Exception $e) {
+            Log::error('Error caught: "getCommunityPostTRAIT" ' . $e->getMessage());
+            return $this->sendError('Error occurred while fetching post.', [], 400);
+        }
+    }
+    #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
+
+
+
+    #----------- G E T      C O M M U N I T Y           P O S T         B Y     I D ------------------_#
+    public function getCommunityPost($community_id, $authId, $request)
+    {
+        try {
+            $group =     Group::where('id', $community_id)->where('is_active', 1)
+
+                        ->whereHas('groupOwner', function ($query) use ($authId) {
+
+                            $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                                    $query->where('user_id', $authId);
+                                })
+                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                    $query->where('blocked_user_id', $authId);
+                                });
+                        })->withCount('groupMember')->first();
+
+            if (empty($group)) {
+
+                return $this->sendResponsewithoutData(trans('message.invalid_group'), 400);
+            }
+
+            //check group created user not block me or neither blocked by me 
+            if (isset($group) && !empty($group)) {
+
+                if ((isset($group->cover_photo) && !empty($group->cover_photo))) {
+
+                    $group->cover_photo = $this->addBaseInImage($group->cover_photo);
+                }
+
+                $isGroupMember              =       GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+
+                if (isset($isGroupMember) && !empty($isGroupMember)) {
+
+                    $group->is_joined       =       1; // not join the group
+                    $group->role            =       $isGroupMember->role;
+                } else {
+
+                    $request                =       GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+                    if (isset($request) && !empty($request)) {
+                        if ($request->status == "pending") {
+
+                            $group->is_joined = 2; // pending request
+
+                        } elseif ($request->status == "rejected") {
+
+                            $group->is_joined = 3; // rejected
+                        }
+                    } else {
+
+                        $group->is_joined = 0; // not join the group
+
+                    }
+
+                    $group->role = null;
+                }
+            }
+            $isGroupMember          =   GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
+            if (!$isGroupMember) {
+
+                return response()->json(['status' => 201, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
+            }
+
+            $limit                  =   10;
+
+            if (isset($request['limit']) && !empty($request['limit'])) {
+
+                $limit              =   $request['limit'];
+            }
+
+            $posts = Post::whereHas('post_user', function ($query) {
+                $query->where('is_active', 1);
+            })
+            ->with([
+                'group:id,name,description,cover_photo,post_count',
+                'post_user:id,user_name,name,profile',
+                'parent_post' => function ($query) {
+                    $query->select('*')
+                        ->where('is_active', 1)
+                        ->with([
+                            'post_user:id,name,user_name,profile',
+                            'group:id,name,description,created_by,is_active'
+                        ]);
+                }
+            ])
+            ->where('group_id', $community_id)
+            ->where('is_active', 1)
+            ->where(function ($query) use ($authId) {
+                $query->whereDoesntHave('post_user.blockedBy', function ($query) use ($authId) {
+                        $query->where('user_id', $authId);
+                    })
+                    ->whereDoesntHave('post_user.blockedUsers', function ($query) use ($authId) {
+                        $query->where('blocked_user_id', $authId);
+                    })
+                    ->whereDoesntHave('parent_post.post_user.blockedBy', function ($query) use ($authId) {
+                        $query->where('user_id', $authId);
+                    })
+                    ->whereDoesntHave('parent_post.post_user.blockedUsers', function ($query) use ($authId) {
+                        $query->where('blocked_user_id', $authId);
+                    });
+            })
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('hidden_posts')
+                    ->whereColumn('hidden_posts.post_id', 'posts.id')
+                    ->where('hidden_posts.user_id', $authId);
+            })
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('report_posts')
+                    ->whereColumn('report_posts.post_id', 'posts.id')
+                    ->where('report_posts.user_id', $authId);
+            })
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('blocked_users')
+                    ->where(function ($query) use ($authId) {
+                        $query->where('user_id', $authId)
+                            ->whereColumn('blocked_users.blocked_user_id', 'posts.user_id')
+                            ->orWhere('blocked_user_id', $authId)
+                            ->whereColumn('blocked_users.user_id', 'posts.user_id');
+                    });
+            });
+            
+            if (isset($request['post_category_id']) && !empty($request['post_category_id'])) {
+                $posts->where('post_category', $request['post_category_id']);
+            }
+            
+            $posts = $posts->orderByDesc('id')->simplePaginate($limit);
+
+            $posts->getCollection()->transform(function ($post) use ($authId) {
+
+                if (isset($post->parent_post) && !empty($post->parent_post)) {
+
+                    return transformParentPostData($post, $authId);
+                }
+                return transformPostData($post, $authId);
+            });
+
+            #------------ G R O U P        D A T A    ---------------------#
             if (isset($group) && !empty($group)) {
 
                 if (isset($group->cover_photo) && !empty($group->cover_photo)) {
@@ -351,13 +606,108 @@ use IsLikedPostComment;
 
 
 
+    public function getPostNew($postId, $authId, $mesage)
+    {
+        try {
 
+            $user           =      User::findOrFail($authId);
+            $homeScreenPost =      Post::where(['posts.is_active' => 1, 'id' => $postId])
 
+            ->whereHas('group.groupOwner', function ($query) use ($authId) {
 
+                $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
+                        $query->where('user_id', $authId);
 
+                    })
+                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
+                        $query->where('blocked_user_id', $authId);
 
+                    });
+                })->whereNotExists(function ($query) use ($user) {
 
+                    $query->select(DB::raw(1))
 
+                        ->from('report_posts')
+                        ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                        ->where('report_posts.user_id', '=', $user->id); // Check if the current user has reported the post
+                })
+
+                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                    $query->where('blocked_user_id', $authId);
+                })
+
+                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                    $query->where('user_id', $authId);
+                })
+
+                ->whereNotExists(function ($query) use ($authId) {
+                    $query->select(DB::raw(1))
+                        ->from('hidden_posts')
+                        ->whereColumn('hidden_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
+                        ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
+                })
+
+                #----- check if post user blocked or login user blocked to post user
+                ->where(function ($query) use ($authId) {
+
+                    $query->whereDoesntHave('parent_post', function ($query) use ($authId) {
+                        $query->where('is_active', 1)
+                        ->whereHas('post_user', function ($query) use ($authId) {
+                            // Check if authenticated user is not blocked by the post user
+                            $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                                
+                                $query->where('user_id', $authId);
+                            });
+                        });
+                    })
+                    ->orWhereHas('parent_post', function ($query) use ($authId) {
+                        $query->where('is_active', 1)
+                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                            // Check if post user is not blocked by the authenticated user
+                            $query->where('blocked_user_id', $authId);
+                        });
+                    });
+
+                })
+                #----- check if post user blocked or login user blocked to post user
+                ->with([
+
+                    'post_user' => function ($query) {
+                        $query->select('id', 'name', 'user_name', 'profile');
+                    },
+                    'group' => function ($query) {
+                        $query->select('id', 'name', 'description', 'cover_photo', 'member_count', 'post_count', 'created_by');
+                    },
+                    'parent_post' => function ($query) {
+                        $query->select('*')
+                        ->where('is_active', 1)
+                        ->with([
+                            'post_user' => function ($query) {
+                                $query->select('id', 'name', 'user_name', 'profile');
+                            }
+                        ]);
+                    }
+                ])->withCount(['total_likes', 'total_comment'])->first();
+
+            if (isset($homeScreenPost) && !empty($homeScreenPost)) {
+
+                $homeScreenPost = transformPostData($homeScreenPost, $authId);
+
+                if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
+
+                    $homeScreenPost = transformParentPostData($homeScreenPost, $authId);
+                }
+            }
+            return $this->sendResponse($homeScreenPost, $mesage, 200);
+
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "getPost" ' . $e->getLine());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
 }

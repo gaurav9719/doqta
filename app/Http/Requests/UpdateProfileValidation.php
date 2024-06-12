@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Contracts\Validation\Validator;
+use App\Rules\AdultValidation;
+use App\Rules\ExistsInInterest;
 use Illuminate\Validation\Rule;
+use App\Rules\ExistsInParticipate;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 
 class UpdateProfileValidation extends FormRequest
@@ -22,7 +25,14 @@ class UpdateProfileValidation extends FormRequest
             'user_name' => 'nullable|unique:users,user_name,'.$userId.'|regex:/^\S*$/u',
             'profile'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
             'cover'=>'nullable|mimes:jpg,jpeg,png,bmp,tiff',
-
+            'dob' => ['nullable', 'date', 'date_format:m/d/Y', new AdultValidation],
+            'gender' => ['nullable', 'integer', 'exists:genders,id'], 
+            'pronoun' => ['nullable', 'integer', 'exists:pronouns,id', 
+            'ethnicity' => 'nullable', 'nullable', 'exists:ethnicities,id'],
+            'reasons' => ['nullable', 'array', new ExistsInParticipate],
+            'reasons.*' => ['nullable', 'integer'],
+            'interest' => ['nullable', 'array', new ExistsInInterest],
+            'interest.*' => ['nullable', 'integer'],
         ];
     }
 
@@ -30,7 +40,11 @@ class UpdateProfileValidation extends FormRequest
     {
         return [
 
-          
+          'pronouns.exists' => "Invalid pronoun", 
+          'ethnicity.exists' => 'Invalid ethnicity',
+          'reasons.array' => "Invalid data type",
+          'interest.array' => "Invalid data type"
+
         ];
     }
 

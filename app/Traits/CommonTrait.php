@@ -360,7 +360,6 @@ trait CommonTrait
 
                         }
                     }
-
                     // Send notification
                     $receiver = User::find($reciever);
                     $sender = User::find($myId);
@@ -430,6 +429,11 @@ trait CommonTrait
                 if (isset($result->post->media_url) && !empty($result->post->media_url)) {
 
                     $result->post->media_url        =   $this->addBaseInImage($result->post->media_url);
+                }
+
+                if (isset($result->post->thumbnail) && !empty($result->post->thumbnail)) {
+
+                    $result->post->thumbnail        =   $this->addBaseInImage($result->post->thumbnail);
                 }
             }
 

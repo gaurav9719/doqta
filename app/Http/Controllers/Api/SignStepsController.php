@@ -100,7 +100,6 @@ class SignStepsController extends BaseController
             $validator = Validator::make(
                 $request->all(),
                 [
-
                     'user_name' => "required|min:3|regex:/^[a-zA-Z0-9.']+$/|unique:users,user_name," . $auth->id,
                     'name' => ['nullable', 'regex:/^[a-zA-Z\s]+$/']
                 ],
@@ -113,6 +112,7 @@ class SignStepsController extends BaseController
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
                 $userStep1                  =   User::find($auth->id);
                 // $userStep1              =   new User();
@@ -239,7 +239,7 @@ class SignStepsController extends BaseController
                     'interest' => ['required', 'array', new ExistsInInterest],
                     'interest.*' => ['required', 'integer']
                 ],
-                ['reasons.array' => "Invalid data type"]
+                ['interest.array' => "Invalid data type"]
             );
 
             if ($validator->fails()) {

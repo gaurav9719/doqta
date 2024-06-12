@@ -20,5 +20,14 @@ class Group extends Model
         return $this->hasMany(GroupMember::class, 'group_id','id');
     }
 
+    public function groupOwner(){
+
+        return $this->belongsTo(User::class,'created_by','id');
+    }
+
+
+
+
+
 
 }

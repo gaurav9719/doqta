@@ -325,6 +325,12 @@ class ChatController extends BaseController
                                         $result->post->media_url        =   $this->addBaseInImage($result->post->media_url);
                                     }
 
+                                    if (isset($result->post->thumbnail) && !empty($result->post->thumbnail)) {
+
+                                        $result->post->thumbnail        =   $this->addBaseInImage($result->post->thumbnail);
+                                    }
+
+
 
                                     if (isset($result->post->post_user) && !empty($result->post->post_user->profile)) {
 

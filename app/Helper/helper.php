@@ -573,6 +573,7 @@ if (!function_exists('checkFileExist')) {
         if (File::exists(public_path('stroage/' . $file))) {
 
             return true;
+            
         } else {
 
             return false;
@@ -951,11 +952,16 @@ if (!function_exists('increment')) {
 if (!function_exists('decrement')) {
     function decrement($tableName, $conditions, $field, $incrementBy)
     {
-        return DB::table($tableName)
-            ->updateOrInsert(
-                $conditions,
-                [$field => DB::raw("$field - $incrementBy")]
-            );
+       
+        $post = Post::select('repost_count')->where('id',$conditions['id'])->first();
+        if(isset($post) && $post['repost_count']>=1){
+
+            return DB::table($tableName)
+                ->updateOrInsert(
+                    $conditions,
+                    [$field => DB::raw("$field - $incrementBy")]
+                );
+        }
     }
 }
 

@@ -41,7 +41,7 @@ class likesService extends BaseController
     }
     #--------------  S I G N U P        P R O C E S S  ------------------------#
     #------------ P O S T       L I K E     --------------#
-    public function postLike($request, $authId)
+    public function postLikeOLD($request, $authId)
     {
         DB::beginTransaction();
         try {
@@ -58,12 +58,13 @@ class likesService extends BaseController
                     $post->delete();
                     #--- jun 4 ----#
                     //decrement('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
-                    post_reaction_count(0, $post->reaction, $request->post_id);
+                    //post_reaction_count(0, $post->reaction, $request->post_id);
                     DB::commit();
                     dispatch(new AiScoreCalculatedJob($request->post_id));
                     ActivityLog::where(['user_id' => $authId, 'post_id' => $request->post_id, 'action' => 1])->delete();
                     Notification::where(['sender_id' => $authId, 'post_id' => $request->post_id, 'notification_type' => trans('notification_message.post_liked_message_type')])->delete();
                     $data                   =   $this->postLikeCount($request->post_id);
+                    DB::commit();
                     return $this->sendResponse($data, trans('message.updated_successfully'), 200);
                 }
             } else {
@@ -96,10 +97,10 @@ class likesService extends BaseController
                     $addActivityLog->action_details =  "Liked the coummunity post: " . $title;
                     $addActivityLog->save();
                     #send notification
-                    $sender        =   Auth::user();
-                    $receiver      =   User::find($group_post->user_id);
-                    $group         =   Group::find($group_post->group_id);
-                    $message       =   $sender->name . " liked your post: " . $title;
+                    $sender                         =   Auth::user();
+                    $receiver                       =   User::find($group_post->user_id);
+                    $group                          =   Group::find($group_post->group_id);
+                    $message                        =   $sender->user_name . " liked your post: " . $title;
                     $data          =   [
                         "message"       =>  $message,
                         "post_id"       =>  $request->post_id,
@@ -118,10 +119,13 @@ class likesService extends BaseController
                     $post->reaction     =   $request->reaction;
                     $post->save();
                     #---- no need to store this ----__#
-                    if ($oldreact != $request->reaction) {
-                        post_reaction_count(0, $oldreact, $request->post_id);
-                        post_reaction_count(1, $request->reaction, $request->post_id);
-                    }
+
+                    // if ($oldreact != $request->reaction) {
+
+                    //     post_reaction_count(0, $oldreact, $request->post_id);
+                    //     post_reaction_count(1, $request->reaction, $request->post_id);
+                    // }
+                    
                     #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
@@ -141,6 +145,100 @@ class likesService extends BaseController
         }
     }
     #------------ P O S T       L I K E     --------------#
+    public function postLike($request, $authId)
+    {
+        try {
+
+            DB::beginTransaction();
+            
+            $post   =       PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
+    
+            if ($request->action == 0) { // remove liked
+
+                if (empty($post)) {
+
+                    return $this->sendError(trans('message.something_went_wrong'), [], 400);
+
+                } else {
+
+                    $post->delete();
+                    // Remove associated activity log and notification
+                    $this->cleanupLikeActivityAndNotification($authId, $request->post_id);
+                }
+            } else {
+                // liked/update
+                if (empty($post)) {
+                    // Insert new like
+                    $postLike = PostLike::create([
+                        'post_id' => $request->post_id,
+                        'user_id' => $authId,
+                        'reaction' => $request->reaction
+                    ]);
+    
+                    // Update activity log and send notification
+                    $this->updateLikeActivityAndNotification($authId, $request->post_id, $postLike);
+                } else {
+                    // Update existing like
+                    $post->reaction = $request->reaction;
+                    $post->save();
+                }
+            }
+    
+            // Get updated like count
+            $data = $this->postLikeCount($request->post_id);
+            DB::commit();
+            dispatch(new AiScoreCalculatedJob($request->post_id));
+            return $this->sendResponse($data, trans('message.updated_successfully'), 200);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "postLike" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    
+    // Helper functions to update activity log and send notification
+    private function updateLikeActivityAndNotification($authId, $postId, $postLike)
+    {
+        $groupPost          = Post::select('group_id', 'user_id', 'title')->find($postId);
+        $title              = $groupPost->title;
+    
+        // Add activity log
+        $addActivityLog = new ActivityLog();
+        $addActivityLog->user_id = $authId;
+        $addActivityLog->post_id = $postId;
+        $addActivityLog->community_id = $groupPost->group_id;
+        $addActivityLog->action = 1; // like
+        $addActivityLog->action_details = "liked community post " . $title;
+        $addActivityLog->save();
+    
+        // Send notification
+        $sender     = Auth::user();
+        $receiver   = User::find($groupPost->user_id);
+        $group      = Group::find($groupPost->group_id);
+        // $message = $sender->user_name . " liked your post: " . $title;
+        $message    = "liked your post: " . $title;
+
+        $data = [
+            "message" => $message,
+            "post_id" => $postId,
+            "community_id" => $group->id,
+            "like_id" => $postLike->id
+        ];
+    
+        if ($authId != $groupPost->user_id) { // Send notification if post is not posted by the liker
+            $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
+        }
+    }
+    
+    private function cleanupLikeActivityAndNotification($authId, $postId)
+    {
+        ActivityLog::where(['user_id' => $authId, 'post_id' => $postId, 'action' => 1])->delete();
+        Notification::where(['sender_id' => $authId, 'post_id' => $postId, 'notification_type' => trans('notification_message.post_liked_message_type')])->delete();
+    }
+    
+
+    #------------ P O S T       L I K E     --------------#
+
 
     #------------ C O M M E N T        L I K E     --------------#
 
@@ -172,7 +270,8 @@ class likesService extends BaseController
                     $receiver      =       User::find($comment_user->user_id);
                     $post1         =       Post::find($comment_user->post_id);
                     $group         =       Group::find($post1->group_id);
-                    $message       =       $sender->name . " liked your comment in: " . $group->name;
+                    // $message       =       $sender->name . " liked your comment in: " . $group->name;
+                    $message       =       "liked your comment in: " . $group->name;
 
                     #-------  T R A C K       A C T V I T Y -----------#
                     $addActivityLog              =    new ActivityLog();

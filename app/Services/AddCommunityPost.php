@@ -45,7 +45,7 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
-        
+
         try {
 
             $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
@@ -155,6 +155,7 @@ class AddCommunityPost extends BaseController
 
                 $editPost->media_url = $request->media_url;
             }
+
             if (isset($request->group_id) && !empty($request->group_id)) {
 
                 $editPost->group_id = $request->group_id;
@@ -197,32 +198,36 @@ class AddCommunityPost extends BaseController
                 return $this->sendError('Post not found.', [], 404);
             }
 
-            if ($post->media_url) {
+            if (isset($post->media_url) && !empty($post->media_url)) {
 
-                $post->media_url = asset('storage/' . $post->media_url);
+                $post->media_url        = addBaseUrl($post->media_url);
+            }
+
+            if (isset($post->thumbnail) && !empty($post->thumbnail)) {
+
+                $post->thumbnail        = addBaseUrl($post->thumbnail);
             }
 
             if (isset($post->group) && !empty($post->group)) {
 
                 if (isset($post->group->cover_photo) && !empty($post->group->cover_photo)) {
 
-                    $post->group->cover_photo = asset('storage/' . $post->group->cover_photo);
+                    $post->group->cover_photo   =     addBaseUrl($post->group->cover_photo);
                 }
             }
             if ($post->post_user && $post->post_user->profile) {
 
-                $post->post_user->profile = asset('storage/' . $post->post_user->profile);
+                $post->post_user->profile       =   addBaseUrl($post->post_user->profile);
             }
 
-            $isExist = PostLike::where(['user_id' => $authId, 'post_id' => $post->id])->first();
+            $isExist                            = PostLike::where(['user_id' => $authId, 'post_id' => $post->id])->first();
             // sdd($isExist);
 
-
-            $isExist = $this->IsPostLiked($post->id, $authId, 1);
-            $post->is_liked = $isExist['is_liked'];
-            $post->reaction = $isExist['reaction'];
-            $post->total_likes_count = $isExist['total_likes_count'];
-            $post->total_comment_count = $isExist['total_comment_count'];
+            $isExist                    =       $this->IsPostLiked($post->id, $authId, 1);
+            $post->is_liked             =       $isExist['is_liked'];
+            $post->reaction             =       $isExist['reaction'];
+            $post->total_likes_count    =       $isExist['total_likes_count'];
+            $post->total_comment_count  =       $isExist['total_comment_count'];
             // $post->is_liked = (isset($isExist) && !empty($isExist)) ? 1 : 0;
             // $post->reaction = (isset($isExist) && !empty($isExist)) ? $isExist->reaction : 0;
             $isRepost = Post::where(['parent_id' => $post->id, 'user_id' => $authId, 'is_active' => 1])->exists();
@@ -299,28 +304,29 @@ class AddCommunityPost extends BaseController
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
 
             if (!empty($posts)) {
+
                 foreach ($posts as $groupPost) {
 
-                    $media_url = isset($groupPost->media_url) ? asset('storage/' . $groupPost->media_url) : '';
-                    $cover_photo = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
-                        (filter_var($groupPost->group->cover_photo, FILTER_VALIDATE_URL) ? $groupPost->group->cover_photo : asset('storage/' . $groupPost->group->cover_photo)) : '';
-                    $profile = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
-                        (filter_var($groupPost->post_user->profile, FILTER_VALIDATE_URL) ? $groupPost->post_user->profile : asset('storage/' . $groupPost->post_user->profile)) : '';
-
-
-                    $groupPost->media_url = $media_url;
-                    $groupPost->group->cover_photo = $cover_photo;
-                    $groupPost->post_user->profile = $profile;
+                    $media_url                          = isset($groupPost->media_url) && !empty(isset($groupPost->media_url))?addBaseUrl($groupPost->media_url) : null;
+                    $thumbnail                          = isset($groupPost->thumbnail) && !empty($groupPost->thumbnail) ? addBaseUrl($groupPost->thumbnail) : null;
+                    $cover_photo                        = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
+                    addBaseUrl($groupPost->group->cover_photo):null;
+                    $profile                            = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
+                    addBaseUrl($groupPost->post_user->profile) : '';
+                    $groupPost->media_url               = $media_url;
+                    $groupPost->thumbnail               = $thumbnail;
+                    $groupPost->group->cover_photo      = $cover_photo;
+                    $groupPost->post_user->profile      = $profile;
                     // $groupPost->postedAt = Carbon::parse($groupPost->created_at)->diffForHumans();
-                    $groupPost->postedAt = time_elapsed_string($groupPost->created_at);
+                    $groupPost->postedAt                = time_elapsed_string($groupPost->created_at);
                     $groupPost->post_category_name = post_category($groupPost->post_category);
                 }
             }
 
             if (isset($group) && !empty($group)) {
 
-                $group->cover_photo = isset($group->cover_photo) && isset($group->cover_photo) ?
-                    (filter_var($group->cover_photo, FILTER_VALIDATE_URL) ? $group->cover_photo : asset('storage/' . $group->cover_photo)) : '';
+                $group->cover_photo                     =   isset($group->cover_photo) && isset($group->cover_photo) ?
+                addBaseUrl($group->cover_photo) : null;
             }
 
             return response()->json(['status' => 200, 'message' => $message, 'data' => $posts, 'group' => $group]);
@@ -332,10 +338,12 @@ class AddCommunityPost extends BaseController
 
 
     #------  G E T      A L L       C O M M U N I T Y       C O M M E N T S -------------#
-    public function getComments($request, $authId)
+    public function getCommentsOLD($request, $authId)
     {
         try {
-            $groupId = Post::select('group_id')->find($request->post_id);
+
+            $groupId    = Post::select('group_id')->find($request->post_id);
+
             if ($groupId) {
 
                 $group = Group::withCount('groupMember')->find($groupId->group_id);
@@ -346,36 +354,78 @@ class AddCommunityPost extends BaseController
 
                 $limit = $request['limit'];
             }
+            // $comments = Comment::with([
+
+            //     'commentUser' => function ($query) {
+
+            //         $query->select('id', 'name', 'user_name', 'profile');
+            //     },
+            //     'replies.commentUser' => function ($query) {
+
+            //         $query->select('id', 'name', 'user_name', 'profile');
+            //     },
+            //     'replies.replied_to' => function ($query) {
+
+            //         $query->select('id', 'name', 'user_name', 'profile');
+            //     }
+            // ])
+
             $comments = Comment::with([
-                'commentUser' => function ($query) {
 
-                    $query->select('id', 'name', 'user_name', 'profile');
+                'commentUser' => function ($query) use ($authId) {
+                    $query->select('id', 'name', 'user_name', 'profile')
+                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                            $query->where('blocked_user_id', $authId);
+                        })
+                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                            $query->where('user_id', $authId);
+                        });
                 },
-                'replies.commentUser' => function ($query) {
+                'replies.commentUser' => function ($query) use ($authId) {
+                    $query->select('id', 'name', 'user_name', 'profile')
 
-                    $query->select('id', 'name', 'user_name', 'profile');
+                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                            $query->where('blocked_user_id', $authId);
+                        })
+                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                            $query->where('user_id', $authId);
+                        });
                 },
-                'replies.replied_to' => function ($query) {
+                'replies.replied_to' => function ($query) use ($authId) {
 
-                    $query->select('id', 'name', 'user_name', 'profile');
+                    $query->select('id', 'name', 'user_name', 'profile')
+
+                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                            $query->where('blocked_user_id', $authId);
+                        })
+                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                            $query->where('user_id', $authId);
+                        });
                 }
-            ])->withCount(['totalLikes', 'total_comment'])
+            ])
+            
+            ->withCount(['totalLikes', 'total_comment'])
                 ->where('post_id', $request->post_id)
                 ->whereNull('parent_id')
-                ->whereNotExists(function ($query) use ($authId) {
-                    $query->select(DB::raw(1))
-                        ->from('blocked_users')
-                        ->where(function ($query) use ($authId) {
-                            // Check if the authenticated user has blocked someone
-                            $query->where('user_id', $authId)
-                                ->whereColumn('blocked_users.blocked_user_id', 'comments.user_id');
-                        })
-                        ->orWhere(function ($query) use ($authId) {
-                            // Check if the authenticated user has been blocked by someone
-                            $query->where('blocked_user_id', $authId)
-                                ->whereColumn('blocked_users.user_id', 'comments.user_id');
-                        });
-                })->orderByDesc('id')->paginate($limit);
+                // ->whereNotExists(function ($query) use ($authId) {
+
+                //     $query->select(DB::raw(1))
+                //         ->from('blocked_users')
+                //         ->where(function ($query) use ($authId) {
+                //             // Check if the authenticated user has blocked someone
+                //             $query->where('user_id', $authId)
+                //                 ->whereColumn('blocked_users.blocked_user_id', 'comments.user_id');
+                //         })
+                //         ->orWhere(function ($query) use ($authId) {
+                //             // Check if the authenticated user has been blocked by someone
+                //             $query->where('blocked_user_id', $authId)
+                //                 ->whereColumn('blocked_users.user_id', 'comments.user_id');
+                //         });
+                // })
+                
+                
+                ->orderByDesc('id')->paginate($limit);
 
             $comments->getCollection()->transform(function ($comment) use ($authId) {
 
@@ -433,6 +483,11 @@ class AddCommunityPost extends BaseController
 
                     $post->media_url = $this->addBaseInImage($post->media_url);
                 }
+
+                if (isset($post->thumbnail) && !empty($post->thumbnail)) {
+
+                    $post->thumbnail        = $this->addBaseInImage($post->thumbnail);
+                }
                 if (!empty($post->post_user)) {
 
                     $post->post_user->profile = (isset($post->post_user) && !empty($post->post_user->profile)) ? $this->addBaseInImage($post->post_user->profile) : null;
@@ -470,6 +525,149 @@ class AddCommunityPost extends BaseController
         }
     }
     #------  G E T      A L L       C O M M U N I T Y       C O M M E N T S -------------#
+
+    public function getComments($request, $authId)
+    {
+        try {
+
+            $groupId = Post::select('group_id')->find($request->post_id);
+
+            if ($groupId) {
+
+                $group = Group::withCount('groupMember')->find($groupId->group_id);
+            }
+
+            $limit = $request->input('limit', 10);
+
+            $comments = Comment::with([
+                'commentUser' => function ($query) use ($authId) {
+                    $query->select('id', 'name', 'user_name', 'profile');
+                },
+                'replies.commentUser' => function ($query) use ($authId) {
+                    $query->select('id', 'name', 'user_name', 'profile');
+                },
+                'replies.replied_to' => function ($query) use ($authId) {
+                    $query->select('id', 'name', 'user_name', 'profile');
+                }
+            ])
+            ->withCount(['totalLikes', 'total_comment'])
+            ->where('post_id', $request->post_id)
+            ->whereNull('parent_id')
+            ->whereDoesntHave('commentUser.blockedUsers', function ($query) use ($authId) {
+                $query->where('blocked_user_id', $authId);
+            })
+            ->whereDoesntHave('commentUser.blockedBy', function ($query) use ($authId) {
+                $query->where('user_id', $authId);
+            })
+            ->whereDoesntHave('replies.commentUser.blockedUsers', function ($query) use ($authId) {
+                $query->where('blocked_user_id', $authId);
+            })
+            ->whereDoesntHave('replies.commentUser.blockedBy', function ($query) use ($authId) {
+                $query->where('user_id', $authId);
+            })
+            ->whereDoesntHave('replies.replied_to.blockedUsers', function ($query) use ($authId) {
+                $query->where('blocked_user_id', $authId);
+            })
+            ->whereDoesntHave('replies.replied_to.blockedBy', function ($query) use ($authId) {
+                $query->where('user_id', $authId);
+            })
+            ->orderByDesc('id')
+            ->paginate($limit);
+            $comments->getCollection()->transform(function ($comment) use ($authId) {
+
+                $isExist = $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
+                $comment->is_liked = $isExist['is_liked'];
+                $comment->reaction = $isExist['reaction'];
+                $comment->total_likes_count = $isExist['total_likes_count'];
+
+                if (isset($comment->commentUser) && !empty($comment->commentUser->profile)) {
+
+                    $comment->commentUser->profile         = $this->addBaseInImage($comment->commentUser->profile);
+                }
+                if (isset($comment->replies[0]) && ($comment->replies[0])) {
+
+                    $comment->replies->each(function ($replies) use ($authId) {
+
+                        $isExist                    = $this->IsCommentLiked($replies->post_id, $replies->id, $authId);
+                        $replies->is_liked          = $isExist['is_liked'];
+                        $replies->reaction          = $isExist['reaction'];
+                        $replies->total_likes_count = $isExist['total_likes_count'];
+
+                        if (isset($replies->commentUser) && !empty($replies->commentUser)) {
+
+                            if (isset($replies->commentUser->profile) && !empty($replies->commentUser->profile)) {
+
+                                $replies->commentUser->profile      = $this->addBaseInImage($replies->commentUser->profile);
+                            }
+                        }
+                        if (isset($replies->replied_to) && !empty($replies->replied_to)) {
+
+                            if (isset($replies->replied_to->profile) && !empty($replies->replied_to->profile)) {
+
+                                $replies->replied_to->profile       = $this->addBaseInImage($replies->replied_to->profile);
+                            }
+                        }
+                    });
+                }
+                $comment->postedAt                                  =    time_elapsed_string($comment->created_at);;
+                return $comment;
+            });
+
+            $post                                               =       Post::withCount(['comment'])->with('post_user', function ($q) {
+                $q->select('id', 'name', 'user_name', 'profile');
+            })->find($request->post_id);
+
+            if (isset($post) && !empty($post)) {
+
+                if (isset($post->media_url) && !empty($post->media_url)) {
+
+                    $post->media_url = $this->addBaseInImage($post->media_url);
+                }
+
+                if (isset($post->thumbnail) && !empty($post->thumbnail)) {
+
+                    $post->thumbnail = $this->addBaseInImage($post->thumbnail);
+                }
+
+                if (!empty($post->post_user)) {
+
+                    $post->post_user->profile = (isset($post->post_user) && !empty($post->post_user->profile)) ? $this->addBaseInImage($post->post_user->profile) : null;
+                }
+
+                $post->is_joined            =       $this->checkCommunityJoind($post->group_id);
+                $isExist                    =       $this->IsPostLiked($post->id, $authId);
+                $post->is_liked             =       $isExist['is_liked'];
+                $post->reaction             =       $isExist['reaction'];
+                $post->total_likes_count    =       $isExist['total_likes_count'];
+            }
+            $data = $comments->items();
+            $recordsPerPage = $comments->perPage();
+            $currentPage = $comments->currentPage();
+            $lastPage = $comments->lastPage();
+            $totalRecords = $comments->total();
+            $recordsLeft = ($totalRecords - ($recordsPerPage * $currentPage) < 0 ? 0 : $totalRecords - ($recordsPerPage * $currentPage));
+            // Merge data items with pagination information
+            // Extract pagination metadata
+            $paginationInfo = [
+                'current_page' => $currentPage,
+                'last_page' => $lastPage,
+                'total' => $totalRecords,
+                'left' => $recordsLeft,
+                // Add other pagination information as needed
+            ];
+
+            $responseData = array_merge(['data' => $data], $paginationInfo);
+
+
+            return response()->json(['status' => 200, 'message' => "comments", 'data' => $responseData, 'post' => $post]);
+        } catch (Exception $e) {
+            Log::error('Error caught: "getComments" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 500);
+        }
+    }
+
+
+
 
     #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
     public function getCommunityPost($community_id, $authId, $request)
@@ -545,9 +743,7 @@ class AddCommunityPost extends BaseController
                 ->whereNotExists(function ($query) use ($authId) {
 
                     $query->select(DB::raw(1))
-
                         ->from('blocked_users')
-
                         ->where('user_id', '=', $authId) // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('blocked_users.blocked_user_id', '=', 'posts.user_id'); // Check if the current user has reported the post
                 });
@@ -589,10 +785,17 @@ class AddCommunityPost extends BaseController
                 $post->reaction =       $isExist['reaction'];
                 $post->total_likes_count = $isExist['total_likes_count'];
                 $post->total_comment_count = $isExist['total_comment_count'];
+
                 if (isset($post->media_url) && !empty($post->media_url)) {
 
                     $post->media_url = $this->addBaseInImage($post->media_url);
                 }
+
+                if (isset($post->thumbnail) && !empty($post->thumbnail)) {
+
+                    $post->thumbnail = $this->addBaseInImage($post->thumbnail);
+                }
+
                 if ($post->group && $post->group->cover_photo) {
 
                     $post->group->cover_photo = $this->addBaseInImage($post->group->cover_photo);
@@ -735,5 +938,16 @@ class AddCommunityPost extends BaseController
         }
     }
     #-------------- G E T       P O S T   / C O M M E N T       L I K E S   C O U N T -----------------#
+
+
+
+
+
+
+
+
+
+
+
 
 }

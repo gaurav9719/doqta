@@ -273,15 +273,23 @@ class GetUserService extends BaseController
                 foreach ($posts as $groupPost) {
 
                     if(isset($groupPost->media_url) && !empty($groupPost->media_url)){
+
                         $groupPost->media_url      =  $this->addBaseInImage($groupPost->media_url);
                     }
 
+                    if(isset($groupPost->thumbnail) && !empty($groupPost->thumbnail)){
+
+                        $groupPost->thumbnail      =  $this->addBaseInImage($groupPost->thumbnail);
+                    }
+
                     if(isset($groupPost->group) && !empty($groupPost->group->cover_photo)){
+
                         $groupPost->group->cover_photo      =  $this->addBaseInImage($groupPost->group->cover_photo);
                     }
 
                     if(isset($groupPost->post_user) && !empty($groupPost->post_user->profile)){
-                        $groupPost->post_user->profile      =  $this->addBaseInImage($groupPost->post_user->profile);
+
+                        $groupPost->post_user->profile =  $this->addBaseInImage($groupPost->post_user->profile);
                     }
                     $groupPost->postedAt            =   time_elapsed_string($groupPost->created_at);
                     $isRepost                       =   Post::where(['parent_id'=>$groupPost->id,'user_id'=>$authId,'is_active'=>1])->exists();
@@ -304,13 +312,19 @@ class GetUserService extends BaseController
         
                             $groupPost->parent_post->media_url        =       $this->addBaseInImage($groupPost->parent_post->media_url);
                         }
+
+                        if (isset($groupPost->parent_post->thumbnail) && !empty($groupPost->parent_post->thumbnail)) {
+        
+                            $groupPost->parent_post->thumbnail        =       $this->addBaseInImage($groupPost->parent_post->thumbnail);
+                        }
+
                         $isExist                                      =       $this->IsPostLiked($groupPost->id, $authId,1);
                         $groupPost->parent_post->is_liked             =       $isExist['is_liked'];
                         $groupPost->parent_post->reaction             =       $isExist['reaction'];
                         $groupPost->parent_post->total_likes_count    =       $isExist['total_likes_count'];
                         $groupPost->parent_post->total_comment_count  =       $isExist['total_comment_count'];
-                        $isRepost                                     =   Post::where(['parent_id'=>$groupPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
-                        $groupPost->parent_post->is_reposted          =  ($isRepost)?1:0;
+                        $isRepost                                     =       Post::where(['parent_id'=>$groupPost->parent_post->id,'user_id'=>$authId,'is_active'=>1])->exists();
+                        $groupPost->parent_post->is_reposted          =      ($isRepost)?1:0;
                     }
                     #--------- parent post ----------#
                 }

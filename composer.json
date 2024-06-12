@@ -44,7 +44,8 @@
         "files": [
             "app/Helper/helper.php",
             "app/Helper/notification_helper.php",
-            "app/Helper/stripe_helper.php"
+            "app/Helper/stripe_helper.php",
+            "app/Helper/common_helper.php"
         ]
     },
     "autoload-dev": {
