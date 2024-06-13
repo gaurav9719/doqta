@@ -98,15 +98,18 @@ class CommunityPost extends BaseController
      */
     public function show(string $id, Request $request)
     {
-        $validation = Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id']);
+        $validation = Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id','recent'=>'nullable|integer','trending'=>'nullable|integer|between:0,2','confidence'=>"nullable|integer|in:1","location"=>'nullable|integer|between:0,1','health_provider'=>'nullable|integer']);
 
         if ($validation->fails()) {
 
             return $this->sendResponsewithoutData($validation->errors()->first(), 422);
         }
-      
         // return $this->addCommunityPost->getCommunityPost($id, Auth::id(), $request);
-        return $this->getCommunityPost($id, Auth::id(), $request);
+        // return $this->getCommunityPost($id, Auth::id(), $request);
+        $limit  =   $request->limit??10;
+        $post   =   fetchPosts($request,$id,$limit,Auth::user());
+        // dd($post);
+        return $this->sendResponse($post,trans('message.home_screen_post'), 200);
     }
     /**
      * Show the form for editing the specified resource.
@@ -214,30 +217,30 @@ class CommunityPost extends BaseController
 
             // Define notification types
             $nType = [
-                trans('notification_message.posted_in_community'),
-                trans('notification_message.like_post_type'),
-                trans('notification_message.comment_on_post_type'),
-                trans('notification_message.like_comment_post_type'),
-                trans('notification_message.comment_reply_type'),
-                trans('notification_message.reposted_post_type')
+                trans('notification_message.posted_in_community'), //10
+                trans('notification_message.like_post_type'),   //11
+                trans('notification_message.comment_on_post_type'), //12
+                trans('notification_message.like_comment_post_type'), //13
+                trans('notification_message.comment_reply_type'), //14
+                trans('notification_message.reposted_post_type') //15
             ];
 
             // Delete notifications and activity logs
-            Notification::where(function ($query) use ($id, $nType) {
-
-                $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', $nType);
-
-            })->delete();
-
+            DB::table('notifications')->where(function ($query) use ($id) {
+                        $query->where('post_id', $id)
+                        ->orWhere('parent_id', $id);
+            })
+            ->whereIn('notification_type', $nType)
+            ->delete();
+            
             ActivityLog::where(function ($query) use ($id, $nType) {
 
                 $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
                 
             })->delete();
-
             DB::commit();
-
             return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
+
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Error caught: "destroy post" ' . $e->getMessage());
@@ -250,111 +253,212 @@ class CommunityPost extends BaseController
   
     #--------------------- R E S H A R E             P O S T     -------------------#
 
+    // public function resharePost(Request $request)
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+
+    //         $validation         =       Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id']);
+
+    //         if ($validation->fails()) {
+
+    //             return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+
+    //         } else {
+
+    //             $auth            =      Auth::user();
+    //             $authId          =      Auth::id();
+    //             $isExist         =      IsPostAvailable($request->post_id,$authId);
+
+    //             if (empty($isExist) || $isExist == null) {
+
+    //                 return $this->sendError(trans("message.no_post_found"), [], 422);
+
+    //             } else {
+
+    //                 $isJoined = $this->checkCommunityJoind($isExist->group_id);
+
+    //                 if (!$isJoined) {
+
+    //                     return $this->sendError(trans("message.please_join_community"), [], 403);
+    //                 }
+
+    //                 if (isset($isExist->parent_id) && !empty($isExist->parent_id)) {
+
+    //                     $parent_id = $isExist->parent_id;
+
+    //                 } else {
+
+    //                     $parent_id = $isExist->id;
+    //                 }
+    //                 $post       =              Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
+
+    //                 if (isset($post) && !empty($post)) {
+    //                     // Record exists, delete it
+    //                     $post->delete();
+    //                     $action = 0;
+    //                     decrement('posts', ['id' => $request->post_id], 'repost_count', 1); //decrement post
+    //                     DB::commit();
+    //                     $repostId = $parent_id;
+    //                 } else {
+    //                     // check i am the community member or not 
+    //                     $isGroupMember = GroupMember::where(['group_id' => $isExist->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
+
+    //                     if ($isGroupMember) {
+
+    //                         $rePost = new Post();
+    //                         $rePost->parent_id = $parent_id;
+    //                         $rePost->user_id = $authId;
+    //                         $rePost->title = $isExist->title;
+    //                         $rePost->content = $isExist->content;
+    //                         $rePost->media_url = $isExist->media_url;
+    //                         $rePost->thumbnail = $isExist->thumbnail;
+    //                         $rePost->link = $isExist->link;
+    //                         $rePost->post_type = $isExist->post_type;
+    //                         $rePost->group_id = $isExist->group_id;
+    //                         $rePost->save();
+    //                         $repostId = $rePost->id;
+    //                         $action = 1;
+    //                         //increment the like by one
+    //                         increment('posts', ['id' => $parent_id], 'repost_count', 1);
+    //                         #send notification
+    //                         $group = Group::find($isExist->group_id);
+    //                         $sender = Auth::user();
+    //                         $receiver = User::find($isExist->user_id);
+    //                         $message = $sender->name . " reposted your post in " . $group->name;
+    //                         $data = [
+    //                             "message" => $message,
+    //                             "post_id" => $rePost->id,
+    //                             "community_id" => $isExist->group_id
+    //                         ];
+
+
+    //                         $postUser       =   Post::select('user_id')->where('id',$parent_id)->first();
+    //                         if($postUser->user_id!=$authId){
+
+    //                             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.reposted_post_type'), $data);
+    //                         }
+
+    //                         #-------  A C T I V I T Y -----------# 17 may
+    //                         $activity = new ActivityLog();
+    //                         $activity->user_id = $authId;
+    //                         $activity->community_id = $group->id;
+    //                         $activity->post_id = $rePost->id;
+    //                         $activity->parent_id = $parent_id;
+    //                         $activity->action_details = "Reposted the post in " . $group->name;
+    //                         $activity->action = trans('notification_message.reposted_post_type');    //Reposted the post
+    //                         $activity->save();
+    //                         #-------  A C T I V I T Y -----------#
+    //                         DB::commit();
+    //                     } else {
+    //                         return $this->sendError(trans("message.not_community_member"), [], 403);
+    //                     }
+    //                 }
+    //                 // return $this->getPost($repostId, $authId, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
+    //                 return $this->getPostNew($repostId, $authId, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
+    //             }
+    //         }
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         Log::error('Error caught: "resharePost" ' . $e->getMessage());
+    //         return $this->sendError($e->getMessage(), [], 400);
+    //     }
+    // }
+
     public function resharePost(Request $request)
     {
         DB::beginTransaction();
-
         try {
+            // Validate request
+            $validation = Validator::make($request->all(), [
 
-            $validation         =       Validator::make($request->all(), ['post_id' => 'required|integer|exists:posts,id']);
-
+                'post_id' => 'required|integer|exists:posts,id'
+            ]);
+    
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
 
+            }
+            $auth       = Auth::user();
+            $authId     = Auth::id();
+            $isExist    = IsPostAvailable($request->post_id, $authId);
+    
+            if (empty($isExist)) {
+
+                return $this->sendError(trans("message.no_post_found"), [], 422);
+            }
+    
+            if (!$this->checkCommunityJoined($isExist->group_id)) {
+
+                return $this->sendError(trans("message.please_join_community"), [], 403);
+            }
+    
+            $parent_id          =   $isExist->parent_id ?? $isExist->id;
+            $existingPost       =   Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
+    
+            if ($existingPost) {
+
+                $existingPost->delete();
+                decrement('posts', ['id' => $request->post_id], 'repost_count', 1);
+                DB::commit();
+                $action = 0;
+                $repostId = $parent_id;
+
             } else {
 
-                $auth            =      Auth::user();
-                $authId          =      Auth::id();
-                $isExist         =      IsPostAvailable($request->post_id,$authId);
-                if (empty($isExist) || $isExist == null) {
+                if (GroupMember::where(['group_id' => $isExist->group_id, 'user_id' => $authId, 'is_active' => 1])->exists()) {
+                    $rePost = new Post();
+                    $rePost->parent_id = $parent_id;
+                    $rePost->user_id = $authId;
+                    $rePost->title = $isExist->title;
+                    $rePost->content = $isExist->content;
+                    $rePost->media_url = $isExist->media_url;
+                    $rePost->thumbnail = $isExist->thumbnail;
+                    $rePost->link = $isExist->link;
+                    $rePost->post_type = $isExist->post_type;
+                    $rePost->group_id = $isExist->group_id;
+                    $rePost->save();
+    
+                    increment('posts', ['id' => $parent_id], 'repost_count', 1);
 
-                    return $this->sendError(trans("message.no_post_found"), [], 422);
+                    $group          = Group::find($isExist->group_id);
+                    $sender         = Auth::user();
+                    $receiver       = User::find($isExist->user_id);
+                    $message        = "{$sender->name} reposted your post in {$group->name}";
+                    $data = [
+                        "message" => $message,
+                        "post_id" => $rePost->id,
+                        "community_id" => $isExist->group_id
+                    ];
+            
+                    $postUser = Post::select('user_id')->where('id', $rePost->parent_id)->first();
+            
+                    if ($postUser->user_id != $authId) {
+                        
+                        $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.reposted_post_type'), $data);
+                    }
+                    logActivity($authId, $rePost, $parent_id, $isExist->group_id);
+                    DB::commit();
+                    $repostId = $rePost->id;
+                    $action = 1;
 
                 } else {
 
-                    $isJoined = $this->checkCommunityJoind($isExist->group_id);
-
-                    if (!$isJoined) {
-
-                        return $this->sendError(trans("message.please_join_community"), [], 403);
-                    }
-
-                    if (isset($isExist->parent_id) && !empty($isExist->parent_id)) {
-
-                        $parent_id = $isExist->parent_id;
-
-                    } else {
-
-                        $parent_id = $isExist->id;
-                    }
-                    $post       =              Post::where(['parent_id' => $parent_id, 'user_id' => $authId])->first();
-
-                    if (isset($post) && !empty($post)) {
-                        // Record exists, delete it
-                        $post->delete();
-                        $action = 0;
-                        decrement('posts', ['id' => $request->post_id], 'repost_count', 1); //decrement post
-                        DB::commit();
-                        $repostId = $parent_id;
-                    } else {
-                        // check i am the community member or not 
-                        $isGroupMember = GroupMember::where(['group_id' => $isExist->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
-
-                        if ($isGroupMember) {
-
-                            $rePost = new Post();
-                            $rePost->parent_id = $parent_id;
-                            $rePost->user_id = $authId;
-                            $rePost->title = $isExist->title;
-                            $rePost->content = $isExist->content;
-                            $rePost->media_url = $isExist->media_url;
-                            $rePost->thumbnail = $isExist->thumbnail;
-                            $rePost->link = $isExist->link;
-                            $rePost->post_type = $isExist->post_type;
-                            $rePost->group_id = $isExist->group_id;
-                            $rePost->save();
-                            $repostId = $rePost->id;
-                            $action = 1;
-                            //increment the like by one
-                            increment('posts', ['id' => $parent_id], 'repost_count', 1);
-                            #send notification
-                            $group = Group::find($isExist->group_id);
-                            $sender = Auth::user();
-                            $receiver = User::find($isExist->user_id);
-                            $message = $sender->name . " reposted your post in " . $group->name;
-                            $data = [
-                                "message" => $message,
-                                "post_id" => $rePost->id,
-                                "community_id" => $isExist->group_id
-                            ];
-                            $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.reposted_post_type'), $data);
-
-                            #-------  A C T I V I T Y -----------# 17 may
-                            $activity = new ActivityLog();
-                            $activity->user_id = $authId;
-                            $activity->community_id = $group->id;
-                            $activity->post_id = $rePost->id;
-                            $activity->parent_id = $parent_id;
-                            $activity->action_details = "Reposted the post in " . $group->name;
-                            $activity->action = trans('notification_message.reposted_post_type');    //Reposted the post
-                            $activity->save();
-                            #-------  A C T I V I T Y -----------#
-                            DB::commit();
-                        } else {
-                            return $this->sendError(trans("message.not_community_member"), [], 403);
-                        }
-                    }
-                    // return $this->getPost($repostId, $authId, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
-                    return $this->getPostNew($repostId, $authId, ($action == 0) ? trans('message.repost_removed_successfully') : trans('message.reposted'));
+                    return $this->sendError(trans("message.not_community_member"), [], 403);
                 }
             }
+    
+            return $this->getPostNew($repostId, $authId, $action == 0 ? trans('message.repost_removed_successfully') : trans('message.reposted'));
+    
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error caught: "resharePost" ' . $e->getMessage());
+            Log::error('Error in resharePost: ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
     #--------------------- ***************  E N D  ******************---------------#
 
 

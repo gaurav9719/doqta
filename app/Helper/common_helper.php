@@ -223,6 +223,105 @@ if (!function_exists('isBlockedUser')) {
 
 
 
+if(!function_exists('getPost')){
+
+    function getPost($authId,$postData){
+
+       return $postData->whereHas('post_user', function($query) {
+
+                 $query->where('is_active', 1);
+        
+        })->whereHas('group', function ($query) use ($authId) {
+
+            // $query->where('is_active', 1)
+            $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+
+                $query->where('user_id', $authId);
+
+            })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+
+                $query->where('blocked_user_id', $authId);
+
+            });
+        })
+        ->whereDoesntHave('reportPosts', function ($query) use ($authId) {
+
+            $query->where('user_id', $authId);
+        })
+
+        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+            $query->where('blocked_user_id', $authId);
+        })
+
+        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+            $query->where('user_id', $authId);
+        })
+
+        ->whereDoesntHave('hiddenPosts', function ($query) use ($authId) {
+
+            $query->where('user_id', $authId);
+        })
+        #- jun 10 
+        ->where(function ($query) use ($authId) {
+
+            $query->whereDoesntHave('parent_post', function ($query) use ($authId) {
+
+                $query->where('is_active', 1)
+
+                    ->whereHas('post_user', function ($query) use ($authId) {
+                        // Check if authenticated user is not blocked by the post user
+                        $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                            $query->where('user_id', $authId);
+                        });
+                    });
+            })
+                ->orWhereHas('parent_post', function ($query) use ($authId) {
+
+                    $query->where('is_active', 1)
+
+                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                        // Check if post user is not blocked by the authenticated user
+                        $query->where('blocked_user_id', $authId);
+                    });
+                });
+        })
+        ->with([
+
+            'post_user:id,name,user_name,profile',
+
+            'post_user.user_medical_certificate'=>function($q){
+
+                $q->select('id','medicial_degree_type','user_id');
+            },
+            'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                $q->select('id','name');
+            },
+            'group:id,name,description,cover_photo,member_count,post_count,created_by',
+            'parent_post' => function ($query) {
+
+            $query->select('*')
+                ->where('is_active', 1)
+                ->with([
+                    'post_user:id,name,user_name,profile,is_active',
+                    'post_user.user_medical_certificate'=>function($q){
+                        $q->select('id','medicial_degree_type','user_id');
+                    },
+                    'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                        $q->select('id','name');
+                    },
+                    'group:id,name,description,created_by'
+                ]);
+            }
+        ]);
+    }
+}
+
+
 
 
 

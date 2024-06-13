@@ -47,6 +47,7 @@ class DicoverService extends BaseController
             } elseif ($request->type == 3) {   //people
 
                 return $this->getDiscoverPeople($request, $userId, $limit);
+
             } elseif ($request->type == 4) {   //media
 
                 return $this->getMedia($request, $userId, $limit);
@@ -356,7 +357,7 @@ class DicoverService extends BaseController
     }
 
 
-    public function topArticles($request, $authId, $limit, $type = "")
+    public function topArticlesOLd($request, $authId, $limit, $type = "")
     {
 
         try {
@@ -364,17 +365,35 @@ class DicoverService extends BaseController
             $topArticles   = Post::with(['post_user' => function ($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
+
             }])->whereHas('parent_post', function ($query) {
 
                 $query->where('is_active', 1);
+
             })->with(['parent_post' => function ($query) {
+
                 $query->select('*')
+
                     ->where('is_active', 1)
+
                     ->with([
+
                         'post_user' => function ($query) {
+
                             $query->select('id', 'name', 'user_name', 'profile');
-                        }
+
+                        }, 'post_user.user_medical_certificate'=>function($q){
+
+                            $q->select('id','medicial_degree_type','user_id');
+    
+                        },
+
+                        'post_user.user_medical_certificate.medical_certificate'=>function($q){
+    
+                            $q->select('id','name');
+                        },
                     ]);
+
             }])->whereNotNull('link');
 
             if (isset($request->search) && !empty($request->search)) {
@@ -470,8 +489,8 @@ class DicoverService extends BaseController
             if (!empty($type)) {
 
                 return $topArticles;
-            } else {
 
+            } else {
 
                 return $this->sendResponse($topArticles, trans("message.top_articles"), 200);
             }
@@ -481,10 +500,11 @@ class DicoverService extends BaseController
             return 400;
         }
     }
+
     #---------------- G E T         A R T I C L E S ----------------#
 
     #***************------ T O P        V I D E O S     ----------*********************######
-    public function topVideos($request, $authId, $limit, $type = "")
+    public function topVideosOLD($request, $authId, $limit, $type = "")
     {
 
         try {
@@ -543,6 +563,7 @@ class DicoverService extends BaseController
             if (!empty($type)) {
 
                 $topVideos = $topVideos->limit($limit)->get();
+
             } else {
 
                 $topVideos = $topVideos->simplePaginate($limit);
@@ -590,6 +611,65 @@ class DicoverService extends BaseController
     #***************------ T O P        V I D E O S     ----------*********************######
 
 
+    public function topArticles($request, $authId, $limit, $type = "")
+    {
+
+        try {
+
+
+            $topArticles        =      Post::where(['is_active'=>1,'media_type'=>4]);
+
+            $topArticles       =       getPost($authId,$topArticles);
+
+            if (isset($request->search) && !empty($request->search)) {
+
+                $search = $request->search;
+                // Apply the search condition using whereHas directly
+                $topArticles->whereHas('group', function ($query) use ($search) {
+
+                    $query->where('name', 'LIKE', "%$search%");
+                });
+            }
+
+            $topArticles = $topArticles->orderByDesc('like_count');
+
+            if (!empty($type)) {
+
+                $topArticles = $topArticles->limit($limit)->get();
+
+            } else {
+
+                $topArticles = $topArticles->simplePaginate($limit);
+            }
+
+            if (isset($topArticles[0]) && !empty($topArticles[0])) {
+
+                $topArticles->each(function ($topArticle) use ($authId) {
+
+                    $topArticle = transformPostData($topArticle, $authId);
+                        #------------ parent post data-----------------#
+                    if (isset($topArticle->parent_post) && !empty($topArticle->parent_post)) {
+
+                        $topArticle= transformParentPostData($topArticle, $authId);
+                    }
+                    return $topArticle;
+                }); 
+            }
+            // Assign the result to the correct variable
+            if (!empty($type)) {
+
+                return $topArticles;
+
+            } else {
+
+                return $this->sendResponse($topArticles, trans("message.top_articles"), 200);
+            }
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "topArticles" ' . $e->getMessage());
+            return 400;
+        }
+    }
 
 
 
@@ -599,19 +679,56 @@ class DicoverService extends BaseController
 
 
 
+    public function topVideos($request, $authId, $limit, $type = "")
+    {
+        try {
+            $discoverPost        =      Post::where(['is_active'=>1,'media_type'=>2]);
+            $discoverPost       =       getPost($authId,$discoverPost);
+            if (isset($request->search) && !empty($request->search)) {
 
+                $search = $request->search;
+                // Apply the search condition using whereHas directly
+                $discoverPost->whereHas('group', function ($query) use ($search) {
 
+                    $query->where('name', 'LIKE', "%$search%");
+                });
+            }
+             // Limit the results to 5 and get the data
+             $topVideos = $discoverPost->orderByDesc('like_count');
 
+            if (!empty($type)) {
 
+                $topVideos = $topVideos->limit($limit)->get();
 
+            } else {
 
+                $topVideos = $topVideos->simplePaginate($limit);
+            }
 
+            if (isset($topVideos[0]) && !empty($topVideos[0])) {
 
+                $topVideos->each(function ($topVideo) use ($authId) {
+                    $topVideo = transformPostData($topVideo, $authId);
+                        #------------ parent post data-----------------#
+                    if (isset($topVideo->parent_post) && !empty($topVideo->parent_post)) {
 
+                        $topVideo= transformParentPostData($topVideo, $authId);
+                    }
+                    return $topVideo;
+                }); 
+            }
+            if (!empty($type)) {
+                return $topVideos;
 
+            } else {
 
-
-
+                return $this->sendResponse($topVideos, trans("message.top_videos"), 200);
+            }
+        } catch (Exception $e) {
+            Log::error('Error caught: "topvideo" ' . $e->getMessage());
+            return 400;
+        }
+    }
     // public function getDiscoverPost($request,$authId){
 
     //     try {
@@ -690,6 +807,7 @@ class DicoverService extends BaseController
     public function getDiscoverPost($request, $authId)
     {
         try {
+            
             $limit              =       10;
 
             if (isset($request->limit) && !empty($request->limit)) {
@@ -742,7 +860,18 @@ class DicoverService extends BaseController
                         ->with(['post_user' => function ($query) {
 
                             $query->select('id', 'name', 'profile', 'user_name');
-                        }, 'group' => function ($query) {
+                        }, 
+                        'post_user.user_medical_certificate'=>function($q){
+
+                            $q->select('id','medicial_degree_type','user_id');
+    
+                        },
+                        'post_user.user_medical_certificate.medical_certificate'=>function($q){
+    
+                            $q->select('id','name');
+                        },
+                        
+                        'group' => function ($query) {
 
                             $query->select('id', 'name', 'description', 'created_by');
                         }]);
@@ -750,7 +879,17 @@ class DicoverService extends BaseController
 
                     $query->select('id', 'name', 'description', 'created_by');
                 }, 'post_user' => function ($q) {
+
                     $q->select('id', 'user_name', 'name', 'profile');
+                    
+                }, 'post_user.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
                 }])
                 ->orderBy('like_count', 'desc')
                 ->simplePaginate($limit);
@@ -1098,7 +1237,6 @@ class DicoverService extends BaseController
 
     public function getDiscoverMedia($request, $authId)
     {
-
         try {
 
             $limit          =   10;
@@ -1107,23 +1245,50 @@ class DicoverService extends BaseController
                 $limit      =   $request->limit;
             }
             $data           =   [];
-            $groupIdsQuery  = GroupMember::where(['user_id' => $authId, 'is_active' => 1]);
+            $groupIdsQuery  =   GroupMember::where(['user_id' => $authId, 'is_active' => 1]);
 
             if (!empty($request->search)) {
 
                 $groupIdsQuery->whereHas('communities', function ($query) use ($request) {
 
                     $query->where('name', 'like', "%$request->search%");
+
                 });
             }
-            $groupIds       =   $groupIdsQuery->pluck('group_id');
+            $groupIds            =      $groupIdsQuery->pluck('group_id');
+            $discoverPost        =      Post::where(['is_active'=>1,'media_type'=>2]);
+            
+            $discoverPost       =       $discoverPost->getPost($authId,$discoverPost);
 
-            $discoverPost   =   Post::with(["post_user" => function ($query) {
+            if (isset($request->search) && !empty($request->search)) {
 
-                $query->select('id', 'name', 'profile');
-            }])->whereIn('group_id', $groupIds)
-                ->whereNotNull('media_url')
-                ->where('is_active', 1)->simplePaginate($limit);
+                $search = $request->search;
+                // Apply the search condition using whereHas directly
+                $discoverPost->whereHas('group', function ($query) use ($search) {
+
+                    $query->where('name', 'LIKE', "%$search%");
+                });
+            }
+            // Limit the results to 5 and get the data
+            $topVideos = $discoverPost->orderByDesc('like_count');
+            $discoverPost->whereIn('group_id', $groupIds)->simplePaginate($limit);
+
+
+            // if(isset($discoverPost[0]) && !empty($discoverPost[0])){
+
+            //     $discoverPost->each(function ($discoverPosts) use ($authId) {
+
+            //     $discoverPost = transformPostData($discoverPosts, $authId);
+            //         #------------ parent post data-----------------#
+
+            //         if (isset($discoverPosts->parent_post) && !empty($discoverPosts->parent_post)) {
+
+            //             $discoverPosts= transformParentPostData($discoverPosts, $authId);
+            //         }
+            //         return $discoverPosts;
+
+            //     });
+            // }
             $notification_count     =   notification_count();
             return $this->sendResponse($discoverPost, trans('message.dicover_media'), 200, $notification_count);
         } catch (Exception $e) {

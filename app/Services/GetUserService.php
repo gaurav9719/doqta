@@ -226,7 +226,7 @@ class GetUserService extends BaseController
 
 
     #--------------------  G E T        U S E R         P O S T  ----------------------#
-    public function getUserPosts($userId,$authId,$limit){
+    public function getUserPostsOld($userId,$authId,$limit){
         
         try {
 
@@ -239,8 +239,12 @@ class GetUserService extends BaseController
                     return $this->sendError(trans('message.you_are_not_supporting'), [], 403);
                 }
             }
+
+
             $posts          =   Post::whereHas('post_user', function($query) {
+
                 $query->where('is_active', 1);
+
             })
             ->with([
                 'group:id,name,description,cover_photo,post_count',
@@ -328,7 +332,7 @@ class GetUserService extends BaseController
                             $groupPost->parent_post->thumbnail        =       $this->addBaseInImage($groupPost->parent_post->thumbnail);
                         }
 
-                        $isExist                                      =       $this->IsPostLiked($groupPost->id, $authId,1);
+                        $isExist                                      =       $this->IsPostLiked($groupPost->parent_post->id, $authId,1);
                         $groupPost->parent_post->is_liked             =       $isExist['is_liked'];
                         $groupPost->parent_post->reaction             =       $isExist['reaction'];
                         $groupPost->parent_post->total_likes_count    =       $isExist['total_likes_count'];
@@ -340,6 +344,42 @@ class GetUserService extends BaseController
                 }
             }
             return $this->sendResponse($posts, trans("message.user.posts"), 200);
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::error('Error caught: "getUserPosts" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
+
+    public function getUserPosts($userId,$authId,$limit){
+        
+        try {
+            if($userId!=$authId){
+
+                $isSupporting   =   UserFollower::where(['user_id'=>$userId,'follower_user_id'=>$authId])->exists();
+
+                if(!$isSupporting){
+
+                    return $this->sendError(trans('message.you_are_not_supporting'), [], 403);
+                }
+            }
+            $userPost               =       Post::where('user_id', $userId)->where('is_active', 1);
+            $userPosts              =       getPost($authId,$userPost);
+            $userPosts              =       $userPosts->orderByDesc('id')->simplePaginate($limit);
+            if (isset($userPosts[0]) && !empty($userPosts[0])) {
+
+                $userPosts->each(function ($userPost) use ($authId) {
+
+                    $userPost = transformPostData($userPost, $authId);
+                        #------------ parent post data-----------------#
+                    if (isset($userPost->parent_post) && !empty($userPost->parent_post)) {
+
+                        $userPost= transformParentPostData($userPost, $authId);
+                    }
+                    return $userPost;
+                }); 
+            }
+            return $this->sendResponse($userPosts, trans("message.user.posts"), 200);
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "getUserPosts" ' . $e->getMessage());

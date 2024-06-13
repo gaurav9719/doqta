@@ -440,12 +440,14 @@ class ChatController extends BaseController
     public function destroy(string $id)
     {
         DB::beginTransaction();
+
         try {
 
             if (empty($id)) {
 
                 return $this->sendResponsewithoutData("Invalid id", 422);
             }
+            
             $myId                       =               Auth::id();
             $inbox                      =               Inbox::where(function ($query) use ($myId) {
                                                         $query->where(function ($subQuery) use ($myId) {
@@ -472,10 +474,12 @@ class ChatController extends BaseController
                     'is_user2_trash' => DB::raw("CASE WHEN sender_id <> $myId THEN 1 ELSE is_user2_trash END"),
                 ]);
                 DB::commit();
+
             }else{
+
                 return $this->sendResponsewithoutData(trans('message.invalid_inbox'),409);
             }
-            return $this->sendResponsewithoutData(trans('message.removed_inbox'),409);
+            return $this->sendResponsewithoutData(trans('message.removed_inbox'),200);
           
         } catch (Exception $e) {
             DB::rollBack();

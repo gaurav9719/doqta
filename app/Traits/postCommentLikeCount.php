@@ -494,7 +494,13 @@ trait postCommentLikeCount
                 $limit              =   $request['limit'];
             }
 
+
+
+
+
+
             $posts = Post::whereHas('post_user', function ($query) {
+
                 $query->where('is_active', 1);
             })
             ->with([
@@ -711,4 +717,269 @@ trait postCommentLikeCount
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
+
+    public function getCommunityPostCopy($community_id, $authId, $request)
+    {
+        try {
+
+            $group =     Group::where('id', $community_id)->where('is_active', 1)
+
+                        ->whereHas('groupOwner', function ($query) use ($authId) {
+
+                            $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                                    $query->where('user_id', $authId);
+                                })
+                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                    $query->where('blocked_user_id', $authId);
+                                });
+                        })->withCount('groupMember')->first();
+
+            if (empty($group)) {
+
+                return $this->sendResponsewithoutData(trans('message.invalid_group'), 400);
+            }
+
+            //check group created user not block me or neither blocked by me 
+            if (isset($group) && !empty($group)) {
+
+                if ((isset($group->cover_photo) && !empty($group->cover_photo))) {
+
+                    $group->cover_photo = $this->addBaseInImage($group->cover_photo);
+                }
+
+                $isGroupMember              =       GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+
+                if (isset($isGroupMember) && !empty($isGroupMember)) {
+
+                    $group->is_joined       =       1; // not join the group
+                    $group->role            =       $isGroupMember->role;
+                } else {
+
+                    $request                =       GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+                    if (isset($request) && !empty($request)) {
+                        if ($request->status == "pending") {
+
+                            $group->is_joined = 2; // pending request
+
+                        } elseif ($request->status == "rejected") {
+
+                            $group->is_joined = 3; // rejected
+                        }
+                    } else {
+
+                        $group->is_joined = 0; // not join the group
+
+                    }
+
+                    $group->role = null;
+                }
+            }
+
+            $isGroupMember          =   GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
+            if (!$isGroupMember) {
+
+                return response()->json(['status' => 201, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
+            }
+
+            $limit                  =   10;
+
+            if (isset($request['limit']) && !empty($request['limit'])) {
+
+                $limit              =   $request['limit'];
+            }
+
+            $authUser               =   Auth::user();
+
+
+
+
+
+
+            $posts = Post::whereHas('post_user', function ($query) {
+                
+                $query->where('is_active', 1);
+            });
+
+            #-------------- trending post -----------___#
+
+            if(isset($request->trending) && !empty($request->trending)){
+
+                if ($request->trending_type == 1 ) {
+
+                    $one_week_ago = now()->subWeek();
+
+                    $posts->where('created_at', '>=', $one_week_ago)
+
+                        ->orderBy('like_count', 'desc');
+
+                } elseif ($request->trending_type == 2) {
+
+                    $start_of_month = now()->startOfMonth();
+
+                    $posts->where('created_at', '>=', $start_of_month)
+
+                        ->orderBy('like_count', 'desc');
+                }
+            }
+            #----------------------------------------------#
+
+            #------------ CONFIDENCE SCORE -----------#
+
+            if (isset($request->confidence) && !empty($request->confidence)) {
+
+                $posts->where('is_high_confidence', 1);
+            }
+             #------------ CONFIDENCE SCORE -----------#
+
+              #-------------- LOCATION -----------------#
+            if (isset($request->location) && !empty($request->location)) {
+
+                $lat   =  $authUser->lat;
+                $long  = $authUser->long;
+                $distance   = $request->distance;
+                $posts->select('*',DB::raw("round(6371 * acos(cos(radians('". $lat."')) 
+                * cos(radians(`lat`)) 
+                * cos(radians(`long`) 
+                - radians('" .$long. "')) 
+                + sin(radians('" . $lat. "')) 
+                * sin(radians(`lat`))),2) AS distance"))->having("distance", "<", $distance); 
+            }
+
+            #------- check if health provider ----------#
+
+            if (isset($request->health_provider) && !empty($request->health_provider)) {
+
+                $posts->whereHas('post_user.userParticipant', fn ($query) => $query->where('participant_id', 3));
+
+            }
+            #------- check if health provider ----------#
+
+            $posts->with([
+
+                'group:id,name,description,cover_photo,post_count',
+                'post_user:id,user_name,name,profile',
+                'parent_post' => function ($query) {
+                    $query->select('*')
+                        ->where('is_active', 1)
+                        ->with([
+                            'post_user:id,name,user_name,profile',
+                            'group:id,name,description,created_by,is_active'
+                        ]);
+                }
+            ])
+            ->where('group_id', $community_id)
+            ->where('is_active', 1)
+            ->where(function ($query) use ($authId) {
+
+                $query->whereDoesntHave('post_user.blockedBy', function ($query) use ($authId) {
+                        $query->where('user_id', $authId);
+                    })
+                    ->whereDoesntHave('post_user.blockedUsers', function ($query) use ($authId) {
+                        $query->where('blocked_user_id', $authId);
+                    })
+                    ->whereDoesntHave('parent_post.post_user.blockedBy', function ($query) use ($authId) {
+                        $query->where('user_id', $authId);
+                    })
+                    ->whereDoesntHave('parent_post.post_user.blockedUsers', function ($query) use ($authId) {
+                        $query->where('blocked_user_id', $authId);
+                    });
+            })
+
+
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('hidden_posts')
+                    ->whereColumn('hidden_posts.post_id', 'posts.id')
+                    ->where('hidden_posts.user_id', $authId);
+            })
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('report_posts')
+                    ->whereColumn('report_posts.post_id', 'posts.id')
+                    ->where('report_posts.user_id', $authId);
+            })
+            ->whereNotExists(function ($query) use ($authId) {
+                $query->select(DB::raw(1))
+                    ->from('blocked_users')
+                    ->where(function ($query) use ($authId) {
+                        $query->where('user_id', $authId)
+                            ->whereColumn('blocked_users.blocked_user_id', 'posts.user_id')
+                            ->orWhere('blocked_user_id', $authId)
+                            ->whereColumn('blocked_users.user_id', 'posts.user_id');
+                    });
+            });
+            
+            if (isset($request['post_category_id']) && !empty($request['post_category_id'])) {
+
+                $posts->where('post_category', $request['post_category_id']);
+            }
+            
+            $posts = $posts->orderByDesc('id')->simplePaginate($limit);
+
+
+
+
+
+
+
+            $posts->getCollection()->transform(function ($post) use ($authId) {
+                if(isset($post) && !empty($post)){
+
+                    $post  = transformPostData($post, $authId);
+                }
+                
+                if (isset($post->parent_post) && !empty($post->parent_post)) {
+
+                    $post = transformParentPostData($post, $authId);
+                }
+                return $post;
+            });
+
+            #------------ G R O U P        D A T A    ---------------------#
+            if (isset($group) && !empty($group)) {
+
+                if (isset($group->cover_photo) && !empty($group->cover_photo)) {
+
+                    $group->cover_photo = $this->addBaseInImage($group->cover_photo);
+                }
+                //check role of community
+                $isGroupMember = GroupMember::where(['group_id' => $group->id, 'user_id' => $authId, 'is_active' => 1])->first();
+                if (isset($isGroupMember) && !empty($isGroupMember)) {
+                    $group->is_joined = 1; // not join the group
+                    $group->role = $isGroupMember->role;
+                } else {
+                    $request = GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
+
+                    if (isset($request) && !empty($request)) {
+
+                        if ($request->status == "pending") {
+
+                            $group->is_joined = 2; // pending request
+
+                        } elseif ($request->status == "rejected") {
+
+                            $group->is_joined = 3; // rejected
+                        }
+                    } else {
+
+                        $group->is_joined = 0; // not join the group
+                    }
+                    $group->role = null;
+                }
+            }
+            return response()->json(['status' => 200, 'message' => trans('message.community_post'), 'data' => $posts, 'group' => $group]);
+        } catch (Exception $e) {
+            Log::error('Error caught: "getCommunityPostTRAIT" ' . $e->getMessage());
+            return $this->sendError('Error occurred while fetching post.', [], 400);
+        }
+    }
+
+
+
+
+
+
+
 }

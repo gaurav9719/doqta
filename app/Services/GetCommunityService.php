@@ -193,7 +193,6 @@ class GetCommunityService extends BaseController
                 ->whereHas('group', function ($query) use ($authId) {
 
                     // $query->where('is_active', 1)
-                    
                     $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
                         $query->where('user_id', $authId);
@@ -204,7 +203,6 @@ class GetCommunityService extends BaseController
 
                     });
                 })
-
                 ->whereDoesntHave('reportPosts', function ($query) use ($user) {
 
                     $query->where('user_id', $user->id);
@@ -246,6 +244,18 @@ class GetCommunityService extends BaseController
                 })
                 ->with([
                     'post_user:id,name,user_name,profile',
+
+                    'post_user.user_medical_certificate'=>function($q){
+
+                        $q->select('id','medicial_degree_type','user_id');
+
+                    },
+                    'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                        $q->select('id','name');
+                    },
+        
+                   
                     'group:id,name,description,cover_photo,member_count,post_count,created_by',
                     'parent_post' => function ($query) {
 
@@ -253,6 +263,16 @@ class GetCommunityService extends BaseController
                             ->where('is_active', 1)
                             ->with([
                                 'post_user:id,name,user_name,profile,is_active',
+
+                                'post_user.user_medical_certificate'=>function($q){
+
+                                    $q->select('id','medicial_degree_type','user_id');
+            
+                                },
+                                'post_user.user_medical_certificate.medical_certificate'=>function($q){
+            
+                                    $q->select('id','name');
+                                },
                                 'group:id,name,description,created_by'
                             ]);
                     }
