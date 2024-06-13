@@ -263,13 +263,15 @@ class GetCommunityService extends BaseController
 
             $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
 
-                return transformPostData($homeScreenPost, $authId);
+                $homeScreenPost= transformPostData($homeScreenPost, $authId);
                 #------------ parent post data-----------------#
 
                 if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
 
-                    return transformParentPostData($homeScreenPost, $authId);
+                    $homeScreenPost= transformParentPostData($homeScreenPost, $authId);
                 }
+
+                return $homeScreenPost;
             });
 
             $new_health_insight_available     =   $this->checkNewHealthInsights($authId);

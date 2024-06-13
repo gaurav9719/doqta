@@ -94,11 +94,11 @@ return [
     "user_blocked"=>"User blocked successfully",
     "user_unblocked"=>"User unblocked successfully",
     "already_unblocked"=>"No exist in blocked list or already unblocked",
-"blocked_user"=>"Blocked user",
-"no_journal_entries"=>"no journal entries",
-"invalid_degree_type"=>"Invalid degree",
-
-
+    "blocked_user"=>"Blocked user",
+    "no_journal_entries"=>"no journal entries",
+    "invalid_degree_type"=>"Invalid degree",
+    "invalid_inbox"=>"Invalid inbox",
+    "removed_inbox"=>"Chat removed successfully",
     "already_reported"=>"Report to user already submitted",
     "user_reported"=>"Report to user successfully submitted",
     "add_comment"=>"Comment posted successfully",
@@ -137,6 +137,9 @@ return [
     "supporting_you"=>"Supported successfully",
     "pinned_message"=>"Message pinned successfully",
     "unpinned_message"=>"Message unpinned successfully",
+    "Invalid_notification"=>"Invalid notification",
+    "read_notification"=>"Read notification successfully",
+
 "all_pinned_message"=>"Pinned message",
 "email_changed_successfully"=>"Email changed successfully",
 "search_community"=>"Search community",

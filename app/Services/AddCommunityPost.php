@@ -49,10 +49,10 @@ class AddCommunityPost extends BaseController
         try {
 
             $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
-            $post = new Post();
-            $post->user_id = $authId;
-            $post->title = $request->title;
-            $post->content = $request->content;
+            $post               = new Post();
+            $post->user_id      = $authId;
+            $post->title        =   $request->title;
+            $post->content      = $request->content;
             $post->is_health_provider = $is_health_provider; // add true is user is health provider
 
             if ($request->hasFile('media')) {
@@ -70,7 +70,6 @@ class AddCommunityPost extends BaseController
                 
             }
 
-
             if (isset($request->lat) && !empty($request->lat)) {
 
                 $post->lat = $request->lat;
@@ -87,6 +86,7 @@ class AddCommunityPost extends BaseController
 
                 $post->wrote_by = $request->wrote_by;
             }
+
             $post->group_id             = $request->community_id;
             $post->media_type           = $request->media_type;
             $post->post_type            = $request->post_type; //normal,community
@@ -94,7 +94,6 @@ class AddCommunityPost extends BaseController
             $post->save();
             $postId                     = $post->id;
             DB::commit();
-
             try {
                 // new SummarizePostJob($postId);
                 // Dispatch Job1 and chain Job2 and Job3
@@ -185,6 +184,7 @@ class AddCommunityPost extends BaseController
     public function getPost($id, $authId, $message)
     {
         try {
+            
             $post = Post::with([
                 'group' => function ($query) {
 

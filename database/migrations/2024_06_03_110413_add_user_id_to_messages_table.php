@@ -26,8 +26,7 @@ return new class extends Migration
     {
         Schema::table('messages', function (Blueprint $table) {
             //
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+           
 
         });
     }

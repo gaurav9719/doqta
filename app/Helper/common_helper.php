@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\BlockedUser;
 use Carbon\Carbon;
 use App\Models\Post;
 use App\Models\User;
@@ -69,9 +70,12 @@ if (!function_exists('transformPostData')) {
 
             $homeScreenPost->group->cover_photo      =  addBaseUrl($homeScreenPost->group->cover_photo);
         }
-        $isExist                            =   IsPostLikedByUser($homeScreenPost->id, $authId);
+        $isExist                            =   IsPostLikedByUser($homeScreenPost->id, $authId,1);
         $homeScreenPost->is_liked           =   $isExist['is_liked'];
         $homeScreenPost->reaction           =   $isExist['reaction'];
+
+        $homeScreenPost->total_likes_count  =       $isExist['total_likes_count'];
+        $homeScreenPost->total_comment_count =       $isExist['total_comment_count'];
         $isRepost                           =   Post::where(['parent_id' => $homeScreenPost->id, 'user_id' => $authId, 'is_active' => 1])->exists();
         $homeScreenPost->is_reposted        =  ($isRepost) ? 1 : 0;
         $homeScreenPost->post_category_name = post_category($homeScreenPost->post_category);
@@ -208,6 +212,15 @@ if (!function_exists('removePictureFromFolder')) {
         }
     }
 }
+
+if (!function_exists('isBlockedUser')) {
+    function isBlockedUser($user1,$user2)
+    {
+        $isBlock    = BlockedUser::where(['user_id'=>$user1,'blocked_user_id'=>$user2])->exists();
+        return ($isBlock)?1:0;
+    }
+}
+
 
 
 

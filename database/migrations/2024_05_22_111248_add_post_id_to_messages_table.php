@@ -27,7 +27,6 @@ return new class extends Migration
     {
         Schema::table('messages', function (Blueprint $table) {
             //
-            $table->dropColumn('post_id');
         });
     }
 };

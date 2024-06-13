@@ -1145,8 +1145,8 @@ class DicoverService extends BaseController
             $userIds = [];
 
             if (!empty($request->search)) {
-                $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
-                $userIds = User::where('user_name', 'like', "%{$request->search}%")
+                $groupIds   =   Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+                $userIds    =   User::where('user_name', 'like', "%{$request->search}%")
                     ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
                     ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
                     ->pluck('id');
@@ -1220,6 +1220,7 @@ class DicoverService extends BaseController
             if (isset($request->search) && !empty($request->search)) {
 
                 $groupIds          =    Group::whereHas('groupOwner', function ($query) use ($authId) {
+
                     $query->where('is_active', 1) // Check if group owner is active
 
                         ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
@@ -1272,12 +1273,15 @@ class DicoverService extends BaseController
                 })->with(['post_user' => function ($query) {
 
                     $query->select('id', 'name', 'user_name', 'profile');
+
                 }, 'post_user.user_medical_certificate' => function ($q) {
 
                     $q->select('id', 'user_id', 'medicial_degree_type', 'verified_status');
+
                 }, 'post_user.user_medical_certificate.medical_certificate' => function ($q) {
 
                     $q->select('id', 'name');
+
                 }])->whereHas('post_user.userParticipant', function ($q) {  //check user medical or not
 
                     $q->where('participant_id', [3]);
@@ -1285,7 +1289,9 @@ class DicoverService extends BaseController
                 ->where('user_id', '<>', $authId)
                 ->where('is_active', 1)
                 ->when($request->search, function ($query) use ($groupIds, $userIds) {
+
                     $query->whereIn('group_id', $groupIds)
+
                         ->orWhere(function ($query) use ($groupIds, $userIds) {
                             $query->whereIn('user_id', $userIds);
                         });
@@ -1661,152 +1667,189 @@ class DicoverService extends BaseController
 
 
     #-----------------------care taker by search ---------------#
+    // public function careTakerBySearch($request, $authId, $limit, $type = "")
+    // {
+    //     try {
+
+    //         DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+    //         // Initialize base query based on search input
+    //         $groupMembers = GroupMember::query();
+
+    //         if (!empty($request->search)) {
+    //            // Get the group IDs matching the search term
+    //             $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+
+    //             // Get the user IDs matching the search term, excluding those who are blocked by or have blocked the authenticated user
+    //             $userIds = User::where('user_name', 'like', "%{$request->search}%")
+    //                 ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
+    //                 ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
+    //                 ->pluck('id');
+    //             // Add the conditions to the query
+    //             $groupMembers->where(function ($query) use ($groupIds, $userIds) {
+    //                 $query->whereIn('group_id', $groupIds)
+    //                     ->orWhereIn('user_id', $userIds);
+    //             });
+    //         }
+    //         // Filter out the authenticated user's own group memberships
+    //         $groupMembers->where('user_id', '<>', $authId);
+    //         // Eager load related models with selected fields
+    //         $groupMembers->with([
+    //             'communities:id,name,cover_photo,member_count,post_count',
+    //             'user:id,name,user_name,profile'
+    //         ]);
+    //         // Filter based on user participant
+    //         $groupMembers->whereHas('user.userParticipant', function ($query) {
+
+    //             $query->whereIn('participant_id', [2]);
+
+    //         });
+    //         // Exclude blocked users and those who blocked the authenticated user
+    //         $groupMembers->whereDoesntHave('user.blockedUsers', function ($query) use ($authId) {
+
+    //             $query->where('blocked_user_id', $authId);
+    //         })
+    //             ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
+
+    //                 $query->where('user_id', $authId);
+    //             });
+
+    //         // Exclude users followed by the authenticated user
+    //         $groupMembers->whereDoesntHave('user.followers', function ($query) use ($authId) {
+    //             $query->where('follower_user_id', $authId);
+    //         });
+    //         // Only include active users
+    //         $groupMembers->whereHas('user')->groupBy('user_id');
+    //         // Apply pagination or limit
+    //         if (isset($type) && !empty($type)) {
+    //             $groupMembers = $groupMembers->limit($limit)->get();
+    //         } else {
+    //             $groupMembers = $groupMembers->simplePaginate($limit);
+    //         }
+    //         if (isset($groupMembers[0]) && !empty($groupMembers[0])) {
+
+    //             $groupMembers->each(function ($member) use ($authId) {
+
+    //                 $member->is_supporting                =   (UserFollower::where(['user_id' => $member->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
+    //                 if (isset($member->user) && !empty($member->user)) {
+
+    //                     if (isset($member->user->profile) && !empty($member->user->profile)) {
+
+    //                         $member->user->profile      =   $this->addBaseInImage($member->user->profile);
+    //                     }
+    //                 }
+
+    //                 if (isset($member->communities) && !empty($member->communities)) {
+
+    //                     if (isset($member->communities->cover_photo) && !empty($member->communities->cover_photo)) {
+
+    //                         $member->communities->cover_photo      =   $this->addBaseInImage($member->communities->cover_photo);
+    //                     }
+    //                 }
+    //             });
+    //         }
+    //         if (isset($type) && !empty($type)) {
+
+    //             return $groupMembers;
+
+    //         } else {
+    //             $notification_count     =   notification_count();
+    //             return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200, $notification_count);
+    //         }
+    //     } catch (Exception $e) {
+    //         Log::error('Error caught: "careTakerBySearch"' . $e->getMessage());
+    //         return 400;
+    //     }
+    // }
     public function careTakerBySearch($request, $authId, $limit, $type = "")
-    {
-        try {
+{
+    try {
+        DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
 
-            DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
-            // if (!empty($request->search)) {
+        // Initialize base query based on search input
+        $groupMembers = GroupMember::query();
 
-            //     $groupIdsQuery      =   Group::where('name', 'like', "%$request->search%")->pluck('id');
-            //     $groupMembers       =   GroupMember::whereIn('group_id', $groupIdsQuery)->where('user_id', '<>', $authId);
+        if (!empty($request->search)) {
+            // Get the group IDs matching the search term
+            $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
 
-            // }else{
+            // Get the user IDs matching the search term, excluding those who are blocked by or have blocked the authenticated user
+            $userIds = User::where('user_name', 'like', "%{$request->search}%")
+                ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
+                ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
+                ->pluck('id');
 
-            //     $groupMembers = GroupMember::where('user_id', '<>', $authId);
-            // }
-
-            // $groupMembers =  $groupMembers->select('user_id', 'group_id')
-
-            //     ->with(['communities' => function ($q) {
-
-            //         $q->select('id', 'name', 'cover_photo');
-
-            //     }, 'user' => function ($q) {
-
-            //         $q->select('id', 'name', 'user_name', 'profile');
-
-            //     }])->whereHas('user')->whereHas('user.userParticipant',function($q){
-
-            //         $q->whereIn('participant_id',[2]);
-
-            //     })->whereNotExists(function ($query) use ($authId) {
-
-            //         $query->select(DB::raw(1))
-
-            //             ->from('blocked_users')
-
-            //             ->where(function ($query) use ($authId) {
-            //                 // Check if the authenticated user has blocked someone
-            //                 $query->where('user_id', $authId)
-            //                     ->whereColumn('blocked_users.blocked_user_id', 'id');
-            //             })
-            //             ->orWhere(function ($query) use ($authId) {
-            //                 // Check if the authenticated user has been blocked by someone
-            //                 $query->where('blocked_user_id', $authId)
-            //                     ->whereColumn('blocked_users.user_id', 'id');
-            //             });
-            //     })->whereNotExists(function ($query) use ($authId) {
-
-            //         $query->select(DB::raw(1))
-            //             ->from('user_followers')
-            //             ->whereColumn('user_followers.user_id', '=', 'id')
-            //             ->where('user_followers.follower_user_id', '=', $authId);
-            //     })
-            //     ->groupBy('user_id');
-
-
-            // Initialize base query based on search input
-            $groupMembers = GroupMember::query();
-
-            if (!empty($request->search)) {
-
-                $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
-
-                $groupMembers->whereIn('group_id', $groupIds);
-            }
-
-            // Filter out the authenticated user's own group memberships
-            $groupMembers->where('user_id', '<>', $authId);
-
-            // Eager load related models with selected fields
-            $groupMembers->with([
-                'communities:id,name,cover_photo,member_count,post_count',
-                'user:id,name,user_name,profile'
-            ]);
-
-            // Filter based on user participant
-            $groupMembers->whereHas('user.userParticipant', function ($query) {
-
-                $query->whereIn('participant_id', [2]);
+            // Add the conditions to the query
+            $groupMembers->where(function ($query) use ($groupIds, $userIds) {
+                $query->whereIn('group_id', $groupIds)
+                      ->orWhereIn('user_id', $userIds);
             });
-
-            // Exclude blocked users and those who blocked the authenticated user
-            $groupMembers->whereDoesntHave('user.blockedUsers', function ($query) use ($authId) {
-                $query->where('blocked_user_id', $authId);
-            })
-                ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
-                    $query->where('user_id', $authId);
-                });
-
-            // Exclude users followed by the authenticated user
-            $groupMembers->whereDoesntHave('user.followers', function ($query) use ($authId) {
-                $query->where('follower_user_id', $authId);
-            });
-
-            // Only include active users
-            $groupMembers->whereHas('user')->groupBy('user_id');
-
-            // Apply pagination or limit
-            if (isset($type) && !empty($type)) {
-                $groupMembers = $groupMembers->limit($limit)->get();
-            } else {
-                $groupMembers = $groupMembers->simplePaginate($limit);
-            }
-
-
-            // if(isset($type) && !empty($type)){
-
-            //     $groupMembers   =   $groupMembers->get()->take($limit);
-
-            // }else{
-
-            //     $groupMembers   =   $groupMembers->simplePaginate($limit);
-            // }
-
-            if (isset($groupMembers[0]) && !empty($groupMembers[0])) {
-
-                $groupMembers->each(function ($member) use ($authId) {
-
-
-                    $member->is_supporting                =   (UserFollower::where(['user_id' => $member->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
-                    if (isset($member->user) && !empty($member->user)) {
-
-                        if (isset($member->user->profile) && !empty($member->user->profile)) {
-
-                            $member->user->profile      =   $this->addBaseInImage($member->user->profile);
-                        }
-                    }
-
-                    if (isset($member->communities) && !empty($member->communities)) {
-
-                        if (isset($member->communities->cover_photo) && !empty($member->communities->cover_photo)) {
-
-                            $member->communities->cover_photo      =   $this->addBaseInImage($member->communities->cover_photo);
-                        }
-                    }
-                });
-            }
-            if (isset($type) && !empty($type)) {
-
-                return $groupMembers;
-            } else {
-                $notification_count     =   notification_count();
-                return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200, $notification_count);
-            }
-        } catch (Exception $e) {
-            Log::error('Error caught: "careTakerBySearch"' . $e->getMessage());
-            return 400;
         }
+
+        // Filter out the authenticated user's own group memberships
+        $groupMembers->where('user_id', '<>', $authId);
+
+        // Eager load related models with selected fields
+        $groupMembers->with([
+            'communities:id,name,cover_photo,member_count,post_count',
+            'user:id,name,user_name,profile'
+        ]);
+
+        // Filter based on user participant
+        $groupMembers->whereHas('user.userParticipant', function ($query) {
+            $query->whereIn('participant_id', [2]);
+        });
+
+        // Exclude blocked users and those who blocked the authenticated user
+        $groupMembers->whereDoesntHave('user.blockedUsers', function ($query) use ($authId) {
+            $query->where('blocked_user_id', $authId);
+        })
+        ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
+            $query->where('user_id', $authId);
+        });
+
+        // Exclude users followed by the authenticated user
+        $groupMembers->whereDoesntHave('user.followers', function ($query) use ($authId) {
+            $query->where('follower_user_id', $authId);
+        });
+
+        // Only include active users
+        $groupMembers->whereHas('user')->groupBy('user_id');
+
+        // Apply pagination or limit
+        if (isset($type) && !empty($type)) {
+            $groupMembers = $groupMembers->limit($limit)->get();
+        } else {
+            $groupMembers = $groupMembers->simplePaginate($limit);
+        }
+
+        if ($groupMembers->isNotEmpty()) {
+            $groupMembers->each(function ($member) use ($authId) {
+                $member->is_supporting = UserFollower::where([
+                    'user_id' => $member->user_id,
+                    'follower_user_id' => $authId,
+                    'status' => 2
+                ])->exists() ? 1 : 0;
+
+                if (!empty($member->user) && !empty($member->user->profile)) {
+                    $member->user->profile = $this->addBaseInImage($member->user->profile);
+                }
+
+                if (!empty($member->communities) && !empty($member->communities->cover_photo)) {
+                    $member->communities->cover_photo = $this->addBaseInImage($member->communities->cover_photo);
+                }
+            });
+        }
+
+        if (!empty($type)) {
+            return $groupMembers;
+        } else {
+            $notification_count = notification_count();
+            return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200, $notification_count);
+        }
+    } catch (Exception $e) {
+        Log::error('Error caught: "careTakerBySearch"' . $e->getMessage());
+        return $this->sendError($e->getMessage(), [], 400);
     }
+}
+
 }

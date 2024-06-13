@@ -16,10 +16,12 @@ return new class extends Migration
             $table->unsignedBigInteger('message_id')->nullable()->index();
             $table->unsignedBigInteger('sender_id')->nullable();
             $table->unsignedBigInteger('receiver_id')->nullable();
+            $table->unsignedBigInteger('is_user1_trash')->nullable();
+            $table->unsignedBigInteger('is_user2_trash')->nullable();
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->tinyInteger('is_user1_trash')->default(0)->comment('0:not,1:delete');
-            $table->tinyInteger('is_user2_trash')->default(0)->comment('0:not,1:delete');
+            $table->foreign('is_user1_trash')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('is_user2_trash')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
             $table->tinyInteger('is_active')->default(1)->comment('1:active,0:inactive');
             $table->timestamps();
             $table->index(['sender_id', 'receiver_id','is_active']);
@@ -33,5 +35,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('inboxes');
+        
     }
 };

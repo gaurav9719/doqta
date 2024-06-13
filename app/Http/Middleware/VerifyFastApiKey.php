@@ -27,7 +27,7 @@ class VerifyFastApiKey
 
         if ($apiKey !== $headerKey) {
 
-            return response()->json(['message' => 'Access denied.'], 403);
+            return response()->json(['status'=>401,'message' => 'Unauthorized User.'], 401);
         }
     
         

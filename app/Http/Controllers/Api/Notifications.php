@@ -246,7 +246,7 @@ class Notifications extends BaseController
                 'notification_on' => $key,
                 'notifications' => $group->map(function ($notification) use ($userID) {
                     $notification->sender->profile = $this->addBaseInImage($notification->sender->profile);
-                    $notification->update(['is_read' => 1]);
+                   // $notification->update(['is_read' => 1]);
                     return [
                         'id' => $notification->id,
                         'receiver_id' => $notification->receiver_id,
@@ -303,4 +303,58 @@ class Notifications extends BaseController
     }
 }
     
+
+
+    #-------------  R E A D          N O T I F I C A T I O N        A P I  -------------------#
+    public function readNotification(Request $request){
+
+        DB::beginTransaction();
+
+        try {
+            
+            $validator                 =      Validator::make($request->all(), ['notification_id' => 'required|integer|exists:notifications,id']);
+
+            if ($validator->fails()) {
+    
+                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+    
+            } else {
+            
+                $authId                 =   Auth::id();
+    
+                $exists                 =   Notification::where(['id'=>$request->notification_id,'receiver_id'=>$authId,'status'=>1])->first();
+                
+                if(isset($exists) && !empty($exists)){
+    
+                    $exists->is_read    =   1;
+                    $exists->save();
+
+                }else{
+
+                    return response()->json(['message' => trans('message.Invalid_notification')], 409);
+                }
+                DB::commit();
+                $notification_count          =   notification_count();
+                return response()->json([
+                    'status'                    => 200,
+                    'message'                   => trans("message.read_notification"),
+                    'data'                      => 1,
+                    'notification'              => $notification_count,
+                ]);
+            }
+        } catch (Exception $e) {
+            
+            Log::error('Error caught: "readNotification" ' . $e->getMessage());
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+    #-------------  R E A D          N O T I F I C A T I O N        A P I  -------------------#
+
+
+
+
+
+
+
+
 }

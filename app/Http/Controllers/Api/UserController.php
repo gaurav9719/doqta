@@ -114,7 +114,6 @@ class UserController extends BaseController
     #-----------------************ G E T        P R O F I L E  *************---------------------#
     public function getUserProfile(Request $request)
     {
-
         $validate= Validator::make($request->all(), [
             'type' => 'nullable|integer|between:1,2',
             'limit'=> 'nullable|integer',
@@ -144,12 +143,30 @@ class UserController extends BaseController
             $getUser        =   $authId;
         }
 
-        if (User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
+        if(User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
 
+            $blocked = BlockedUser::where(function($query) use ($authId, $getUser) {
+
+                $query->where('user_id', $authId)
+                      ->where('blocked_user_id', $getUser);
+            })->orWhere(function($query) use ($authId, $getUser) {
+
+                $query->where('user_id', $getUser)
+                      ->where('blocked_user_id', $authId);
+
+            })->exists();
+
+            if ($blocked) {
+
+                return $this->sendResponsewithoutData('Either you have blocked this user or they have blocked you', 403);
+
+            } 
             $userProfile        =   $this->getUser->getUser($getUser, $authId);
-            // dd($userProfile);
+        
             return $this->sendResponse($userProfile, trans("message.user_profile"), 200);
+
         } else {
+
             return $this->sendError(trans('message.invalidUser'), [], 422);
         }
     }

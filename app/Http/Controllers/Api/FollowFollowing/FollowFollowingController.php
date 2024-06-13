@@ -37,6 +37,7 @@ class FollowFollowingController extends BaseController
     public function index(Request $request)
     {
         try {
+
             $validation = Validator::make($request->all(), [
                 'type' => 'required|integer|between:1,3'
             ], ['type.integer' => "Invalid type"]);
@@ -51,6 +52,7 @@ class FollowFollowingController extends BaseController
             $search = $request->search ?? null;
     
             // Common query structure
+            
             $query = UserFollower::leftJoin('users as U', function ($join) use ($myId) {
                 $join->on(function ($query) use ($myId) {
                     $query->where('user_followers.user_id', '=', $myId)
@@ -60,8 +62,8 @@ class FollowFollowingController extends BaseController
                           ->where('user_followers.follower_user_id', '=', $myId);
                 });
             });
-    
             if ($search) {
+
                 $query->where('U.name', 'LIKE', '%' . $search . '%');
             }
     
@@ -81,13 +83,15 @@ class FollowFollowingController extends BaseController
                 $query->where('user_followers.user_id', '=', $myId);
                 $message = trans('message.supporters');
             }
+
+            
     
             $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
                             ->groupBy('U.id')
                             ->where('U.is_active',1)
                              ->orderBy('U.id', 'ASC')
                              ->simplePaginate($limit);
-
+                          
             if(isset($threads[0]) && !empty($threads[0])){
 
                 $threads->each(function($query) use($myId){

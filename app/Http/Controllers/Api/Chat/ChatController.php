@@ -41,12 +41,14 @@ class ChatController extends BaseController
         try {
 
             $limit                          =               20;
+
             if (isset($request->limit) && !empty($request->limit)) {
 
                 $limit                      =               $request->limit;
             }
             $myId                           =               Auth::id();
             $data                           =               $request->all();
+
             $threads                        =               Inbox::leftJoin('users as U', function ($join) use ($myId) {
 
                 $join->on(function ($query) use ($myId) {
@@ -58,6 +60,10 @@ class ChatController extends BaseController
                     $query->where('inboxes.receiver_id', '=', $myId)
                         ->where('inboxes.sender_id', '=', DB::raw('U.id'));
                 });
+            })->where(function ($q) use ($myId) {
+
+                $q->where('is_user1_trash', '<>', $myId)
+                    ->orWhere('is_user1_trash', '<>', $myId);
             })
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table
@@ -68,33 +74,32 @@ class ChatController extends BaseController
                     // Filter the threads where I am the sender or receiver
                     $query->where('inboxes.sender_id', '=', $myId);
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
-
                 })
-                ->select('inboxes.*', 'U.name', 'U.profile','U.user_name', 'U.id as other_user_id','U.is_active as u_is_active')
+                ->select('inboxes.*', 'U.name', 'U.profile', 'U.user_name', 'U.id as other_user_id', 'U.is_active as u_is_active')
                 ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
                 ->simplePaginate($limit); // Paginate the results
+            if ($threads[0]) {
 
-                if ($threads[0]) {
+                $threads->each(function ($result) use ($myId) {
 
-                    $threads->each(function ($result) use($myId) {
+                    $result['unread_message_count'] =   Message::where(['inbox_id' => $result->id])->where(function ($query) use ($myId) {
 
-                        $result['unread_message_count'] =   Message::where(['inbox_id'=> $result->id])->where(function($query) use($myId){
+                        $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);
+                    })->where('sender_id', '!=', $myId)->where('isread', 0)->count();
 
-                            $query->where('is_user1_trash','!=',$myId)->orWhere('is_user2_trash','!=',$myId);
+                    if (isset($result->profile) && !empty($result->profile)) {
 
-                        })->where('sender_id','!=',$myId)->where('isread',0)->count();
+                        $result['profile']          =       $this->addBaseInImage($result->profile);
+                    }
+                    $result['last_message']         =       Message::select('id', 'message', 'sender_id', 'media', 'media_thumbnail', 'message_type', 'replied_to_message_id', 'is_user1_trash', 'is_user2_trash', 'isread')->where(['id' => $result->message_id])->first();
 
-                       if(isset($result->profile) && !empty($result->profile)){
-
-                           $result['profile']          =       $this->addBaseInImage($result->profile);
-                       }
-                        $result['last_message']        =    Message::select('id','message','sender_id','media','media_thumbnail','message_type','replied_to_message_id','is_user1_trash','is_user2_trash','isread')->where(['id'=> $result->message_id])->first();
-                        
-                        $result->time_ago = time_elapsed_string($result->updated_at);
-                        
-                    });
-                }
+                    $result->time_ago               =       time_elapsed_string($result->updated_at);
+                    $result->is_blocked             =       isBlockedUser($myId, $result->other_user_id);
+                    $result->blocked_by             =       isBlockedUser($result->other_user_id, $myId);
+                });
+            }
             return $this->sendResponse($threads, "Inbox.", 200);
+            
         } catch (Exception $e) {
 
             Log::error('Error caught: "get chat history" ' . $e->getMessage());
@@ -123,26 +128,66 @@ class ChatController extends BaseController
             $reciever                       =               $request->receiver_id;
             $message_type                   =               $request->message_type;
 
-
             if ($myId == $reciever) {
+
                 return response()->json(['status' => 422, 'message' => "You are not allowed to message yourself."], 422);
             }
 
+            $blockedByOther                      =               isBlockedUser($reciever, $myId);
+            $isBlockedByMe                       =               isBlockedUser($myId, $reciever);
+            if ($blockedByOther || $isBlockedByMe) {
+
+                return $this->sendResponsewithoutData(trans('message.blocked_user'), 403);
+            }
+
             $message = Inbox::where(function ($query) use ($myId, $reciever) {
+
                 $query->where(function ($subQuery) use ($myId, $reciever) {
+
                     $subQuery->where('sender_id', $myId)
+
                         ->where('receiver_id', $reciever);
                 })->orWhere(function ($subQuery) use ($myId, $reciever) {
+
                     $subQuery->where('receiver_id', $myId)
+
                         ->where('sender_id', $reciever);
                 });
             })->first();
-
             if (empty($message)) {
                 // create new thread
                 $message                       =               new Inbox();
                 $message->sender_id            =               $myId;
                 $message->receiver_id          =               $reciever;
+                $message->save();
+            } else {
+                //
+                if (($message->is_user1_trash == $myId || $message->is_user2_trash == $myId)) {
+
+                    if ($message->is_user1_trash == $myId) {
+
+                        $message->is_user1_trash    =   null;
+                    } else {
+
+                        $message->is_user2_trash    =   null;
+                    }
+                }
+
+                if (($message->is_user1_trash == $reciever || $message->is_user2_trash == $reciever)) {
+
+                    if ($message->is_user1_trash == $reciever) {
+
+                        $message->is_user1_trash    =   null;
+                    } else {
+
+                        $message->is_user2_trash    =   null;
+                    }
+                }
+
+                if ($message->is_active == 0) {
+
+                    $message->is_active         =   1;
+                }
                 $message->save();
             }
 
@@ -182,22 +227,18 @@ class ChatController extends BaseController
             $sendMessage->message_type           =                $request->message_type;
             $sendMessage->save();
             $lastMessageId                       =                $sendMessage->id;
-            Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
 
+            Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
             #send notification
             $receiver                           =               User::find($reciever);
             $sender                             =               User::find($myId);
             $message                            =               "New message from " . $sender->name;
-            $data                               =               ["message"=> $message,'notification_type'=>trans('notification_message.send_message_type')];
-            sendPushNotificationNew($sender, $receiver,$data);
+            $data                               =               ["message" => $message, 'notification_type' => trans('notification_message.send_message_type')];
+            sendPushNotificationNew($sender, $receiver, $data);
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
             $sent_message                        =               $this->getLastMessage($lastMessageId, $myId);
             return $this->sendResponse($sent_message, "Message send.", 200);
-            // $last_message                   =              Message::find($chat_message->id);
-            // $last_message->time_ago         =              $last_message->updated_at->diffForHumans();
-            // $last_message['profile']        =              User::find($reciever, ['id', 'first_name', 'last_name', 'last_name', 'profile_pic']);
-            // return $this->sendResponse($last_message, "Message send.", 200);
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "sendMessage" ' . $e->getMessage());
@@ -215,7 +256,6 @@ class ChatController extends BaseController
             if (empty($id)) {
 
                 return $this->sendError("user_id required", [], 422);
-                
             } else {
 
                 $limit                          =               10;
@@ -231,7 +271,6 @@ class ChatController extends BaseController
                 if ($myId == $reciever) {
 
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
-
                 } else {
 
                     $inbox                    =              Inbox::where(function ($query) use ($myId, $reciever) {
@@ -242,37 +281,37 @@ class ChatController extends BaseController
                             $subQuery->where('receiver_id', $myId)
                                 ->where('sender_id', $reciever);
                         });
+                    })->where(function ($q) use ($myId) {
+                        $q->where('is_user1_trash', '<>', $myId)
+                            ->orWhere('is_user1_trash', '<>', $myId);
                     })->first();
-                    
+
                     if (isset($inbox) && !empty($inbox)) {
 
                         $inboxId              =             $inbox->id;
                         $messages             =             Message::with(['sender' => function ($query) {
 
                             $query->select('id', 'name', 'profile');
+
                         }, 'reply_to.sender' => function ($query) {
 
                             $query->select('id', 'name', 'profile');
-                        },'post','post.post_user'=>function($q){
+                        }, 'post', 'post.post_user' => function ($q) {
 
-                            $q->select('id','name','user_name','profile');
+                            $q->select('id', 'name', 'user_name', 'profile');
+                        }, 'post.group' => function ($q) {
 
-                        },'post.group'=>function($q){
+                            $q->select('id', 'name', 'description', 'created_by');
+                        }, 'share_user' => function ($q) {
 
-                            $q->select('id','name','description','created_by');
-
-                        },'share_user'=>function($q){
-
-                            $q->select('id','user_name','name','profile','is_active');
-
+                            $q->select('id', 'user_name', 'name', 'profile', 'is_active');
                         }])->where(function ($query) use ($myId) {
 
                             $query->where('is_user1_trash', '!=', $myId)
                                 ->orWhere('is_user2_trash', '!=', $myId);
-
                         })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
                         if ($messages[0]) {
-                            $messages->each(function ($result) {
+                            $messages->each(function ($result) use($myId) {
 
                                 if (isset($result->sender) && !empty($result->sender)) {
 
@@ -338,10 +377,10 @@ class ChatController extends BaseController
                                     }
 
                                     $result->postedAt = time_elapsed_string($result->post->created_at);
-                                    
                                 }
                                 $result->time_ago = time_elapsed_string($result->created_at);
-
+                                $result->is_blocked             =       isBlockedUser($myId, $result->sender_id);
+                                $result->blocked_by             =       isBlockedUser($result->sender_id, $myId);
                                 if ($result->isread == 0) {
                                     Message::where('id', $result->id)
                                         ->update([
@@ -400,7 +439,50 @@ class ChatController extends BaseController
      */
     public function destroy(string $id)
     {
-        //
+        DB::beginTransaction();
+        try {
+
+            if (empty($id)) {
+
+                return $this->sendResponsewithoutData("Invalid id", 422);
+            }
+            $myId                       =               Auth::id();
+            $inbox                      =               Inbox::where(function ($query) use ($myId) {
+                                                        $query->where(function ($subQuery) use ($myId) {
+    
+                                                            $subQuery->where('sender_id', $myId)->orWhere('receiver_id', $myId);
+    
+                                                        });
+                                                    })->where('id',$id)->first();
+            if(isset($inbox) && !empty($inbox)){
+    
+                if($inbox->sender_id==$myId){
+    
+                    $inbox->is_user1_trash  =   $myId;
+    
+                }else{
+    
+                    $inbox->is_user2_trash  =   $myId;
+                }
+                $inbox->save();
+                DB::table('messages')
+                ->where('inbox_id', $inbox->id)
+                ->update([
+                    'is_user1_trash' => DB::raw("CASE WHEN sender_id = $myId THEN 1 ELSE is_user1_trash END"),
+                    'is_user2_trash' => DB::raw("CASE WHEN sender_id <> $myId THEN 1 ELSE is_user2_trash END"),
+                ]);
+                DB::commit();
+            }else{
+                return $this->sendResponsewithoutData(trans('message.invalid_inbox'),409);
+            }
+            return $this->sendResponsewithoutData(trans('message.removed_inbox'),409);
+          
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error caught: "destory" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+
+        }
     }
 
 
@@ -409,7 +491,7 @@ class ChatController extends BaseController
 
         $result             =             Message::with(['sender' => function ($query) {
 
-            $query->select('id', 'name', 'user_name','profile');
+            $query->select('id', 'name', 'user_name', 'profile');
         }, 'reply_to.sender' => function ($query) {
 
             $query->select('id', 'name', 'profile');
@@ -422,10 +504,10 @@ class ChatController extends BaseController
 
         if (isset($result) && !empty($result)) {
 
-
             // $result->time_ago         =              $result->created_at->diffForHumans();
-
-            $result->time_ago         =              time_elapsed_string($result->created_at);
+            $result->time_ago         =       time_elapsed_string($result->created_at);
+            $result->is_blocked       =       isBlockedUser($myId, $result->sender_id);
+            $result->blocked_by       =       isBlockedUser($result->sender_id, $myId);
 
             if (isset($result->sender) && !empty($result->sender)) {
 

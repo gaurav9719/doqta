@@ -286,6 +286,7 @@ Route::middleware(['with_fast_api_key','auth:api'])->controller(StatsController:
 Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(Notifications::class)->group(function () {
 
     Route::get('notifications','notifications');
+    Route::put('readNotification','readNotification');
 
 });
 

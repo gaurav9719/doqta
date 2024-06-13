@@ -555,12 +555,16 @@ trait postCommentLikeCount
             $posts = $posts->orderByDesc('id')->simplePaginate($limit);
 
             $posts->getCollection()->transform(function ($post) use ($authId) {
+                if(isset($post) && !empty($post)){
 
+                    $post  = transformPostData($post, $authId);
+                }
+                
                 if (isset($post->parent_post) && !empty($post->parent_post)) {
 
-                    return transformParentPostData($post, $authId);
+                    $post = transformParentPostData($post, $authId);
                 }
-                return transformPostData($post, $authId);
+                return $post;
             });
 
             #------------ G R O U P        D A T A    ---------------------#
@@ -602,9 +606,6 @@ trait postCommentLikeCount
         }
     }
     #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
-
-
-
 
     public function getPostNew($postId, $authId, $mesage)
     {

@@ -143,49 +143,108 @@ class CommunityPost extends BaseController
      */
 
     #-------------------    D E L E T E          P O S T  ------------------------#
+    // public function destroy(string $id)
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+
+    //         $auth       = Auth::user();
+
+    //         $authId     = Auth::id();
+
+    //         if (isset($id) && !empty($id)) {
+
+    //             $isExist = Post::where(['id' => $id, 'user_id' => $authId])->exists();
+
+    //             if (!$isExist) {
+
+    //                 return $this->sendError(trans("message.no_post_found"), [], 422);
+
+    //             } else {
+
+    //                 Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+    //                 #delete notification & activity
+    //                 $posted_in_community    = trans('notification_message.posted_in_community'); //10
+    //                 $like_post_type         = trans('notification_message.like_post_type'); //11
+    //                 $comment_on_post_type   = trans('notification_message.comment_on_post_type'); //12
+    //                 $like_comment_post_type = trans('notification_message.like_comment_post_type'); //13
+    //                 $comment_reply_type     = trans('notification_message.comment_reply_type'); //14
+    //                 $reposted_post_type     = trans('notification_message.reposted_post_type'); //15
+    //                 $nType                  = [$posted_in_community, $like_post_type, $comment_on_post_type, $like_comment_post_type, $comment_reply_type, $reposted_post_type];
+
+    //                 #delete notification & activity
+    //                 Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', $nType)->delete();
+    //                 ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType)->delete();
+    //                 Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', [$reposted_post_type, $posted_in_community])->delete();
+    //                 ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', [$reposted_post_type, $posted_in_community])->delete();
+    //                 DB::commit();
+    //                 return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
+    //             }
+    //         } else {
+
+    //             return $this->sendError(trans("message.post_id_required"), [], 422);
+    //         }
+    //     } catch (Exception $e) {
+    //         DB::rollBack();
+    //         Log::error('Error caught: "get community" ' . $e->getMessage());
+    //         return $this->sendError($e->getMessage(), [], 400);
+    //     }
+    // }
+
     public function destroy(string $id)
     {
         DB::beginTransaction();
+
         try {
-            $auth       = Auth::user();
-            $authId     = Auth::id();
-            if (isset($id) && !empty($id)) {
-                $isExist = Post::where(['id' => $id, 'user_id' => $authId])->exists();
+            $authId = Auth::id();
 
-                if (!$isExist) {
-
-                    return $this->sendError(trans("message.no_post_found"), [], 422);
-
-                } else {
-
-                    Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
-                    #delete notification & activity
-                    $posted_in_community    = trans('notification_message.posted_in_community'); //10
-                    $like_post_type         = trans('notification_message.like_post_type'); //11
-                    $comment_on_post_type   = trans('notification_message.comment_on_post_type'); //12
-                    $like_comment_post_type = trans('notification_message.like_comment_post_type'); //13
-                    $comment_reply_type     = trans('notification_message.comment_reply_type'); //14
-                    $reposted_post_type     = trans('notification_message.reposted_post_type'); //15
-                    $nType                  = [$posted_in_community, $like_post_type, $comment_on_post_type, $like_comment_post_type, $comment_reply_type, $reposted_post_type];
-
-                    #delete notification & activity
-                    Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', $nType)->delete();
-                    ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType)->delete();
-                    Notification::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', [$reposted_post_type, $posted_in_community])->delete();
-                    ActivityLog::where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', [$reposted_post_type, $posted_in_community])->delete();
-                    DB::commit();
-                    return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
-                }
-            } else {
-
+            if (empty($id)) {
                 return $this->sendError(trans("message.post_id_required"), [], 422);
             }
+
+            $isExist = Post::where(['id' => $id, 'user_id' => $authId])->exists();
+
+            if (!$isExist) {
+                
+                return $this->sendError(trans("message.no_post_found"), [], 422);
+            }
+
+            Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+
+            // Define notification types
+            $nType = [
+                trans('notification_message.posted_in_community'),
+                trans('notification_message.like_post_type'),
+                trans('notification_message.comment_on_post_type'),
+                trans('notification_message.like_comment_post_type'),
+                trans('notification_message.comment_reply_type'),
+                trans('notification_message.reposted_post_type')
+            ];
+
+            // Delete notifications and activity logs
+            Notification::where(function ($query) use ($id, $nType) {
+
+                $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('notification_type', $nType);
+
+            })->delete();
+
+            ActivityLog::where(function ($query) use ($id, $nType) {
+
+                $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
+                
+            })->delete();
+
+            DB::commit();
+
+            return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error caught: "get community" ' . $e->getMessage());
+            Log::error('Error caught: "destroy post" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
     #-------------------    D E L E T E          P O S T  ------------------------#
 
   
