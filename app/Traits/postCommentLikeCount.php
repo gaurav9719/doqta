@@ -425,9 +425,10 @@ trait postCommentLikeCount
 
 
     #----------- G E T      C O M M U N I T Y           P O S T         B Y     I D ------------------_#
-    public function getCommunityPost($community_id, $authId, $request)
+    public function getCommunityPostJUN13($community_id, $authId, $request)
     {
         try {
+            
             $group =     Group::where('id', $community_id)->where('is_active', 1)
 
                         ->whereHas('groupOwner', function ($query) use ($authId) {
@@ -481,6 +482,8 @@ trait postCommentLikeCount
                     $group->role = null;
                 }
             }
+
+
             $isGroupMember          =   GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
             if (!$isGroupMember) {
 
@@ -612,6 +615,59 @@ trait postCommentLikeCount
         }
     }
     #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
+
+
+    public function getCommunityPost($community_id, $authId, $request,$authUser)
+    {
+        try {
+
+            $groupExit              =   GroupData($authId, $community_id);
+
+            if(isset($groupExit) && $groupExit!="400"){
+
+                $group              =   $groupExit;
+
+            }else{
+
+                return $this->sendResponsewithoutData(trans('message.invalid_group'), 400);
+
+            }
+           
+            $isGroupMember          =   GroupMember::where(['group_id' => $community_id, 'user_id' => $authId, 'is_active' => 1])->first();
+
+            if (!$isGroupMember) {
+
+                return response()->json(['status' => 201, 'message' => trans('message.you_are_not_group_member'), 'group' => $group]);
+            }
+            $limit                  =   10;
+
+            if (isset($request['limit']) && !empty($request['limit'])) {
+
+                $limit              =   $request['limit'];
+            }
+
+            $posts                 =   fetchPosts($request, $community_id, $limit, $authUser);
+
+            $posts->getCollection()->transform(function ($post) use ($authId) {
+
+                if(isset($post) && !empty($post)){
+
+                    $post  = transformPostData($post, $authId);
+                }
+                if (isset($post->parent_post) && !empty($post->parent_post)) {
+
+                    $post = transformParentPostData($post, $authId);
+                }
+                return $post;
+            });
+
+            return response()->json(['status' => 200, 'message' => trans('message.community_post'), 'data' => $posts, 'group' => $group]);
+
+        } catch (Exception $e) {
+            Log::error('Error caught: "getCommunityPost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
 
     public function getPostNew($postId, $authId, $mesage)
     {

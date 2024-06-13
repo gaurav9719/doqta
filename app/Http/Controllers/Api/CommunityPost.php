@@ -98,18 +98,14 @@ class CommunityPost extends BaseController
      */
     public function show(string $id, Request $request)
     {
-        $validation = Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id','recent'=>'nullable|integer','trending'=>'nullable|integer|between:0,2','confidence'=>"nullable|integer|in:1","location"=>'nullable|integer|between:0,1','health_provider'=>'nullable|integer']);
-
+        $validation             =           Validator::make(['id' => $id], ['id' => 'required|integer|exists:groups,id','recent'=>'nullable|integer','trending'=>'nullable|integer|between:0,2','confidence'=>"nullable|integer|in:1","location"=>'nullable|integer|between:0,1','health_provider'=>'nullable|integer']);
+        
         if ($validation->fails()) {
 
             return $this->sendResponsewithoutData($validation->errors()->first(), 422);
         }
-        // return $this->addCommunityPost->getCommunityPost($id, Auth::id(), $request);
-        // return $this->getCommunityPost($id, Auth::id(), $request);
-        $limit  =   $request->limit??10;
-        $post   =   fetchPosts($request,$id,$limit,Auth::user());
-        // dd($post);
-        return $this->sendResponse($post,trans('message.home_screen_post'), 200);
+
+        return $this->getCommunityPost($id, Auth::id(), $request,Auth::user());
     }
     /**
      * Show the form for editing the specified resource.

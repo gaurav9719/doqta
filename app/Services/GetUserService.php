@@ -352,7 +352,6 @@ class GetUserService extends BaseController
     }
 
     public function getUserPosts($userId,$authId,$limit){
-        
         try {
             if($userId!=$authId){
 

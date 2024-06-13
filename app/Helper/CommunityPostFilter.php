@@ -13,6 +13,7 @@ use App\Services\NotificationService;
     if (!function_exists('fetchPosts')) {
         function fetchPosts($request, $community_id, $limit, $authUser)
         {
+           
             $authId     =    $authUser->id;
             $posts      =   Post::where('is_active', 1)
                 ->where('group_id', $community_id)
@@ -140,7 +141,7 @@ use App\Services\NotificationService;
         }
     }
 
-    if (!function_exists('applyBlockingFilters')) {
+    if (!function_exists('applyHidingFilters')) {
 
         function applyHidingFilters($posts, $authId)
         {
