@@ -149,18 +149,33 @@ if (!function_exists('IsPostAvailable')) {
 
 if (!function_exists('IsUserBlocked')) {
 
-    function IsUserBlocked($user_id, $authId)
+    function IsUserBlocked($user_id, $authId,$type="")
     {
 
-        return  User::where(function ($query) use ($authId) {
+        $is_blocked=  User::where(function ($query) use ($authId) {
+
             $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
                 $query->where('user_id', $authId);
+
             })
                 ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
                     $query->where('blocked_user_id', $authId);
+
                 });
-        })
-            ->where(['id' => $user_id, 'is_active' => 1])->first();
+        });
+
+        if(empty($type)){
+
+            $is_blocked->where(['id' => $user_id, 'is_active' => 1])->first();
+
+        }else{
+
+            $is_blocked->where(['id' => $user_id, 'is_active' => 1])->exists();
+        }
+        return $is_blocked;
+        
     }
 }
 
@@ -379,5 +394,42 @@ if (!function_exists('GroupData')) {
         }
 
         return $group;
+    }
+}
+
+
+
+if(!function_exists('reactiveChat')){
+
+    function reactiveChat($message,$myId,$reciever){
+
+        if (($message->is_user1_trash == $myId) || ($message->is_user2_trash == $myId)) {
+
+            if ($message->is_user1_trash == $myId) {
+
+                $message->is_user1_trash    =   null;
+            } else {
+
+                $message->is_user2_trash    =   null;
+            }
+        }
+
+        if (($message->is_user1_trash == $reciever) || ($message->is_user2_trash == $reciever)) {
+
+            if ($message->is_user1_trash == $reciever) {
+
+                $message->is_user1_trash    =   null;
+            } else {
+
+                $message->is_user2_trash    =   null;
+            }
+        }
+
+        if ($message->is_active == 0) {
+
+            $message->is_active         =   1;
+        }
+
+        return $message;
     }
 }

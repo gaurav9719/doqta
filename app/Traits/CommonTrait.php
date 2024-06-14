@@ -312,62 +312,71 @@ trait CommonTrait
                 }
 
                 foreach ($userIDs as $reciever) {
-                    $message = Inbox::where(function ($query) use ($myId, $reciever) {
-                        $query->where(function ($subQuery) use ($myId, $reciever) {
-                            $subQuery->where('sender_id', $myId)->where('receiver_id', $reciever);
-                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
-                            $subQuery->where('receiver_id', $myId)->where('sender_id', $reciever);
-                        });
-                    })->first();
 
-                    if (empty($message)) {
-                        // Create new thread
-                        $message = new Inbox();
-                        $message->sender_id = $myId;
-                        $message->receiver_id = $reciever;
-                        $message->save();
-                    }
+                    $isBlocked      =   IsUserBlocked($reciever,$myId,1);
 
-                    $inboxId = $message->id;
+                    if(!$isBlocked){
 
-                    // Add data to message table
-                    $sendMessage = new Message();
-                    $sendMessage->inbox_id = $inboxId;
-                    $sendMessage->sender_id = $myId;
-                    $sendMessage->message = $messageContent;
-                    $sendMessage->message_type = $message_type;
-                    if ($type == 1) {
-                        $sendMessage->post_id = $relatedDataId;
-                    } elseif ($type == 2) {
-                        $sendMessage->user_id = $relatedDataId;
-                    }
-                    $sendMessage->save();
-
-                    $lastMessageId = $sendMessage->id;
-                    Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
-
-                    // Share post with user (if type is 1)
-                    if ($type == 1) {
-
-                        $isCreated = SharePost::updateOrCreate(
-                            ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
-                            ['message_id' => $lastMessageId]
-                        );
-
-                        if ($isCreated->wasRecentlyCreated) {
-
-                            increment('posts', ['id' => $relatedDataId], 'share_count', 1);
-
+                        $message = Inbox::where(function ($query) use ($myId, $reciever) {
+    
+                            $query->where(function ($subQuery) use ($myId, $reciever) {
+    
+                                $subQuery->where('sender_id', $myId)->where('receiver_id', $reciever);
+    
+                            })->orWhere(function ($subQuery) use ($myId, $reciever) {
+    
+                                $subQuery->where('receiver_id', $myId)->where('sender_id', $reciever);
+    
+                            });
+    
+                        })->first();
+    
+                        if (empty($message)) {
+                            // Create new thread
+                            $message = new Inbox();
+                            $message->sender_id = $myId;
+                            $message->receiver_id = $reciever;
+                            $message->save();
                         }
+                        $message    =   reactiveChat($message,$myId,$reciever);
+                        $inboxId    = $message->id;
+                        // Add data to message table
+                        $sendMessage = new Message();
+                        $sendMessage->inbox_id = $inboxId;
+                        $sendMessage->sender_id = $myId;
+                        $sendMessage->message = $messageContent;
+                        $sendMessage->message_type = $message_type;
+                        if ($type == 1) {
+                            $sendMessage->post_id = $relatedDataId;
+                        } elseif ($type == 2) {
+                            $sendMessage->user_id = $relatedDataId;
+                        }
+                        $sendMessage->save();
+                        $lastMessageId = $sendMessage->id;
+                        Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
+    
+                        // Share post with user (if type is 1)
+                        if ($type == 1) {
+    
+                            $isCreated = SharePost::updateOrCreate(
+                                ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
+                                ['message_id' => $lastMessageId]
+                            );
+    
+                            if ($isCreated->wasRecentlyCreated) {
+    
+                                increment('posts', ['id' => $relatedDataId], 'share_count', 1);
+    
+                            }
+                        }
+                        // Send notification
+                        $receiver = User::find($reciever);
+                        $sender = User::find($myId);
+                        $notificationMessage = "New message from " . $sender->name;
+                        $data = ["message" => $notificationMessage, 'notification_type' => trans('notification_message.send_message_type')];
+                        sendPushNotificationNew($sender, $receiver, $data);
                     }
-                    // Send notification
-                    $receiver = User::find($reciever);
-                    $sender = User::find($myId);
-                    $notificationMessage = "New message from " . $sender->name;
-                    $data = ["message" => $notificationMessage, 'notification_type' => trans('notification_message.send_message_type')];
-                    sendPushNotificationNew($sender, $receiver, $data);
                 }
-
                 DB::commit();
                 return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
             } else {

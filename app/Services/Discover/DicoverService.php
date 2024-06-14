@@ -247,7 +247,7 @@ class DicoverService extends BaseController
                     ->from('group_members')
                     ->whereColumn('group_members.group_id', '=', 'groups.id')
                     ->where('group_members.user_id', '=', $authId);
-                    
+
             })->whereNotExists(function ($query) use ($authId) {
 
                 $query->select(DB::raw(1))->from('blocked_users')
@@ -264,8 +264,11 @@ class DicoverService extends BaseController
                             ->whereColumn('blocked_users.user_id', 'groups.created_by');
                     });
             })->whereHas('groupMember', function ($query) use ($startOfWeek, $endOfWeek) {
+
                 $query->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+
                     ->where('is_active', 1); // Assuming 'is_active' field exists in group members
+                    
             })->having('group_member_count', '>', 0)
 
                 ->orderByDesc('post_count');
