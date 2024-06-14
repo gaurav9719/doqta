@@ -120,6 +120,7 @@ class DicoverService extends BaseController
             if (!empty($request->search)) {
 
                 $groupIdsQuery->whereHas('communities', function ($query) use ($request) {
+
                     $query->where('name', 'like', "%$request->search%");
                 });
             }
@@ -136,9 +137,20 @@ class DicoverService extends BaseController
                 })->with(['groupUser' => function ($query) {
 
                     $query->select('id', 'name', 'user_name', 'profile');
-                }, 'communities' => function ($query) {
+
+                },
+                'groupUser.user_medical_certificate' => function ($q) {
+
+                    $q->select('id', 'medicial_degree_type', 'user_id');
+                },
+                'groupUser.user_medical_certificate.medical_certificate' => function ($q) {
+
+                    $q->select('id', 'name');
+                },
+                'communities' => function ($query) {
 
                     $query->select('id', 'name');
+
                 }]) // Exclude users followed by the authenticated user
                     ->whereDoesntHave('user.followers', function ($query) use ($authId) {
 
@@ -150,37 +162,8 @@ class DicoverService extends BaseController
                     ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
                         $query->where('user_id', $authId);
                     })
-
-
-                    // ->whereNotExists(function ($query) use ($authId) {
-
-                    //     $query->select(DB::raw(1))
-                    //         ->from('user_followers')
-                    //         ->whereColumn('user_followers.user_id', '=', 'group_members.user_id')
-                    //         ->where('user_followers.follower_user_id', '=', $authId);
-                    // })
-
-                    // ->whereNotExists(function ($query) use ($authId) {
-
-                    //     $query->select(DB::raw(1))->from('blocked_users')
-
-                    //         ->where(function ($query) use ($authId) {
-                    //             // Check if the authenticated user has blocked someone
-                    //             $query->where('user_id', $authId)
-                    //                 ->whereColumn('blocked_users.blocked_user_id', 'group_members.user_id');
-                    //         })
-                    //         ->orWhere(function ($query) use ($authId) {
-                    //             // Check if the authenticated user has been blocked by someone
-                    //             $query->where('blocked_user_id', $authId)
-                    //                 ->whereColumn('blocked_users.user_id', 'group_members.user_id');
-                    //         });
-                    // })
-
-
-
-
                     ->whereIn('group_id', $groupIds)
-
+                
                     ->where('is_active', 1) // Assuming 'is_active' field is boolean
                     ->where('user_id', '<>', $authId)
                     ->groupBy('user_id');
@@ -188,11 +171,13 @@ class DicoverService extends BaseController
                 if (isset($type) && !empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
                     $memberIds      =   $memberIds->get()->take($limit);
+
                 } else {
 
                     $memberIds      =   $memberIds->simplePaginate($limit);
                 }
                 if (isset($memberIds) && !empty($memberIds)) {
+
                     $memberIds->each(function ($suggestMember) use ($authId) {
 
                         if (isset($suggestMember->groupUser) && !empty($suggestMember->groupUser)) {
@@ -209,6 +194,7 @@ class DicoverService extends BaseController
                 if (isset($type) && !empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
                     return $memberIds;
+
                 } else {
 
                     return $this->sendResponse($memberIds, trans("message.shared_support_users"), 200);
@@ -237,15 +223,14 @@ class DicoverService extends BaseController
     {
         try {
 
-
             $startOfWeek                            =       Carbon::now()->startOfWeek();
             $endOfWeek                              =       Carbon::now()->endOfWeek();
             if (isset($isWeekly) && !empty($isWeekly)) {
 
-                $topCommunities                         =       Group::withCount(['groupMember']);
+                $topCommunities                     =       Group::withCount(['groupMember']);
             } else {
 
-                $topCommunities                         =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
+                $topCommunities                     =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
 
                     $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
                 }]);
@@ -257,10 +242,12 @@ class DicoverService extends BaseController
             }
 
             $topCommunities                         =       $topCommunities->whereNotExists(function ($query) use ($authId) {
+
                 $query->select(DB::raw(1))
                     ->from('group_members')
                     ->whereColumn('group_members.group_id', '=', 'groups.id')
                     ->where('group_members.user_id', '=', $authId);
+                    
             })->whereNotExists(function ($query) use ($authId) {
 
                 $query->select(DB::raw(1))->from('blocked_users')

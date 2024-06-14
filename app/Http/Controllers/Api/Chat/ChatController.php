@@ -518,8 +518,8 @@ class ChatController extends BaseController
                 DB::table('messages')
                 ->where('inbox_id', $inbox->id)
                 ->update([
-                    'is_user1_trash' => DB::raw("CASE WHEN sender_id = $myId THEN 1 ELSE is_user1_trash END"),
-                    'is_user2_trash' => DB::raw("CASE WHEN sender_id <> $myId THEN 1 ELSE is_user2_trash END"),
+                    'is_user1_trash' => DB::raw("CASE WHEN sender_id = $myId THEN '".$myId."' ELSE is_user1_trash END"),
+                    'is_user2_trash' => DB::raw("CASE WHEN sender_id <> $myId THEN '".$myId."' ELSE is_user2_trash END"),
                 ]);
                 DB::commit();
 
