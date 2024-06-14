@@ -28,16 +28,17 @@ class ChatAnalyzerController extends BaseController
         ]);
     
         if($validate->fails()){
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
         
-        $myId = Auth::id();
-        $inbox_ids = AiThread::where(function ($query) use ($myId) {
-            $query->where('sender_id', $myId)
-            ->orWhere('receiver_id', $myId);
-            })
-            ->pluck('id')
-            ->toArray();
+        $myId               =       Auth::id();
+        
+        $inbox_ids          =       AiThread::where(function ($query) use ($myId) {
+
+                                    $query->where('sender_id', $myId)
+                                        ->orWhere('receiver_id', $myId);
+                                    })->pluck('id')->toArray();
         
         if (count($inbox_ids) > 0) {
             
@@ -112,6 +113,7 @@ class ChatAnalyzerController extends BaseController
                 $insight    = $this->generateReportAIChatTrait($chatData);
     
                 if(isset($insight['status']) && $insight['status'] == 200){
+
                     $insight = json_encode($insight['data']);
                     $newReport=JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
                     if(!isset($newReport)){

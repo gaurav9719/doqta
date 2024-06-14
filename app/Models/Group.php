@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Group extends Model
 {
     use HasFactory;
-    protected $fillable = ['id','name','description','cover_photo','created_by','visibility','approval_required','member_count','is_active','created_at','updated_at'];
+    protected $fillable = ['id','name','description','cover_photo','created_by','visibility','approval_required','post_count','member_count','is_active','created_at','updated_at'];
 
     public function posts()
     {

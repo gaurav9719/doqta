@@ -199,6 +199,7 @@ trait CalculateScore
     public function CalculateConfidenceScore($postId)
     {
         try {
+            
             log::info("CalculateConfidenceScore");
             $post           =       Post::find($postId);
 

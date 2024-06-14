@@ -34,7 +34,7 @@ use App\Traits\CommonTrait;
 use App\Traits\postCommentLikeCount;
 use App\Traits\IsCommunityJoined;
 
-
+use App\Jobs\DeleteJobs\PostRecalculation;
 
 class CommunityPost extends BaseController
 {
@@ -53,6 +53,7 @@ class CommunityPost extends BaseController
     {
         $limit          = 10;
         $authId         = Auth::id();
+
         if (isset($request->limit) && !empty($request->limit)) {
 
             $limit      = $request->limit;
@@ -198,21 +199,22 @@ class CommunityPost extends BaseController
         DB::beginTransaction();
 
         try {
+
             $authId = Auth::id();
 
             if (empty($id)) {
+
                 return $this->sendError(trans("message.post_id_required"), [], 422);
             }
 
-            $isExist = Post::where(['id' => $id, 'user_id' => $authId])->exists();
+            $isExist        = Post::where(['id' => $id, 'user_id' => $authId])->first();
 
-            if (!$isExist) {
+            if (empty($isExist)) {
                 
                 return $this->sendError(trans("message.no_post_found"), [], 422);
             }
 
             Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
-
             // Define notification types
             $nType = [
                 trans('notification_message.posted_in_community'), //10
@@ -222,10 +224,11 @@ class CommunityPost extends BaseController
                 trans('notification_message.comment_reply_type'), //14
                 trans('notification_message.reposted_post_type') //15
             ];
-
             // Delete notifications and activity logs
             DB::table('notifications')->where(function ($query) use ($id) {
+
                         $query->where('post_id', $id)
+
                         ->orWhere('parent_id', $id);
             })
             ->whereIn('notification_type', $nType)
@@ -233,10 +236,12 @@ class CommunityPost extends BaseController
             
             ActivityLog::where(function ($query) use ($id, $nType) {
 
-                $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
+            $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
                 
             })->delete();
             DB::commit();
+
+            dispatch(new PostRecalculation($isExist->group_id));
             return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
 
         } catch (Exception $e) {
@@ -428,7 +433,8 @@ class CommunityPost extends BaseController
                     $data = [
                         "message" => $message,
                         "post_id" => $rePost->id,
-                        "community_id" => $isExist->group_id
+                        "community_id" => $isExist->group_id,
+                        'parent_id'=>$request->post_id
                     ];
             
                     $postUser = Post::select('user_id')->where('id', $rePost->parent_id)->first();
@@ -467,6 +473,7 @@ class CommunityPost extends BaseController
         DB::beginTransaction();
 
         try {
+            
             $validation = Validator::make($request->all(), [
                 'post_id' => 'required|integer|exists:posts,id',
                 'type' => 'required|integer|between:0,2'

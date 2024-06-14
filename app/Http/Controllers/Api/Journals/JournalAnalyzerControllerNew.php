@@ -79,6 +79,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
         $moodPain       =   $this->getInsightSymptoms($request);
 
+       
         #check report available
         $availableReport = $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
         
@@ -109,6 +110,8 @@ class JournalAnalyzerControllerNew extends BaseController
             ->pluck('id')
             ->toArray();
         $data = array();
+
+      
         foreach ($journal_ids as $journal_id) {
 
             $journal = Journal::find($journal_id);
@@ -161,8 +164,11 @@ class JournalAnalyzerControllerNew extends BaseController
         if (count($data) > 0) {
             #----------  3 J U N -----------------#
             if (isset($request->include_chat) && $request->include_chat == 1) {
+
                 $chat = $this->includeChat($request);
+
                 if (isset($chat) && count($chat) > 0) {
+
                     $data = array_merge($data, $chat);
                 }
             }
@@ -172,6 +178,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
             #Insides & Suggestion
             if ($request->type == 1) {
+
                 array_push(
                     $data,
                     array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and sugestions"),
@@ -205,6 +212,7 @@ class JournalAnalyzerControllerNew extends BaseController
                 $report = $this->generateReportAI($data, 2);
             }
 
+           
             #insert in database if success
             if (isset($report['status']) && $report['status'] == "200") {
 
@@ -223,6 +231,10 @@ class JournalAnalyzerControllerNew extends BaseController
 
                 return $this->insertReport($response, $data1, $moodPain);
             } else {
+
+                $report['moodPain']=$moodPain;
+
+                // dd($report);
                 return response()->json($report, $report['status']);
             }
         } else {
@@ -272,6 +284,8 @@ class JournalAnalyzerControllerNew extends BaseController
         curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
         // Execute cURL request
         $response = curl_exec($curl);
+
+        
         // Check for errors
         if ($response === false) {
             $error = curl_error($curl);
@@ -287,12 +301,13 @@ class JournalAnalyzerControllerNew extends BaseController
             // Close cURL session
             curl_close($curl);
             $response = json_decode($response, true);
+            
             // return $response;
             try {
+                
                 if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
 
                     $result = $response['candidates'][0]['content']['parts'][0]['text'];
-
                     $finalResponse = $this->convertIntoJson($result);
                     $finalResponse = json_decode($finalResponse, true);
                     // return $finalResponse;
@@ -454,6 +469,10 @@ class JournalAnalyzerControllerNew extends BaseController
                 ],
                 [
                     "text" => "Concise Insights: Keep each insight focused and avoid repetitive or unnecessarily lengthy explanations. Be concise and write insights as bullets that are no longer than one sentence each."
+                ],
+
+                [
+                    "text" => "Proper JSON Response: Keep json response proper without extra apostrophe extra ,Remove unnecessarily symbols."
                 ]
             ];
         } elseif ($type == 2) {
