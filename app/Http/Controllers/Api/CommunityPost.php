@@ -34,6 +34,8 @@ use App\Traits\CommonTrait;
 use App\Traits\postCommentLikeCount;
 use App\Traits\IsCommunityJoined;
 
+
+
 class CommunityPost extends BaseController
 {
     use CommonTrait, IsCommunityJoined, postCommentLikeCount;
@@ -386,7 +388,7 @@ class CommunityPost extends BaseController
                 return $this->sendError(trans("message.no_post_found"), [], 422);
             }
     
-            if (!$this->checkCommunityJoined($isExist->group_id)) {
+            if (!$this->checkCommunityJoind($isExist->group_id)) {
 
                 return $this->sendError(trans("message.please_join_community"), [], 403);
             }

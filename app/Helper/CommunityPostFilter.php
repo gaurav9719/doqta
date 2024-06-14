@@ -18,7 +18,9 @@ use App\Services\NotificationService;
             $posts      =   Post::where('is_active', 1)
                 ->where('group_id', $community_id)
                 ->whereHas('post_user', function ($query) {
+
                     $query->where('is_active', 1);
+
                 });
             #-------------- TRENDING POST --------------#
             if (!empty($request->trending)) {
@@ -64,14 +66,36 @@ use App\Services\NotificationService;
             #-------------------------------------------#
             #-------------- WITH RELATIONS -------------#
             $posts->with([
+
                 'group:id,name,description,cover_photo,post_count',
                 'post_user:id,user_name,name,profile',
+                
+                'post_user.user_medical_certificate'=>function($q){
+
+                            $q->select('id','medicial_degree_type','user_id');
+    
+                        },
+                        'post_user.user_medical_certificate.medical_certificate'=>function($q){
+    
+                            $q->select('id','name');
+                        },
                 'parent_post' => function ($query) {
+
                     $query->select('*')
                         ->where('is_active', 1)
                         ->with([
                             'post_user:id,name,user_name,profile',
-                            'group:id,name,description,created_by,is_active'
+                            'post_user.user_medical_certificate'=>function($q){
+
+                                $q->select('id','medicial_degree_type','user_id');
+        
+                            },
+                            'post_user.user_medical_certificate.medical_certificate'=>function($q){
+        
+                                $q->select('id','name');
+                            },
+
+                            'group:id,name,description,created_by,post_count,is_active'
                         ]);
                 }
             ]);

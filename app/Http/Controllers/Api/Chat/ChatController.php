@@ -63,6 +63,7 @@ class ChatController extends BaseController
             })->where(function ($q) use ($myId) {
 
                 $q->where('is_user1_trash', '<>', $myId)
+                
                     ->orWhere('is_user1_trash', '<>', $myId);
             })
                 ->when(!empty($request->search), function ($query) use ($data) {

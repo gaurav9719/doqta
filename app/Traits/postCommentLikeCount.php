@@ -742,6 +742,16 @@ trait postCommentLikeCount
                     'post_user' => function ($query) {
                         $query->select('id', 'name', 'user_name', 'profile');
                     },
+
+                    'post_user.user_medical_certificate'=>function($q){
+
+                        $q->select('id','medicial_degree_type','user_id');
+
+                    },
+                    'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                        $q->select('id','name');
+                    },
                     'group' => function ($query) {
                         $query->select('id', 'name', 'description', 'cover_photo', 'member_count', 'post_count', 'created_by');
                     },
@@ -751,7 +761,16 @@ trait postCommentLikeCount
                         ->with([
                             'post_user' => function ($query) {
                                 $query->select('id', 'name', 'user_name', 'profile');
-                            }
+                            },
+                            'post_user.user_medical_certificate'=>function($q){
+
+                                $q->select('id','medicial_degree_type','user_id');
+        
+                            },
+                            'post_user.user_medical_certificate.medical_certificate'=>function($q){
+        
+                                $q->select('id','name');
+                            },
                         ]);
                     }
                 ])->withCount(['total_likes', 'total_comment'])->first();
