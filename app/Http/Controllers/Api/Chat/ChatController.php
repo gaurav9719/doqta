@@ -54,18 +54,27 @@ class ChatController extends BaseController
                 $join->on(function ($query) use ($myId) {
                     // Join condition when sender_id matches myId
                     $query->where('inboxes.sender_id', '=', $myId)
+
                         ->where('inboxes.receiver_id', '=', DB::raw('U.id'));
+
                 })->orWhere(function ($query) use ($myId) {
                     // Join condition when receiver_id matches myId
                     $query->where('inboxes.receiver_id', '=', $myId)
                         ->where('inboxes.sender_id', '=', DB::raw('U.id'));
                 });
-            })->where(function ($q) use ($myId) {
+            })->where('inboxes.is_active',1)
+            ->where(function ($query) use($myId){
 
-                $q->where('is_user1_trash', '<>', $myId)
-                
-                    ->orWhere('is_user1_trash', '<>', $myId);
+                $query->where(function ($query) use($myId) {
+                    $query->whereNull('is_user1_trash')
+                          ->orWhere('is_user1_trash', '!=', $myId);
+                })
+                ->where(function ($query) use($myId) {
+                    $query->whereNull('is_user2_trash')
+                          ->orWhere('is_user2_trash', '!=', $myId);
+                });
             })
+    
                 ->when(!empty($request->search), function ($query) use ($data) {
                     // Filtering based on the first_name column of the 'users' table
                     return $query->where('U.user_name', 'LIKE', '%' . $data['search'] . '%');
@@ -77,9 +86,9 @@ class ChatController extends BaseController
                     $query->orWhere('inboxes.receiver_id', '=', $myId);
                 })
                 ->select('inboxes.*', 'U.name', 'U.profile', 'U.user_name', 'U.id as other_user_id', 'U.is_active as u_is_active')
-                ->orderBy('inboxes.updated_at', 'DESC') // Order by 'updated_at' column
+                ->orderByDesc('inboxes.updated_at') // Order by 'updated_at' column, DESCENDING
                 ->simplePaginate($limit); // Paginate the results
-            if ($threads[0]) {
+            if (isset($threads[0]) && !empty($threads[0])) {
 
                 $threads->each(function ($result) use ($myId) {
 
@@ -155,15 +164,17 @@ class ChatController extends BaseController
                         ->where('sender_id', $reciever);
                 });
             })->first();
+
             if (empty($message)) {
                 // create new thread
                 $message                       =               new Inbox();
                 $message->sender_id            =               $myId;
                 $message->receiver_id          =               $reciever;
                 $message->save();
+
             } else {
                 //
-                if (($message->is_user1_trash == $myId || $message->is_user2_trash == $myId)) {
+                if (($message->is_user1_trash == $myId) || ($message->is_user2_trash == $myId)) {
 
                     if ($message->is_user1_trash == $myId) {
 
@@ -174,7 +185,7 @@ class ChatController extends BaseController
                     }
                 }
 
-                if (($message->is_user1_trash == $reciever || $message->is_user2_trash == $reciever)) {
+                if (($message->is_user1_trash == $reciever) || ($message->is_user2_trash == $reciever)) {
 
                     if ($message->is_user1_trash == $reciever) {
 
@@ -202,6 +213,7 @@ class ChatController extends BaseController
                 $media_thumbnail                =             message_media($request->thumbnails, 10);
             }
             $inboxId                            =               $message->id;
+           
             #----------- A D D      D A T A         T O         M E S S A G E       T A B L E -----------#
             $sendMessage                        =                new Message();
             $sendMessage->inbox_id              =                $inboxId;
@@ -226,9 +238,10 @@ class ChatController extends BaseController
                 $sendMessage->long               =                $request->long;
             }
             $sendMessage->message_type           =                $request->message_type;
-            $sendMessage->save();
-            $lastMessageId                       =                $sendMessage->id;
 
+            $sendMessage->save();
+
+            $lastMessageId                       =                $sendMessage->id;
             Inbox::where('id', $inboxId)->update(['message_id' => $lastMessageId]);
             #send notification
             $receiver                           =               User::find($reciever);
@@ -239,6 +252,7 @@ class ChatController extends BaseController
             DB::commit();
             // SEND PUSH AND NOTIFICATION TO RECEIVER
             $sent_message                        =               $this->getLastMessage($lastMessageId, $myId);
+            // dd($sent_message);
             return $this->sendResponse($sent_message, "Message send.", 200);
         } catch (Exception $e) {
             DB::rollback();
@@ -272,24 +286,44 @@ class ChatController extends BaseController
                 if ($myId == $reciever) {
 
                     return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 422);
-                } else {
 
+                } else {
+                   
                     $inbox                    =              Inbox::where(function ($query) use ($myId, $reciever) {
-                        $query->where(function ($subQuery) use ($myId, $reciever) {
-                            $subQuery->where('sender_id', $myId)
-                                ->where('receiver_id', $reciever);
-                        })->orWhere(function ($subQuery) use ($myId, $reciever) {
-                            $subQuery->where('receiver_id', $myId)
-                                ->where('sender_id', $reciever);
-                        });
-                    })->where(function ($q) use ($myId) {
-                        $q->where('is_user1_trash', '<>', $myId)
-                            ->orWhere('is_user1_trash', '<>', $myId);
-                    })->first();
+
+                                                                $query->where(function ($subQuery) use ($myId, $reciever) {
+
+                                                                    $subQuery->where('sender_id', $myId)
+                                                                        ->where('receiver_id', $reciever);
+
+                                                                })->orWhere(function ($subQuery) use ($myId, $reciever) {
+
+                                                                    $subQuery->where('receiver_id', $myId)
+                                                                        ->where('sender_id', $reciever);
+
+                                                                });
+
+
+                                                        })
+                                                        ->where(function ($query) use ($myId) {
+                                                            // Filter messages where either user1 or user2 has not trashed the message
+                                                            $query->where(function ($query) use ($myId) {
+
+                                                                $query->whereNull('is_user1_trash')
+
+                                                                    ->orWhere('is_user1_trash', '!=', $myId);
+                                                            })
+                                                            ->where(function ($query) use ($myId) {
+
+                                                                $query->whereNull('is_user2_trash')
+                                                                    ->orWhere('is_user2_trash', '!=', $myId);
+                                                            });
+                                                        })->first();
 
                     if (isset($inbox) && !empty($inbox)) {
 
                         $inboxId              =             $inbox->id;
+
                         $messages             =             Message::with(['sender' => function ($query) {
 
                             $query->select('id', 'name', 'profile');
@@ -297,21 +331,34 @@ class ChatController extends BaseController
                         }, 'reply_to.sender' => function ($query) {
 
                             $query->select('id', 'name', 'profile');
+
                         }, 'post', 'post.post_user' => function ($q) {
 
                             $q->select('id', 'name', 'user_name', 'profile');
+
                         }, 'post.group' => function ($q) {
 
                             $q->select('id', 'name', 'description', 'created_by');
+
                         }, 'share_user' => function ($q) {
 
                             $q->select('id', 'user_name', 'name', 'profile', 'is_active');
-                        }])->where(function ($query) use ($myId) {
 
-                            $query->where('is_user1_trash', '!=', $myId)
-                                ->orWhere('is_user2_trash', '!=', $myId);
+                        }])->where(function ($query) use ($myId) {
+                            // Filter messages where either user1 or user2 has not trashed the message
+                            $query->where(function ($query) use ($myId) {
+
+                                $query->whereNull('is_user1_trash')
+                                      ->orWhere('is_user1_trash', '!=', $myId);
+                            })
+                            ->where(function ($query) use ($myId) {
+                                $query->whereNull('is_user2_trash')
+                                      ->orWhere('is_user2_trash', '!=', $myId);
+                            });
                         })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
+
                         if ($messages[0]) {
+
                             $messages->each(function ($result) use($myId) {
 
                                 if (isset($result->sender) && !empty($result->sender)) {
@@ -494,66 +541,81 @@ class ChatController extends BaseController
     public function getLastMessage($message_id, $myId)
     {
 
-        $result             =             Message::with(['sender' => function ($query) {
-
-            $query->select('id', 'name', 'user_name', 'profile');
-        }, 'reply_to.sender' => function ($query) {
-
-            $query->select('id', 'name', 'profile');
-        }])->where(function ($query) use ($myId) {
-
-            $query->where('is_user1_trash', '!=', $myId)
-                ->orWhere('is_user2_trash', '!=', $myId);
-        })->where('id', $message_id)->first();
-
-
-        if (isset($result) && !empty($result)) {
-
-            // $result->time_ago         =              $result->created_at->diffForHumans();
-            $result->time_ago         =       time_elapsed_string($result->created_at);
-            $result->is_blocked       =       isBlockedUser($myId, $result->sender_id);
-            $result->blocked_by       =       isBlockedUser($result->sender_id, $myId);
-
-            if (isset($result->sender) && !empty($result->sender)) {
-
-                if (isset($result->sender->profile) && !empty($result->sender->profile)) {
-
-                    $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
+        try {
+            $result = Message::with([
+                'sender' => function ($query) {
+                    $query->select('id', 'name', 'user_name', 'profile');
+                },
+                'reply_to.sender' => function ($query) {
+                    $query->select('id', 'name', 'profile');
                 }
-            }
+            ])
+            ->where('id', $message_id)
+            ->where(function ($query) use($myId){
 
-            if (isset($result->media) && !empty($result->media)) {
-
-                $result->media        =  $this->addBaseInImage($result->media);
-            }
-
-            if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
-
-                $result->media_thumbnail        =  $this->addBaseInImage($result->media_thumbnail);
-            }
-
-            if (isset($result->reply_to) && !empty($result->reply_to)) {
-
-                if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
-
-                    $result->reply_to->media        =    $this->addBaseInImage($result->reply_to->media);
+                $query->where(function ($query) use($myId) {
+                    $query->whereNull('is_user1_trash')
+                          ->orWhere('is_user1_trash', '!=', $myId);
+                })
+                ->where(function ($query) use($myId) {
+                    $query->whereNull('is_user2_trash')
+                          ->orWhere('is_user2_trash', '!=', $myId);
+                });
+            })->first();
+            if (isset($result) && !empty($result)) {
+    
+                // $result->time_ago         =              $result->created_at->diffForHumans();
+                $result->time_ago         =       time_elapsed_string($result->created_at);
+                $result->is_blocked       =       isBlockedUser($myId, $result->sender_id);
+                $result->blocked_by       =       isBlockedUser($result->sender_id, $myId);
+    
+                if (isset($result->sender) && !empty($result->sender)) {
+    
+                    if (isset($result->sender->profile) && !empty($result->sender->profile)) {
+    
+                        $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
+                    }
                 }
-
-                if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
-
-                    $result->reply_to->media_thumbnail        =   $this->addBaseInImage($result->reply_to->media_thumbnail);
+    
+                if (isset($result->media) && !empty($result->media)) {
+    
+                    $result->media        =  $this->addBaseInImage($result->media);
                 }
-
-                if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
-
-                    if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
-
-                        $result->reply_to->sender->profile        =   $this->addBaseInImage($result->reply_to->sender->profile);
+    
+                if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
+    
+                    $result->media_thumbnail        =  $this->addBaseInImage($result->media_thumbnail);
+                }
+    
+                if (isset($result->reply_to) && !empty($result->reply_to)) {
+    
+                    if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
+    
+                        $result->reply_to->media        =    $this->addBaseInImage($result->reply_to->media);
+                    }
+    
+                    if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
+    
+                        $result->reply_to->media_thumbnail        =   $this->addBaseInImage($result->reply_to->media_thumbnail);
+                    }
+    
+                    if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
+    
+                        if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
+    
+                            $result->reply_to->sender->profile        =   $this->addBaseInImage($result->reply_to->sender->profile);
+                        }
                     }
                 }
             }
-        }
+    
+            return $result;
+        } catch (Exception $e) {
+           
+            Log::error('Error caught: "destory" ' . $e->getMessage());
+            
+            // return $this->sendError($e->getMessage(), [], 400);
 
-        return $result;
+        }  
     }
 }

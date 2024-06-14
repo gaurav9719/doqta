@@ -72,8 +72,8 @@ class ChatRequest extends FormRequest
                 'required_if:message_type,2,3,4,5,7',
                 'file',
                 Rule::requiredIf(function () {
-                    Log::error('Error caught: "message_type" ' . $this->message_type);
-    
+
+                   
                     return in_array($this->message_type, [2, 3, 4, 7]); // Check if message_type is 2, 3, 4, or 7
                 }),
                 function ($attribute, $value, $fail) use ($allowedMimeTypes) {
