@@ -225,14 +225,17 @@ class DicoverService extends BaseController
 
             $startOfWeek                            =       Carbon::now()->startOfWeek();
             $endOfWeek                              =       Carbon::now()->endOfWeek();
+
             if (isset($isWeekly) && !empty($isWeekly)) {
 
                 $topCommunities                     =       Group::withCount(['groupMember']);
+
             } else {
 
                 $topCommunities                     =       Group::withCount(['groupMember' => function ($query) use ($startOfWeek, $endOfWeek) {
 
                     $query->whereBetween('created_at', [$startOfWeek, $endOfWeek]);
+
                 }]);
             }
 
@@ -263,15 +266,18 @@ class DicoverService extends BaseController
                         $query->where('blocked_user_id', $authId)
                             ->whereColumn('blocked_users.user_id', 'groups.created_by');
                     });
+
             })->whereHas('groupMember', function ($query) use ($startOfWeek, $endOfWeek) {
 
-                $query->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+               $query->whereBetween('created_at', [$startOfWeek, $endOfWeek])
 
-                    ->where('is_active', 1); // Assuming 'is_active' field exists in group members
+               ->where('is_active', 1); // Assuming 'is_active' field exists in group members
                     
-            })->having('group_member_count', '>', 0)
-
-                ->orderByDesc('post_count');
+            })
+            ->havingRaw('group_member_count + post_count > 0')
+            
+            ->orderByDesc(DB::raw('group_member_count + post_count'));
+                
 
             if (!empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
@@ -285,6 +291,8 @@ class DicoverService extends BaseController
 
                 $topCommunities->each(function ($topCommunity) use ($authId) {
 
+                    $topCommunity->totalData  =   $topCommunity->group_member_count+$topCommunity->post_count;
+
                     if (isset($topCommunity->cover_photo) && !empty($topCommunity->cover_photo)) {
 
                         $topCommunity->cover_photo =   asset('storage/' . $topCommunity->cover_photo);
@@ -297,6 +305,7 @@ class DicoverService extends BaseController
             if (!empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
                 return $topCommunities;
+
             } else {
 
                 return $this->sendResponse($topCommunities, trans("message.top_community"), 200);
@@ -606,10 +615,9 @@ class DicoverService extends BaseController
 
         try {
 
+            $topArticles        =       Post::where(['is_active'=>1,'media_type'=>4]);
 
-            $topArticles        =      Post::where(['is_active'=>1,'media_type'=>4]);
-
-            $topArticles       =       getPost($authId,$topArticles);
+            $topArticles        =       getPost($authId,$topArticles);
 
             if (isset($request->search) && !empty($request->search)) {
 
@@ -621,7 +629,9 @@ class DicoverService extends BaseController
                 });
             }
 
-            $topArticles = $topArticles->orderByDesc('like_count');
+            $topArticles        =       $topArticles->orderByRaw('like_count + comment_count DESC');
+            // $topArticles        =       $topArticles->orderByDesc('like_count');
+            
 
             if (!empty($type)) {
 
@@ -685,6 +695,10 @@ class DicoverService extends BaseController
             }
              // Limit the results to 5 and get the data
              $topVideos = $discoverPost->orderByDesc('like_count');
+            //  $topVideos = $discoverPost->orderByDesc('like_count');
+
+
+             $topVideos        =       $discoverPost->orderByRaw('like_count + comment_count DESC');
 
             if (!empty($type)) {
 
@@ -1189,8 +1203,16 @@ class DicoverService extends BaseController
 
         try {
 
-            $data                               =   [];
-            $support                            =   $this->supportUsers($request, $authId, $limit, 1);
+            $data                      =   [];
+
+           $support                   =   supportUserS($request, $authId, $limit, 1);
+
+           //return $this->sendResponse($support, trans('message.discover_people'), 200);
+            // dd($support);
+
+
+            //$support                            =   $this->supportUsers($request, $authId, $limit, 1);
+            
             if ($support !== "400") {
                 $data['show_your_support']      = $support;
             } else {
@@ -1199,7 +1221,10 @@ class DicoverService extends BaseController
 
             // Fetch top health provider
             $topHealthProvider = $this->topHealthProvider($request, $authId, $limit, 1);
+            $topHealthProvider = topHealthProvider($request, $authId, $limit, 1);
+            // dd($topHealthProvider);
 
+        
             if ($topHealthProvider !== "400") {
 
                 $data['top_health_provider'] = $topHealthProvider; // Use correct variable here
@@ -1209,7 +1234,9 @@ class DicoverService extends BaseController
                 $data['top_health_provider'] = [];
             }
 
-            $careTaker  =   $this->careTakerBySearch($request, $authId, $limit, 1);
+           // $careTaker  =   $this->careTakerBySearch($request, $authId, $limit, 1);
+
+            $careTaker                   =   supportUserS($request, $authId, $limit, 1,1);
             if ($careTaker !== "400") {
 
                 $data['care_takers']       =  $careTaker;
@@ -1916,95 +1943,103 @@ class DicoverService extends BaseController
     //     }
     // }
     public function careTakerBySearch($request, $authId, $limit, $type = "")
-{
-    try {
-        DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+    {
+        try {
 
-        // Initialize base query based on search input
-        $groupMembers = GroupMember::query();
+            DB::statement("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
 
-        if (!empty($request->search)) {
-            // Get the group IDs matching the search term
-            $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+            // Initialize base query based on search input
+            $groupMembers = GroupMember::query();
 
-            // Get the user IDs matching the search term, excluding those who are blocked by or have blocked the authenticated user
-            $userIds = User::where('user_name', 'like', "%{$request->search}%")
-                ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
-                ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
-                ->pluck('id');
+            if (!empty($request->search)) {
+                // Get the group IDs matching the search term
+                $groupIds = Group::where('name', 'like', "%{$request->search}%")->pluck('id');
+                // Get the user IDs matching the search term, excluding those who are blocked by or have blocked the authenticated user
+                $userIds = User::where('user_name', 'like', "%{$request->search}%")
+                    ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
+                    ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
+                    ->pluck('id');
+                // Add the conditions to the query
+                $groupMembers->where(function ($query) use ($groupIds, $userIds) {
+                    $query->whereIn('group_id', $groupIds)
+                        ->orWhereIn('user_id', $userIds);
+                });
+            }
+            // Filter out the authenticated user's own group memberships
+            $groupMembers->where('user_id', '<>', $authId);
+            // Eager load related models with selected fields
+            $groupMembers->with([
+                'communities:id,name,cover_photo,member_count,post_count',
+                'user:id,name,user_name,profile',
+                'user.user_medical_certificate'=>function($q){
 
-            // Add the conditions to the query
-            $groupMembers->where(function ($query) use ($groupIds, $userIds) {
-                $query->whereIn('group_id', $groupIds)
-                      ->orWhereIn('user_id', $userIds);
+                $q->select('id','medicial_degree_type','user_id');
+
+            },
+            'user.user_medical_certificate.medical_certificate'=>function($q){
+
+                $q->select('id','name');
+            },
+            ]);
+            // Filter based on user participant
+            $groupMembers->whereHas('user.userParticipant', function ($query) {
+                $query->whereIn('participant_id', [2]);
             });
-        }
 
-        // Filter out the authenticated user's own group memberships
-        $groupMembers->where('user_id', '<>', $authId);
-
-        // Eager load related models with selected fields
-        $groupMembers->with([
-            'communities:id,name,cover_photo,member_count,post_count',
-            'user:id,name,user_name,profile'
-        ]);
-
-        // Filter based on user participant
-        $groupMembers->whereHas('user.userParticipant', function ($query) {
-            $query->whereIn('participant_id', [2]);
-        });
-
-        // Exclude blocked users and those who blocked the authenticated user
-        $groupMembers->whereDoesntHave('user.blockedUsers', function ($query) use ($authId) {
-            $query->where('blocked_user_id', $authId);
-        })
-        ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
-            $query->where('user_id', $authId);
-        });
-
-        // Exclude users followed by the authenticated user
-        $groupMembers->whereDoesntHave('user.followers', function ($query) use ($authId) {
-            $query->where('follower_user_id', $authId);
-        });
-
-        // Only include active users
-        $groupMembers->whereHas('user')->groupBy('user_id');
-
-        // Apply pagination or limit
-        if (isset($type) && !empty($type)) {
-            $groupMembers = $groupMembers->limit($limit)->get();
-        } else {
-            $groupMembers = $groupMembers->simplePaginate($limit);
-        }
-
-        if ($groupMembers->isNotEmpty()) {
-            $groupMembers->each(function ($member) use ($authId) {
-                $member->is_supporting = UserFollower::where([
-                    'user_id' => $member->user_id,
-                    'follower_user_id' => $authId,
-                    'status' => 2
-                ])->exists() ? 1 : 0;
-
-                if (!empty($member->user) && !empty($member->user->profile)) {
-                    $member->user->profile = $this->addBaseInImage($member->user->profile);
-                }
-
-                if (!empty($member->communities) && !empty($member->communities->cover_photo)) {
-                    $member->communities->cover_photo = $this->addBaseInImage($member->communities->cover_photo);
-                }
+            // Exclude blocked users and those who blocked the authenticated user
+            $groupMembers->whereDoesntHave('user.blockedUsers', function ($query) use ($authId) {
+                $query->where('blocked_user_id', $authId);
+            })
+            ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
+                $query->where('user_id', $authId);
             });
-        }
 
-        if (!empty($type)) {
-            return $groupMembers;
-        } else {
-            $notification_count = notification_count();
-            return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200, $notification_count);
+            // Exclude users followed by the authenticated user
+            $groupMembers->whereDoesntHave('user.followers', function ($query) use ($authId) {
+                $query->where('follower_user_id', $authId);
+            });
+
+            // Only include active users
+            $groupMembers->whereHas('user')->groupBy('user_id');
+
+            // Apply pagination or limit
+            if (isset($type) && !empty($type)) {
+
+                $groupMembers = $groupMembers->limit($limit)->get();
+
+            } else {
+                $groupMembers = $groupMembers->simplePaginate($limit);
+            }
+
+            if (isset($groupMembers[0]) && !empty($groupMembers[0]))  {
+
+                $groupMembers->each(function ($member) use ($authId) {
+                    $member->is_supporting = UserFollower::where([
+                        'user_id' => $member->user_id,
+                        'follower_user_id' => $authId,
+                        'status' => 2
+                    ])->exists() ? 1 : 0;
+
+                    if (!empty($member->user) && !empty($member->user->profile)) {
+                        $member->user->profile = $this->addBaseInImage($member->user->profile);
+                    }
+
+                    if (!empty($member->communities) && !empty($member->communities->cover_photo)) {
+                        $member->communities->cover_photo = $this->addBaseInImage($member->communities->cover_photo);
+                    }
+                });
+            }
+
+            if (!empty($type)) {
+                return $groupMembers;
+            } else {
+                $notification_count = notification_count();
+                return $this->sendResponse($groupMembers, trans('message.dicover_people'), 200, $notification_count);
+            }
+        } catch (Exception $e) {
+            Log::error('Error caught: "careTakerBySearch"' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
         }
-    } catch (Exception $e) {
-        Log::error('Error caught: "careTakerBySearch"' . $e->getMessage());
-        return $this->sendError($e->getMessage(), [], 400);
     }
-}
 
 }

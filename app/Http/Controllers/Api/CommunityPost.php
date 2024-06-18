@@ -859,46 +859,63 @@ class CommunityPost extends BaseController
     public function sharePost(Request $request)
     {
 
-        $validate = Validator::make($request->all(), [
-            'type' => 'required|integer|between:1,2',
-            'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
-            'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
-            'receiver_id' => 'required|exists:users,id',
-        ], ['post_id.required_if' => "post id requierd", 'user_id.required_if' => "user id requierd"]);
+        try {
 
-        if ($validate->fails()) {
-
-            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
-
-        } else {
-
-            $myId                       =   Auth::id();
-
-            $reciever                   =   $request->receiver_id;
-
-            if ($request->type == 1) {      //share post
-
-                $postData               =   IsPostAvailable($request->post_id,$myId);
-
-                if (empty($postData)) {
-
-                    return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
+            $validate = Validator::make($request->all(), [
+                'type' => 'required|integer|between:1,2',
+                'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
+                'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
+                'receiver_id' => 'required|exists:users,id',
+            ], ['post_id.required_if' => "post id requierd", 'user_id.required_if' => "user id requierd"]);
+    
+            if ($validate->fails()) {
+    
+                return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+    
+            } else {
+    
+                $myId                       =   Auth::id();
+    
+                $reciever                   =   $request->receiver_id;
+    
+                if ($request->type == 1) {      //share post
+    
+                    $postData               =   IsPostAvailable($request->post_id,$myId);
+    
+                    if (empty($postData)) {
+    
+                        return response()->json(['status' => 422, 'message' => "Invalid post."], 422);
+                    }
+                    // if ($myId == $reciever) {
+    
+                    //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
+                    // }
+                    // return $this->sharePostInChat($request, $myId, $reciever);
+                } else {                     // share user profile
+                    $userData               =       IsUserBlocked($request->user_id,$myId);
+                   
+                    if (empty($userData)) {
+    
+                        return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
+                    }
                 }
-                // if ($myId == $reciever) {
-
-                //     return response()->json(['status' => 403, 'message' => "You are not allowed to message yourself."], 403);
-                // }
-                // return $this->sharePostInChat($request, $myId, $reciever);
-            } else {                     // share user profile
-                $userData               =       IsUserBlocked($request->user_id,$myId);
-               
-                if (empty($userData)) {
-
-                    return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
-                }
+                return $this->shareInChat($request, $myId, $reciever);
             }
-            return $this->shareInChat($request, $myId, $reciever);
+
+        } catch (Exception $e) {
+            
+          
+            Log::error('Error caught: "sharePost" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+
         }
+
+
+
+
+
+
+       
     }
     #---------------  S H A R E         P O S T      I N    C H A T    ----------------#
 

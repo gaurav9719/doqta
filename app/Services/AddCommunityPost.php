@@ -54,13 +54,13 @@ class AddCommunityPost extends BaseController
             $post->title        =   $request->title;
             $post->content      = $request->content;
             $post->is_health_provider = $is_health_provider; // add true is user is health provider
-
+            $post->media_type   = $request->media_type;
             if ($request->hasFile('media')) {
 
-                $post_image     = $request->file('media');
-                $Uploaded       = upload_file($post_image, 'post_images');
-                $post->media_url = $Uploaded;
-                $post->media_type = $request->media_type;
+                $post_image         = $request->file('media');
+                $Uploaded           = upload_file($post_image, 'post_images');
+                $post->media_url    = $Uploaded;
+                $post->media_type   = $request->media_type;
             }
             if ($request->hasFile('thumbnail')) {
 
@@ -88,7 +88,7 @@ class AddCommunityPost extends BaseController
             }
 
             $post->group_id             = $request->community_id;
-            $post->media_type           = $request->media_type;
+            
             $post->post_type            = $request->post_type; //normal,community
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
@@ -616,6 +616,8 @@ class AddCommunityPost extends BaseController
             $post                                               =       Post::withCount(['comment'])->with('post_user', function ($q) {
                 $q->select('id', 'name', 'user_name', 'profile');
             })->find($request->post_id);
+
+            
 
             if (isset($post) && !empty($post)) {
 

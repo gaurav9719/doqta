@@ -8,7 +8,9 @@ use App\Models\Comment;
 use App\Models\PostLike;
 use App\Models\BlockedUser;
 use App\Models\GroupMember;
+use App\Models\UserFollower;
 use App\Models\GroupMemberRequest;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('transformParentPostData')) {
@@ -152,6 +154,7 @@ if (!function_exists('IsUserBlocked')) {
     function IsUserBlocked($user_id, $authId,$type="")
     {
 
+        
         $is_blocked=  User::where(function ($query) use ($authId) {
 
             $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
@@ -168,14 +171,16 @@ if (!function_exists('IsUserBlocked')) {
 
         if(empty($type)){
 
-            $is_blocked->where(['id' => $user_id, 'is_active' => 1])->first();
+            $is_blocked     = $is_blocked->where(['id' => $user_id, 'is_active' => 1])->first();
 
         }else{
 
-            $is_blocked->where(['id' => $user_id, 'is_active' => 1])->exists();
+            $is_blocked     =   $is_blocked->where(['id' => $user_id, 'is_active' => 1])->exists();
         }
+       
         return $is_blocked;
         
+
     }
 }
 
@@ -432,4 +437,290 @@ if(!function_exists('reactiveChat')){
 
         return $message;
     }
+}
+
+
+if(!function_exists('supportUserS')){
+
+
+    // function supportUserS($request, $authId, $limit, $type = "")
+    // {
+    //     try {
+
+    //         $user       =   User::where('is_active',1)->whereNotIn('role',[2,3])->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+    //                 $query->where('user_id', $authId);
+
+    //         })
+    //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+    //             $query->where('blocked_user_id', $authId);
+                
+    //         })
+
+    //         ->whereDoesntHave('supporter', function ($query) use ($authId) {
+
+    //                 $query->where('follower_user_id', $authId);
+                
+    //         })->where('id', '<>', $authId);
+
+    //         if (isset($request->search) && !empty($request->search)) {
+
+    //             $searchTerm = $request->search;
+    //             // Search for users by name
+    //             $user->where(function ($query) use ($searchTerm) {
+
+    //                 $query->where('name', 'like', "%$searchTerm%")
+    //                       ->where('is_active', 1);
+    //             });
+    //             // Find group IDs where group name matches the search term
+    //             $groupIdsQuery  = Group::where('name', 'like', "%$searchTerm%")
+    //                                   ->where('is_active', 1)
+
+    //                                   ->whereHas('groupOwner', function ($query) use ($authId) {
+
+    //                                       $query->where('is_active', 1)
+
+    //                                             ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+    //                                                 $query->where('user_id', $authId);
+    //                                             })
+
+    //                                             ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+    //                                                 $query->where('blocked_user_id', $authId);
+    //                                             });
+    //                                   });
+    //                 // Get group IDs
+    //             $groupIds = $groupIdsQuery->pluck('id');
+    //         }
+
+    //         if(isset($request->search) && !empty($request->search)){
+
+    //             $user->orWhereHas('user_group', function ($query) use ($groupIds) {
+
+    //                 $query->whereIn('group_id', $groupIds);
+
+    //             })->with(['user_single_group' => function($query) use ($authId,$groupIds) {
+
+    //                 $query->orWhereHas('groupUser', function ($query) use ($authId,$groupIds) {
+
+    //                     $query->where('is_active', 1)->whereIn('group_id',$groupIds)
+
+    //                           ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+    //                               $query->where('user_id', $authId);
+    //                           })
+    //                           ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+    //                               $query->where('blocked_user_id', $authId);
+    //                           });
+    //                 })->select('id', 'group_id', 'user_id');
+
+    //             }, 'user_single_group.group']);
+    //         }else{
+
+    //             $user->with(['user_single_group' => function($query) use ($authId) {
+
+    //                 $query->whereHas('groupUser', function ($query) use ($authId) {
+    //                     $query->where('is_active', 1)
+    //                           ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+    //                               $query->where('user_id', $authId);
+    //                           })
+    //                           ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+    //                               $query->where('blocked_user_id', $authId);
+    //                           });
+    //                 })->select('id', 'group_id', 'user_id');
+
+    //             }, 'user_single_group.group']);
+    //         }
+            
+    //         $user->groupBy('id');
+        
+    //         if (isset($type) && !empty($type)) {
+
+    //             $supportUser  =   $user->get()->take($limit);
+
+    //         } else {
+
+    //             $supportUser  =   $user->simplePaginate($limit);
+    //         }
+
+
+    //         if (isset($supportUser[0]) && !empty($supportUser[0])) {
+
+    //             $supportUser->each(function ($suggestMember) use ($authId) {
+
+    //                 if (isset($suggestMember->groupUser) && !empty($suggestMember->groupUser)) {
+    //                     if (isset($suggestMember->groupUser->profile) && !empty($suggestMember->groupUser->profile)) {
+    //                         $suggestMember->groupUser->profile =   $this->addBaseInImage($suggestMember->groupUser->profile);
+    //                     }
+    //                 }
+
+    //                 if (isset($suggestMember->communities) && !empty($suggestMember->communities)) {
+    //                     if (isset($suggestMember->communities->cover_photo) && !empty($suggestMember->communities->cover_photo)) {
+
+    //                         $suggestMember->communities->cover_photo =   $this->addBaseInImage($suggestMember->communities->cover_photo);
+    //                     }
+    //                 }
+
+    //                 $suggestMember->is_supporting                =   (UserFollower::where(['user_id' => $suggestMember->user_id, 'follower_user_id' => $authId, 'status' => 2])->exists()) ? 1 : 0;
+    //             });
+    //         }
+    //         if (isset($type) && !empty($type)) {
+
+    //             return  $supportUser;
+    //             // return $data;
+    //         } else {
+    //             $notification_count     =   notification_count();
+    //             $response = [
+    //                 'status' => 200,
+    //                 'message' => trans('message.dicover_people'),
+    //                 'data'    => $supportUser,
+    //                 'notification'=>$notification_count,
+                    
+    //             ];
+    //             return response()->json($response, $response['code']);
+
+               
+    //         }
+    //     } catch (Exception $e) {
+
+    //         Log::error('Error caught: "supportUsers-service"' . $e->getMessage());
+
+    //         return $e;
+    //         // return 400;
+    //     }
+    // }
+
+
+    function supportUserS($request, $authId, $limit, $type = "",$category="")
+    {
+        try {
+            // Initial query to get active users not blocked by or blocking the auth user
+            $groupIds = [];
+            $userQuery = User::select('id', 'name', 'user_name', 'profile', 'is_active')
+                ->where('is_active', 1)
+                ->whereNotNull('user_name')
+                ->whereNotIn('role', [2, 3])
+                ->whereDoesntHave('blockedBy', fn($query) => $query->where('user_id', $authId))
+                ->whereDoesntHave('blockedUsers', fn($query) => $query->where('blocked_user_id', $authId))
+                ->whereDoesntHave('supporter', fn($query) => $query->where('follower_user_id', $authId))
+                ->where('id', '<>', $authId);
+                // Handle search term if provided
+                if(isset($category) && !empty($category)){
+                      // Filter based on user participant
+                    $userQuery->whereHas('userParticipant', function ($query) {
+                        $query->whereIn('participant_id', [2]);
+                    });
+                }
+            if (!empty($request->search)) {
+
+                $searchTerm = $request->search;
+                $userQuery->where(function($query) use ($searchTerm) {
+                    $query->where('user_name', 'like', "%$searchTerm%")
+                        ->where('is_active', 1)
+                        ->whereNotNull('user_name');
+                });
+
+                // Get group IDs matching the search term
+                $groupIds = Group::where('name', 'like', "%$searchTerm%")
+
+                    ->where('is_active', 1)
+
+                    ->whereHas('groupOwner', function($query) use ($authId) {
+                        $query->where('is_active', 1)
+                            ->whereDoesntHave('blockedBy', fn($q) => $q->where('user_id', $authId))
+                            ->whereDoesntHave('blockedUsers', fn($q) => $q->where('blocked_user_id', $authId));
+                    })
+                    ->pluck('id');
+
+                // Add users belonging to the groups matching the search term
+                if (!empty($groupIds)) {
+
+                    $userQuery->orWhereHas('user_group', function($query) use ($groupIds) {
+
+                        $query->whereIn('group_id', $groupIds)
+
+                            ->whereHas('user', function($query) {
+                                
+                                $query->whereNotNull('user_name'); // Ensure user_name is not null
+                            });
+                    });
+                }
+            }
+
+            // Load related groups and users
+            $userQuery->with([
+                'user_single_group' => function($query) use ($authId, $groupIds) {
+                    $query->whereHas('groupUser', function($query) use ($authId, $groupIds) {
+
+                        $query->where('is_active', 1)
+
+                            ->when(isset($groupIds[0]) && !empty($groupIds), fn($q) => $q->whereIn('group_id', $groupIds))
+                            ->whereDoesntHave('blockedBy', fn($q) => $q->where('user_id', $authId))
+                            ->whereDoesntHave('blockedUsers', fn($q) => $q->where('blocked_user_id', $authId));
+                    })
+                    ->select('id', 'group_id', 'user_id');
+                },
+                'user_single_group.group' => function($query) {
+
+                    $query->select('id', 'name');
+                },
+
+                'user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                }
+            ]
+    
+        );
+            $userQuery->groupBy('id');
+
+            // Retrieve users with pagination or as a collection based on type
+            $supportUsers = $type ? $userQuery->take($limit)->get() : $userQuery->simplePaginate($limit);
+
+
+            // Enhance user data with additional info
+            $supportUsers->each(function($user) use ($authId) {
+
+                if (isset($user->groupUser->profile)) {
+
+                    $user->groupUser->profile       = addBaseUrl($user->groupUser->profile);
+                }
+                if (isset($user->communities->cover_photo)) {
+
+                    $user->communities->cover_photo = addBaseUrl($user->communities->cover_photo);
+                }
+
+                if (isset($user['profile']) && !empty($user['profile'])) {
+
+                    $user->profile                  = addBaseUrl($user->profile);
+                }
+                $user->is_supporting = UserFollower::where([ 'user_id' => $user->id, 'follower_user_id' => $authId,'status' => 2])->exists() ? 1 : 0;
+
+                // $user->user_medical_certificate     =   (isset($user->user_medical_certificate) && !empty($user->user_medical_certificate))?$user->user_medical_certificate->pluck('medical_certificate'):[];
+            });
+
+            if ($type) {
+
+                return $supportUsers;
+
+            } else {
+
+                return response()->json([
+                    'status' => 200,
+                    'message' => trans('message.dicover_people'),
+                    'data' => $supportUsers,
+                    'notification' => notification_count(),
+                ], 200);
+            }
+        } catch (Exception $e) {
+            Log::error('Error in supportUserS service: ' . $e->getMessage());
+            return 400;
+        }
+    }
+
+
 }

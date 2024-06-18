@@ -170,6 +170,22 @@ class User extends Authenticatable
         return $this->hasMany(GroupMember::class, 'user_id', 'id');
     }
 
+    public function user_groupLimit($limit = null)
+    {
+        return $this->hasMany(GroupMember::class, 'user_id', 'id')->limit(1);
+
+       
+    }
+
+
+
+
+
+    public function user_single_group()
+    {
+
+        return $this->hasOne(GroupMember::class, 'user_id', 'id');
+    }
 
 
 

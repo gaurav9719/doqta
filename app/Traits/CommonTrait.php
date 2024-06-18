@@ -312,10 +312,9 @@ trait CommonTrait
                 }
 
                 foreach ($userIDs as $reciever) {
-
+                   
                     $isBlocked      =   IsUserBlocked($reciever,$myId,1);
-
-                    if(!$isBlocked){
+                    if($isBlocked){
 
                         $message = Inbox::where(function ($query) use ($myId, $reciever) {
     
