@@ -607,9 +607,12 @@ class AddCommunityPost extends BaseController
                                 $replies->replied_to->profile       = $this->addBaseInImage($replies->replied_to->profile);
                             }
                         }
+
+                        $replies->postedAt                          =    time_elapsed_string($replies->created_at);
+
                     });
                 }
-                $comment->postedAt                                  =    time_elapsed_string($comment->created_at);;
+                $comment->postedAt                                  =    time_elapsed_string($comment->created_at);
                 return $comment;
             });
 

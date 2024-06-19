@@ -121,6 +121,9 @@ class DiscoverController extends BaseController
 
                         return $this->discover->supportShareInterest($request,$authId,$limit);
 
+                       
+
+
                     }elseif ($request->inner_type==2) { #----------top_communities_this_week ---------------#
                        
                         return $this->discover->topCommunityThisWeek($request,$authId,$limit);
@@ -155,16 +158,21 @@ class DiscoverController extends BaseController
                 
                     if($request->inner_type==1){ #----------support_shared_interests ---------------#
 
-                        return $this->discover->supportUsers($request,$authId,$limit);
+                        // return $this->discover->supportUsers($request,$authId,$limit);
+
+                        return supportUserS($request, $authId, $limit);
 
                     }elseif ($request->inner_type==2) { #----------top_communities_this_week ---------------#
                        
-                        return $this->discover->topHealthProvider($request,$authId,$limit);
+                        // return $this->discover->topHealthProvider($request,$authId,$limit);
+                        return topHealthProvider($request, $authId, $limit);
 
                         
                     }elseif ($request->inner_type==3) { #----------care_takers ---------------#
                         
-                        return $this->discover->careTakerBySearch($request,$authId,$limit);
+                        return supportUserS($request, $authId, $limit, "",1);
+
+                        // return $this->discover->careTakerBySearch($request,$authId,$limit);
 
                     }
                 }
@@ -174,7 +182,7 @@ class DiscoverController extends BaseController
 
                     if($request->inner_type==1){ #--------- T O P   A R T I C L E S ---------------#
 
-                        return $this->discover->topArticles($request,$authId,$limit);
+                         return $this->discover->topArticles($request,$authId,$limit);
 
                     }elseif ($request->inner_type==2) { #---------- T O P   V I D E O ---------------#
                        

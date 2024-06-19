@@ -1220,7 +1220,7 @@ class DicoverService extends BaseController
             }
 
             // Fetch top health provider
-            $topHealthProvider = $this->topHealthProvider($request, $authId, $limit, 1);
+            //$topHealthProvider = $this->topHealthProvider($request, $authId, $limit, 1);
             $topHealthProvider = topHealthProvider($request, $authId, $limit, 1);
             // dd($topHealthProvider);
 

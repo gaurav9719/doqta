@@ -242,7 +242,7 @@ function topHealthProvider($request, $authId, $limit, $type = "")
         $notificationCount = notification_count();
         return response()->json([
             'status' => 200,
-            'message' => "Community deactivated Successfully",
+            'message' => trans('message.top_health_provider'),
             'data' => $allTopHealthProviders,
             'notification' => $notificationCount
         ]);
@@ -364,18 +364,25 @@ function getAllTopHealthProviders($request, $authId, $limit)
 
     addSearchFilter($query, $request->search);
 
-    $allTopHealthProviders = $query->select('users.id', 'users.name', 'users.user_name')
+    $allTopHealthProviders = $query->select('users.id', 'users.name', 'users.user_name','users.profile')
         ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM post_likes JOIN posts ON post_likes.post_id = posts.id WHERE posts.user_id = users.id),0) AS total_likes'))
         ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM comments JOIN posts ON comments.post_id = posts.id WHERE posts.user_id = users.id),0) AS total_comments'))
         ->orderByDesc('total_likes')
         ->orderByDesc('total_comments')
         ->havingRaw('total_likes > 0 OR total_comments > 0')
-        ->simplePaginate($limit)
-        ->map(function ($user) use ($authId) {
+        ->simplePaginate($limit);
+
+        $allTopHealthProviders->getCollection()->transform(function ($user) use ($authId) {
+
             return formatHealthProvider($user, $authId, 'total_likes', 'likes');
         });
+    
+        return $allTopHealthProviders;
+    //     ->map(function ($user) use ($authId) {
+    //         return formatHealthProvider($user, $authId, 'total_likes', 'likes');
+    //     });
 
-    return $allTopHealthProviders;
+    // return $allTopHealthProviders;
 }
 
 function addSearchFilter($query, $search)
@@ -400,7 +407,7 @@ function formatHealthProvider($user, $authId, $countField, $countLabel)
         'id' => $user->id,
         'name' => $user->name,
         'user_name' => $user->user_name,
-        'profile' => !empty($user->profile) ? asset('storage/' . $user->profile) : null,
+        'profile' => isset($user->profile) && !empty($user->profile) ? addBaseUrl($user->profile) : null,
         'title' => !empty($user->$countField) ? ($user->$countField > 1000 ? "Over 1k {$countLabel}" : $user->$countField . " {$countLabel}") : null,
         'total_likes_count' => $countField === 'total_likes_count' ? $user->$countField : 0,
         'total_comments_count' => $countField === 'total_comments_count' ? $user->$countField : 0,
