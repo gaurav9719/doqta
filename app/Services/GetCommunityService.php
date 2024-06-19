@@ -3,26 +3,27 @@
 namespace App\Services;
 
 use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Api\BaseController;
-use App\Models\Group;
-use App\Models\GroupMember;
-use App\Models\Post;
 use Carbon\Carbon;
-use App\Services\NotificationService;
-use App\Services\AddCommunityPost;
+use App\Models\Post;
 use App\Models\User;
-use App\Models\GroupMemberRequest;
-use App\Traits\IsLikedPostComment;
-use App\Models\PostLike;
-use App\Traits\postCommentLikeCount;
-use App\Traits\CommonTrait;
-use App\Models\ActivityLog;
+use App\Models\Group;
 use App\Models\Comment;
+use App\Models\PostLike;
+use App\Models\UserQuota;
+use App\Models\ActivityLog;
+use App\Models\GroupMember;
+use App\Traits\CommonTrait;
+use Illuminate\Http\Request;
+use App\Models\GroupMemberRequest;
+use App\Services\AddCommunityPost;
+use App\Traits\IsLikedPostComment;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Traits\postCommentLikeCount;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Services\NotificationService;
+use App\Http\Controllers\Api\BaseController;
 
 /**
  * Class GetCommunityService.
@@ -717,6 +718,14 @@ class GetCommunityService extends BaseController
                 $addGroupMember->role       =   "member";
 
                 if ($addGroupMember->save()) {
+
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
+                    if (isset($commentId) && !empty($commentId)) {
+
+                        $quotaUpdated               = UserQuota::updateQuota($authId, 'community_join_request');
+                    }
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
+
                     // increment in group member
                     incrementMemberWithAuth($request->community_id, 1);
 
@@ -758,6 +767,12 @@ class GetCommunityService extends BaseController
                     $groupRequest->user_id  =   $authId;
                     $groupRequest->group_id =   $request->community_id;
                     $groupRequest->save();
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
+                    if (isset($commentId) && !empty($commentId)) {
+
+                        $quotaUpdated               = UserQuota::updateQuota($authId, 'community_join_request');
+                    }
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
                     $group                  =   Group::find($request->community_id);
                     $reciever               =   User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
                     $sender                 =   User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();

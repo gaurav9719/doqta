@@ -60,15 +60,12 @@ Route::middleware(['with_fast_api_key'])->controller(AuthController::class)->gro
     Route::post('socialLogin','socialLogin');
     Route::delete('deleteAccount','deleteAccount')->middleware('auth:api');
     Route::post('calculateScore','calculateScore');
-
-    
 });
 
 Route::middleware(['with_fast_api_key','auth:api','is_verified_email'])->controller(SignStepsController::class)->group(function () {
+    
     Route::post('completeSignUpSteps','completeSignUpSteps');
 
-    
-    
 });
 
 Route::middleware(['with_fast_api_key','auth:api'])->controller(GeniminController::class)->group(function () {
@@ -93,12 +90,12 @@ Route::middleware(['with_fast_api_key','is_verified_email','auth:api'])->control
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
     Route::get('community/memberRequest', [CommunityController::class,'communityRequest']);
     Route::post('updateCommunity', [CommunityController::class,'updateCommunity']);
-    Route::post('community/join', [CommunityController::class,'joinCoummnity']);
+    Route::post('community/join', [CommunityController::class,'joinCoummnity'])->middleware('checkUserQuota:community_join_requests');
     Route::put('community/assignRole', [CommunityController::class,'AssignRole']);
     Route::delete('community/removeMember', [CommunityController::class,'removeMember']);
     Route::get('community/members', [CommunityController::class,'communityUsers']);
     Route::put('community/udpateRequest', [CommunityController::class,'acceptRejectCommunityRequest']);
-    Route::resource('community', CommunityController::class);
+    Route::resource('community', CommunityController::class)->middleware('checkUserQuota');
 
 
     
@@ -114,10 +111,10 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('communityPosts/report', [CommunityPost::class,'reportPost']);
     Route::get('communityPosts/comments', [CommunityPost::class,'comments']);
     Route::get('communityPosts/savedPost', [CommunityPost::class,'savedPosts']);
-    Route::post('communityPosts/addComment', [CommunityPost::class,'addComment']);
+    Route::post('communityPosts/addComment', [CommunityPost::class,'addComment'])->middleware('checkUserQuota:post_comments');
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
-    Route::resource('communityPosts', CommunityPost::class);
+    Route::resource('communityPosts', CommunityPost::class)->middleware('checkUserQuota:community_posts');
     Route::post('summarizeComment', [CommunityPost::class, 'summarizeComment']); #------- summarize comment------#
 });
 
@@ -187,14 +184,11 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('journal/addToFavorite', [JournalController::class,'addToFavorite']);
     Route::post('journal/updateJournal', [JournalController::class,'updateJournal']);
     
-    Route::post('journal/journalEntry', [JournalController::class,'journalEntry']);
+    Route::post('journal/journalEntry', [JournalController::class,'journalEntry'])->middleware('checkUserQuota:journal_entries');
     // Route::get('journal/insights', [JournalController::class,'generateReport']);
     Route::get('journal/getJournalEntries', [JournalController::class,'getJournalEntries']);
     Route::get('journal/symtoms', [JournalController::class,'symtoms']);
     Route::get('journal/getJournalBydate', [JournalController::class,'getJournalBydate']);
-
-
-    
     Route::resource('journal', JournalController::class);
 
 
@@ -242,7 +236,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('aiChat/chatLogs2', [AiChat::class,'chatLogs2']);
     Route::post('aiChat/pinUnpinMessage', [AiChat::class,'pinUnpinMessage']);
     Route::get('aiChat/pinnedMessage', [AiChat::class,'pinnedMessage']);
-    Route::post('aiChat/storeMessage', [AiChat::class,'storeMessage']);
+    Route::post('aiChat/storeMessage', [AiChat::class,'storeMessage'])->middleware('checkUserQuota:chatbot_messages'); 
     Route::get('aiChat/insights', [AiChat::class,'insights']);
     Route::get('aiChat/shareMedia', [AiChat::class,'shareMedia']);
     Route::get('aiChat/threadMessage', [AiChat::class,'threadMessage']);

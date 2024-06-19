@@ -7,10 +7,12 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\AiThread;
 use App\Models\AiMessage;
+use App\Models\UserQuota;
 use App\Traits\CommonTrait;
 use Illuminate\Http\Request;
 use App\Models\JournalReport;
 use App\Models\PinnedMessage;
+use App\Models\AiMessageFeedback;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -23,11 +25,15 @@ use GeminiAPI\Resources\Parts\ImagePart;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
-use App\Models\AiMessageFeedback;
 
 class AiChat extends BaseController
 {
     use postCommentLikeCount,CommonTrait;
+
+    public function __construct()
+    {
+       // $this->middleware('checkUserQuota:chatbot_messages')->only('store');
+    }
     /**
      * Display a listing of the resource.
      */
@@ -122,13 +128,16 @@ class AiChat extends BaseController
                 ]);
 
                 if ($validator->fails()) {
+
                     return $this->sendResponsewithoutData($validator->errors()->first(), 422);
                 }
+
                 $myId                               =   Auth::id();
                 $ai                                 =   User::select('id')->where(['role' => 4])->first();
                 if (isset($ai) && !empty($ai)) {
 
                     $aiId                          =    $ai->id;
+
                 } else {
                     //create ai
                     $addAi                         =    new User();
@@ -146,7 +155,9 @@ class AiChat extends BaseController
                 })->first();
 
                 if (isset($inbox) && !empty($inbox)) {
+
                     $threadId                     =         $inbox->id;
+
                 } else {                                          // create chat thread
 
                     $newThread                    =           new AiThread();
@@ -157,12 +168,15 @@ class AiChat extends BaseController
                     $threadId                     =          $newThread->id;
                 }
                 if (isset($threadId) && !empty($threadId)) {
+
                     $messages                         =         $request->messages;
                     $messages                         =         json_decode($messages, true);
                     if (isset($messages) && !empty($messages)) {
+
                         foreach ($messages as $message) {
 
                             $senderId                 =     ($message['participant'] == "user") ? $myId : $aiId;
+
                             AiMessage::create(['sender_id' => $senderId, 'message' => $message['message'], 'inbox_id' => $threadId,]);
                         }
                     }
@@ -630,6 +644,7 @@ class AiChat extends BaseController
                 if (isset($threadId) && !empty($threadId)) {
 
                     $senderId                     =         ($request->participant == "user") ? $myId : $aiId;
+
                     $message                      =         ['sender_id' => $senderId,'participant'=>$request->participant, 'message' => $request->message, 'inbox_id' => $threadId];
 
                     if(isset($request->media) && !empty($request->media)){
@@ -639,8 +654,16 @@ class AiChat extends BaseController
                         $message['message_type']   =       2;
                     }
 
-                    $lastMessage                   =      AiMessage::create($message);
+                    $lastMessage                   =        AiMessage::create($message);
                     $inserted_id                   =        $lastMessage->id;
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
+                    if(isset($inserted_id) && !empty($inserted_id)){
+                        if($senderId==$myId){
+
+                            $quotaUpdated               = UserQuota::updateQuota($myId, 'chatbot_message');
+                        }
+                    }
+                    #--------------  RECORD USER QUOTA PER DAY-------------#
                     AiThread::find($threadId)->update(['message_id'=>$inserted_id]);
                 }
                 DB::commit();

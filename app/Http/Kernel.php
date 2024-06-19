@@ -69,6 +69,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'with_fast_api_key' => \App\Http\Middleware\VerifyFastApiKey::class,
         'is_verified_email' => \App\Http\Middleware\VerifyAccount::class,
+        'checkUserQuota' => \App\Http\Middleware\CheckFeatureUsage::class,
 
     ];
 }

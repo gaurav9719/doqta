@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Journals;
 use Exception;
 use Carbon\Carbon;
 use App\Models\Journal;
+use App\Models\UserQuota;
 use App\Traits\CommonTrait;
 use App\Models\JournalEntry;
 use App\Models\JournalTopic;
@@ -413,13 +414,15 @@ class JournalController extends BaseController
 
             #---------- validation symptom  with AI--------------#
 
-            $userId = Auth::id();
-            $journalId = $request->journal_id;
-            $journalExists = Journal::find($journalId);
+            $userId         = Auth::id();
+            $journalId      = $request->journal_id;
+            $journalExists  = Journal::find($journalId);
             if (!$journalExists) {
+
                 return $this->sendError(trans('message.journal_not_exist'), [], 403);
             }
             if ($journalExists->user_id != $userId) {
+
                 return $this->sendError('The selected journal id is invalid.', [], 400);
             }
 
@@ -447,6 +450,7 @@ class JournalController extends BaseController
             $newJournalEntry = JournalEntry::create($addJournal);
 
             if ($request->filled('feeling_type')) {
+
                 $feelings = $request->feeling_type;
                 foreach ($feelings as $feeling) {
                     JournalsFeeling::updateOrCreate(
@@ -467,13 +471,21 @@ class JournalController extends BaseController
             }
 
             if ($request->filled('extra_symptom')) {
+
                 $this->handleExtraSymptoms($journalExists, $request->extra_symptom, $newJournalEntry->id, $userId);
             }
 
+             #--------------  RECORD USER QUOTA PER DAY-------------#
+             if(isset($newJournalEntry->id) && !empty($newJournalEntry->id)){
+               
+                $quotaUpdated               = UserQuota::updateQuota($userId, 'journal_entry');
+                
+            }
+            #--------------  RECORD USER QUOTA PER DAY-------------#
             DB::commit();
-
             $limit = 10;
             return $this->journal->journalEntries($userId, $journalId, $limit, $request);
+
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught in "journalEntry" method: ' . $e->getMessage());

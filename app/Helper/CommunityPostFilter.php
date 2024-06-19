@@ -120,6 +120,7 @@ use App\Services\NotificationService;
                 $one_week_ago = $now->subWeek()->toDateString(); // Convert to date string
                 $posts->whereDate('created_at', '>=', $one_week_ago)
                     ->orderBy('like_count', 'desc');
+                    
             } elseif ($trending_type == 2) {
 
                 $start_of_month = $now->startOfMonth()->toDateString(); // Convert to date string

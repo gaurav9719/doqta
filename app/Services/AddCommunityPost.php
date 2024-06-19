@@ -3,31 +3,32 @@
 namespace App\Services;
 
 use Exception;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Api\BaseController;
-use App\Models\Group;
-use App\Models\Post;
 use Carbon\Carbon;
-use App\Models\Comment;
-use App\Models\GroupMember;
-use App\Models\PostLike;
-use App\Models\GroupMemberRequest;
-use App\Models\CommentLike;
+use App\Models\Post;
 use App\Models\User;
-use App\Traits\postCommentLikeCount;
-use App\Traits\IsCommunityJoined;
-use App\Traits\FeedPostNotification;
-use App\Traits\IsLikedPostComment;
-use App\Models\UserParticipantCategory;
+use App\Models\Group;
+use App\Models\Comment;
+use App\Models\PostLike;
+use App\Models\UserQuota;
 use App\Models\ActivityLog;
-use App\Jobs\FeedPostNotification as feedPostionJob;
+use App\Models\CommentLike;
+use App\Models\GroupMember;
+use Illuminate\Http\Request;
 use App\Traits\SummarizePost;
 use App\Traits\CalculateScore;
+use App\Traits\IsCommunityJoined;
+use App\Models\GroupMemberRequest;
+use App\Traits\IsLikedPostComment;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Traits\FeedPostNotification;
+use App\Traits\postCommentLikeCount;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\UserParticipantCategory;
+use App\Http\Controllers\Api\BaseController;
 use App\Jobs\CalculateScore\scoreCalculation;
+use App\Jobs\FeedPostNotification as feedPostionJob;
 use App\Jobs\Summarize\SummarizePost as SummarizePostJob;
 
 /**
@@ -93,7 +94,17 @@ class AddCommunityPost extends BaseController
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             $postId                     = $post->id;
-            DB::commit();
+
+             #--------------  RECORD USER QUOTA PER DAY-------------#
+             DB::commit();
+            if (isset($postId) && !empty($postId)) {
+
+                Log::info("add user quota function");
+                
+                $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
+                dd($quotaUpdated);
+            }
+            #--------------  RECORD USER QUOTA PER DAY-------------#\
             try {
                 // new SummarizePostJob($postId);
                 // Dispatch Job1 and chain Job2 and Job3
@@ -105,7 +116,7 @@ class AddCommunityPost extends BaseController
                 Log::error('Failed to dispatch jobs', ['exception' => $exception]);
             }
             //Do summarize the post
-            $this->summerize($postId);
+     //  $this->summerize($postId);
             // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#

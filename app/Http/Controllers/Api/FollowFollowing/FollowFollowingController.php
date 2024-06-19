@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\FollowFollowing;
 use Exception;
 use App\Models\User;
 use App\Models\Message;
+use App\Models\UserQuota;
 use App\Models\ActivityLog;
 use App\Models\BlockedUser;
 use App\Models\Notification;
@@ -15,10 +16,10 @@ use App\Jobs\SendNotificaionJob;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Validator;
-use App\Traits\postCommentLikeCount;
 use App\Http\Controllers\Api\BaseController;
 
 class FollowFollowingController extends BaseController
@@ -29,6 +30,7 @@ class FollowFollowingController extends BaseController
     public function __construct(NotificationService $notification)
     {
         $this->notification             = $notification;
+        $this->middleware('checkUserQuota:friend_requests')->only('store');
     }
 
     /**
@@ -83,9 +85,6 @@ class FollowFollowingController extends BaseController
                 $query->where('user_followers.user_id', '=', $myId);
                 $message = trans('message.supporters');
             }
-
-            
-    
             $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
                             ->groupBy('U.id')
                             ->where('U.is_active',1)
@@ -239,6 +238,7 @@ class FollowFollowingController extends BaseController
 
 
                 if ($isBlocked) {
+
                     return $this->sendError(trans('message.something_went_wrong'), [], 403);
                 }
                 $receiver= User::find($request->user_id);
@@ -297,16 +297,35 @@ class FollowFollowingController extends BaseController
                             $type                           =   trans('notification_message.supporting_you_message_type');
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
-                            #-------  A C T I V I T Y -----------#
-                            $activity                   =    new ActivityLog();
-                            $activity->user_id          =    $authId;
-                            $activity->support_user_id  =    $request->user_id;
-                            $activity->action_details   =    "Started suppoting " . $receiver->user_name;
-                            $activity->action           =    1;    //Started supporting
-                            $activity->save();
-                            #-------  A C T I V I T Y -----------#
+                            // #-------  A C T I V I T Y -----------#
+                            // $activity                   =    new ActivityLog();
+                            // $activity->user_id          =    $authId;
+                            // $activity->support_user_id  =    $request->user_id;
+                            // $activity->action_details   =    "Started suppoting " . $receiver->user_name;
+                            // $activity->action           =    1;    //Started supporting
+                            // $activity->save();
+                            // #-------  A C T I V I T Y -----------#
                         }
                         $addFollowing->save();
+
+                        if($userData['is_public']!=0){
+
+                             #-------  A C T I V I T Y -----------#
+                             $activity                   =    new ActivityLog();
+                             $activity->user_id          =    $authId;
+                             $activity->support_user_id  =    $request->user_id;
+                             $activity->action_details   =    "Started suppoting " . $receiver->user_name;
+                             $activity->action           =    1;    //Started supporting
+                             $activity->save();
+                             #-------  A C T I V I T Y -----------#
+                        }
+
+                        #--------------  RECORD USER QUOTA PER DAY-------------#
+                        if (isset($commentId) && !empty($commentId)) {
+
+                            $quotaUpdated               = UserQuota::updateQuota($authId, 'community_join_request');
+                        }
+                        #--------------  RECORD USER QUOTA PER DAY-------------#
                         $action                          =   1;
                         #send notification
                         $sender        =   Auth::user();
@@ -314,6 +333,7 @@ class FollowFollowingController extends BaseController
                         $mesage        =   $sender->user_name ." ".$message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+
                         DB::commit();
                     }
 
