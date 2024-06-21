@@ -271,6 +271,7 @@ class ChatController extends BaseController
             if (empty($id)) {
 
                 return $this->sendError("user_id required", [], 422);
+
             } else {
 
                 $limit                          =               10;
@@ -302,7 +303,6 @@ class ChatController extends BaseController
                                                                         ->where('sender_id', $reciever);
 
                                                                 });
-
 
                                                         })
                                                         ->where(function ($query) use ($myId) {
@@ -430,6 +430,7 @@ class ChatController extends BaseController
                                 $result->is_blocked             =       isBlockedUser($myId, $result->sender_id);
                                 $result->blocked_by             =       isBlockedUser($result->sender_id, $myId);
                                 if ($result->isread == 0) {
+                                    
                                     Message::where('id', $result->id)
                                         ->update([
                                             'isread' => 1,
@@ -542,26 +543,37 @@ class ChatController extends BaseController
     {
 
         try {
+
             $result = Message::with([
+
                 'sender' => function ($query) {
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
+
                 'reply_to.sender' => function ($query) {
                     $query->select('id', 'name', 'profile');
                 }
             ])
+
             ->where('id', $message_id)
+
             ->where(function ($query) use($myId){
 
                 $query->where(function ($query) use($myId) {
+
                     $query->whereNull('is_user1_trash')
                           ->orWhere('is_user1_trash', '!=', $myId);
+
                 })
                 ->where(function ($query) use($myId) {
+
                     $query->whereNull('is_user2_trash')
                           ->orWhere('is_user2_trash', '!=', $myId);
+
                 });
+
             })->first();
+
             if (isset($result) && !empty($result)) {
     
                 // $result->time_ago         =              $result->created_at->diffForHumans();
@@ -579,12 +591,12 @@ class ChatController extends BaseController
     
                 if (isset($result->media) && !empty($result->media)) {
     
-                    $result->media        =  $this->addBaseInImage($result->media);
+                    $result->media                      =   $this->addBaseInImage($result->media);
                 }
     
                 if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
     
-                    $result->media_thumbnail        =  $this->addBaseInImage($result->media_thumbnail);
+                    $result->media_thumbnail            =  $this->addBaseInImage($result->media_thumbnail);
                 }
     
                 if (isset($result->reply_to) && !empty($result->reply_to)) {

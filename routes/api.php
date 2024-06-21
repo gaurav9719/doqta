@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
 use App\Http\Controllers\Api\Journals\JournalAnalyzerControllerNew;
 use App\Http\Controllers\Api\AiChatController\ChatAnalyzerController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
+use App\Http\Controllers\Api\ChatController\GroupChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -103,6 +104,20 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 });
 
 
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
+ 
+    Route::get('groupChat/getInbox', [GroupChatController::class,'getInbox']);
+    Route::post('groupChat/sendMessage', [GroupChatController::class,'sendMessage']);
+
+    
+    Route::resource('groupChat', GroupChatController::class);
+
+    
+    
+
+});
+
+
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
     Route::post('communityPosts/likePost', [CommunityPost::class,'likePost']);
@@ -114,7 +129,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::post('communityPosts/addComment', [CommunityPost::class,'addComment'])->middleware('checkUserQuota:post_comments');
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
-    Route::resource('communityPosts', CommunityPost::class)->middleware('checkUserQuota:community_posts');
+    Route::resource('communityPosts', CommunityPost::class);
     Route::post('summarizeComment', [CommunityPost::class, 'summarizeComment']); #------- summarize comment------#
 });
 

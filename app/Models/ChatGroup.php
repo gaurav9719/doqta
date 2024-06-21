@@ -8,4 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class ChatGroup extends Model
 {
     use HasFactory;
+
+    public function members()
+    {
+        return $this->hasMany(ChatGroupMember::class, 'group_id');
+    }
 }

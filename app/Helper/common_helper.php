@@ -5,6 +5,7 @@ use App\Models\Post;
 use App\Models\User;
 use App\Models\Group;
 use App\Models\Comment;
+use App\Models\Message;
 use App\Models\PostLike;
 use App\Models\BlockedUser;
 use App\Models\GroupMember;
@@ -721,6 +722,97 @@ if(!function_exists('supportUserS')){
             return 400;
         }
     }
-
-
 }
+
+
+function checkLastMessage($message_id, $myId){
+
+    try {
+
+        $result         =       Message::with([
+
+            'sender' => function ($query) {
+
+                $query->select('id', 'name', 'user_name', 'profile');
+            },
+            'reply_to.sender' => function ($query) {
+
+                $query->select('id', 'name', 'profile');
+            }
+        ])
+        ->where('id', $message_id)
+        ->where(function ($query) use($myId){
+            $query->where(function ($query) use($myId) {
+
+                    $query->whereNull('is_user1_trash')
+                            ->orWhere('is_user1_trash', '!=', $myId);
+            })
+            ->where(function ($query) use($myId) {
+
+                $query->whereNull('is_user2_trash')
+                ->orWhere('is_user2_trash', '!=', $myId);
+            });
+
+        })->first();
+
+        if (isset($result) && !empty($result)) {
+
+            // $result->time_ago         =              $result->created_at->diffForHumans();
+            $result->time_ago         =       time_elapsed_string($result->created_at);
+            $result->is_blocked       =       isBlockedUser($myId, $result->sender_id);
+            $result->blocked_by       =       isBlockedUser($result->sender_id, $myId);
+
+            if (isset($result->sender) && !empty($result->sender)) {
+
+                if (isset($result->sender->profile) && !empty($result->sender->profile)) {
+
+                    $result->sender->profile        =   addBaseUrl($result->sender->profile);
+                }
+            }
+
+            if (isset($result->media) && !empty($result->media)) {
+
+                $result->media                      =   addBaseUrl($result->media);
+            }
+
+            if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
+
+                $result->media_thumbnail            =  addBaseUrl($result->media_thumbnail);
+            }
+
+            if (isset($result->reply_to) && !empty($result->reply_to)) {
+
+                if (isset($result->reply_to->media) && !empty($result->reply_to->media)) {
+
+                    $result->reply_to->media        =    addBaseUrl($result->reply_to->media);
+                }
+
+                if (isset($result->reply_to->media_thumbnail) && !empty($result->reply_to->media_thumbnail)) {
+
+                    $result->reply_to->media_thumbnail        =   addBaseUrl($result->reply_to->media_thumbnail);
+                }
+
+                if (isset($result->reply_to->sender) && !empty($result->reply_to->sender)) {
+
+                    if (isset($result->reply_to->sender->profile) && !empty($result->reply_to->sender->profile)) {
+
+                        $result->reply_to->sender->profile        =   addBaseUrl($result->reply_to->sender->profile);
+                    }
+                }
+            }
+        }
+        return $result;
+
+    } catch (Exception $e) {     
+        Log::error('Error caught: "destory" ' . $e->getMessage());
+        // return $this->sendError($e->getMessage(), [], 400);
+    }  
+    
+}
+
+
+
+#-------------------------- C H A T         H I S T O R Y --------------_____________#
+// 
+
+#-------------------------- C H A T         H I S T O R Y ---------------------------#

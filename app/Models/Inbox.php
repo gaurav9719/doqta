@@ -40,4 +40,21 @@ class Inbox extends Model
         return $this->belongsTo(Message::class,'message_id','id');
     }
 
+    public function inboxes()
+    {
+        return $this->hasMany(Inbox::class, 'sender_id')
+                    ->orWhere('receiver_id', $this->id);
+    }
+
+    // Define the relationship to GroupUsers (groups the user belongs to)
+    
+
+    public function group()
+    {
+        return $this->belongsTo(ChatGroup::class, 'group_id');
+    }
+
+
+
+
 }

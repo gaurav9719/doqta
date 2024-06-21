@@ -1,15 +1,16 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\GroupRequest;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Contracts\Validation\Validator;
+use App\Rules\UserExists;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 
-class ChatRequest extends FormRequest
+class GroupRequestValidation extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -63,10 +64,10 @@ class ChatRequest extends FormRequest
                 Log::error('Error caught: Invalid message type ' . $this->message_type);
                 throw new \Exception('Invalid message type ' . $this->message_type);
         }
-    
+
         return [
-            
-            'receiver_id' => 'required|exists:users,id',
+            'type'=>'nullable|string',
+            'receiver_id' => 'required|string',
             'message_type' => 'required|numeric|between:1,7',
             'message'=> 'required_if:message_type,1',
             'media' => [
@@ -74,7 +75,6 @@ class ChatRequest extends FormRequest
                 'file',
                 Rule::requiredIf(function () {
 
-                   
                     return in_array($this->message_type, [2, 3, 4, 7]); // Check if message_type is 2, 3, 4, or 7
                 }),
                 function ($attribute, $value, $fail) use ($allowedMimeTypes) {
@@ -90,42 +90,7 @@ class ChatRequest extends FormRequest
             ],
         ];
     }
-    // public function rules(): array
-    // {
-    //     return [
-    //         'receiver_id' => 'required|exists:users,id',
-    //         'message_type' => 'required|numeric|between:1,6',
-    //         'media'=>'required_if:(message_type,==,2 OR message_type,==,3 OR message_type,==,4 OR message_type,==,5)|file',
-    //         'file' => [
-    //             'required',
-    //             Rule::requiredIf(function () {
-    //                 Log::error('Error caught: "type" ' . $this->message_type);
-
-    //                 return in_array($this->type_id, [2, 3, 6]); // Check if type_id is 2, 3, or 6
-    //             }),
-
-    //             function ($attribute, $value, $fail) {
-    //                 $allowedMimeTypes = [];
-                    
-    //                 if ($this->type_id == 2) { // For audio types
-    //                     $allowedMimeTypes = ['audio/mpeg', 'audio/wav'];
-                        
-    //                 } elseif ($this->type_id == 3) { // For video types
-    //                     $allowedMimeTypes = ['video/mp4', 'video/mpeg'];
-    //                 } elseif ($this->type_id == 6) { // For image types
-    //                     $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
-
-    //                 }
-                    
-    //                 // Check if the uploaded file MIME type is in the allowedMimeTypes array
-    //                 if (!in_array($value->getMimeType(), $allowedMimeTypes)) {
-    //                     $fail('The ' . $attribute . ' must be a valid file of the specified type.');
-    //                 }
-    //             },
-    //         ],
-
-    //     ];
-    // }
+  
 
     public function messages()
 
