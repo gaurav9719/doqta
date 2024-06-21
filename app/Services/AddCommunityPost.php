@@ -46,9 +46,7 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
-
         try {
-
             $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
             $post               = new Post();
             $post->user_id      = $authId;
@@ -66,11 +64,10 @@ class AddCommunityPost extends BaseController
             if ($request->hasFile('thumbnail')) {
 
                 $thumbnail          = $request->file('thumbnail');
-                $Uploaded           = upload_file($post_image, 'post_thumbnail');
-                $post->thumbnail    = $Uploaded;
+                $ThumbnailUploaded  = upload_file($post_image, 'post_thumbnail');
+                $post->thumbnail    = $ThumbnailUploaded;
                 
             }
-
             if (isset($request->lat) && !empty($request->lat)) {
 
                 $post->lat = $request->lat;
@@ -87,36 +84,40 @@ class AddCommunityPost extends BaseController
 
                 $post->wrote_by = $request->wrote_by;
             }
-
             $post->group_id             = $request->community_id;
-            
             $post->post_type            = $request->post_type; //normal,community
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             $postId                     = $post->id;
-
              #--------------  RECORD USER QUOTA PER DAY-------------#
             if (isset($postId) && !empty($postId)) {
-                 
-                 // Log::info("add user quota function");
-                 
-                 $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
+                $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
                  
             }
                 #--------------  RECORD USER QUOTA PER DAY-------------#\
             DB::commit();
             try {
-                // new SummarizePostJob($postId);
-                // Dispatch Job1 and chain Job2 and Job3
-                dispatch(new SummarizePostJob($postId))
-                    ->chain([new scoreCalculation($postId)]); // C
-                // Handle immediate success response
+
+                if (strlen($post->content) > 75) {
+
+                    dispatch(new SummarizePostJob($postId))->chain([
+                        new ScoreCalculation($postId)
+                    ]);
+
+                    $this->summerize($postId);
+
+                }else{
+
+                    dispatch(new ScoreCalculation($postId));
+
+                }
+                // Dispatch job for summarizing post and calculating score
             } catch (\Throwable $exception) {
-                // Handle job dispatching errors
+
                 Log::error('Failed to dispatch jobs', ['exception' => $exception]);
             }
+                
             //Do summarize the post
-     //  $this->summerize($postId);
             // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
@@ -554,17 +555,54 @@ class AddCommunityPost extends BaseController
                 'commentUser' => function ($query) use ($authId) {
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
+                'commentUser.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'commentUser.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                },
+
                 'replies.commentUser' => function ($query) use ($authId) {
+
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
+
+                'replies.commentUser.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'replies.commentUser.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                },
+                
                 'replies.replied_to' => function ($query) use ($authId) {
+
                     $query->select('id', 'name', 'user_name', 'profile');
-                }
+                },
+
+                'replies.replied_to.user_medical_certificate'=>function($q){
+
+                $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'replies.replied_to.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                },
             ])
             ->withCount(['totalLikes', 'total_comment'])
+
             ->where('post_id', $request->post_id)
+
             ->whereNull('parent_id')
+
             ->whereDoesntHave('commentUser.blockedUsers', function ($query) use ($authId) {
+
                 $query->where('blocked_user_id', $authId);
             })
             ->whereDoesntHave('commentUser.blockedBy', function ($query) use ($authId) {
@@ -584,6 +622,7 @@ class AddCommunityPost extends BaseController
             })
             ->orderByDesc('id')
             ->paginate($limit);
+
             $comments->getCollection()->transform(function ($comment) use ($authId) {
 
                 $isExist = $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
