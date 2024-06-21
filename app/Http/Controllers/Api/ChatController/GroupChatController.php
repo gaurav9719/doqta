@@ -406,11 +406,9 @@ class GroupChatController extends BaseController
         $search  = $request->input('search', '');
         $perPage = $request->input('per_page', 10);
         $isGroup = $request->input('is_group', null); // null means both, true for group, false for one-to-one
-
         $inboxQuery = Conversation::whereHas('participants', function ($query) use ($userId) {
 
             $query->where('user_id', $userId)
-
                 // ->where('status', '<>', 'left');
                 ->whereIn('status', ['active', 'deleted']); // Include 'deleted' status her
 
@@ -461,16 +459,43 @@ class GroupChatController extends BaseController
             ->orderByDesc('last_message_sent_at');
 
         if (!empty($search)) {
+            
             $inboxQuery->where(function ($query) use ($search) {
                 $query->where('conversations.title', 'like', '%' . $search . '%');
             });
         }
-
         if ($isGroup !== null) {
+
             $inboxQuery->where('conversations.is_group', $isGroup);
+
+        }
+        $inbox = $inboxQuery->simplePaginate($perPage);
+
+        if (isset($inbox[0]) && !empty($inbox[0])) {
+
+            $inbox->each(function ($result) use ($userId) {
+
+                $result['unread_message_count'] =   Message::where(['inbox_id' => $result->id])->where(function ($query) use ($userId) {
+
+                    $query->where('is_user1_trash', '!=', $userId)->orWhere('is_user2_trash', '!=', $userId);
+
+                })->where('sender_id', '!=', $userId)->where('isread', 0)->count();
+
+                if (isset($result->profile) && !empty($result->profile)) {
+
+                    $result['profile']          =       $this->addBaseInImage($result->profile);
+
+                }
+                $result['last_message']         =       Message::select('id', 'message', 'sender_id', 'media', 'media_thumbnail', 'message_type', 'replied_to_message_id', 'is_user1_trash', 'is_user2_trash', 'isread')->where(['id' => $result->message_id])->first();
+                $result->time_ago               =       time_elapsed_string($result->updated_at);
+              //  $result->is_blocked             =       isBlockedUser($userId, $result->other_user_id);
+              //  $result->blocked_by             =       isBlockedUser($result->other_user_id, $userId);
+
+                
+            });
         }
 
-        $inbox = $inboxQuery->simplePaginate($perPage);
+
 
         return $this->sendResponse($inbox, "Inbox fetched successfully.", 200);
     }

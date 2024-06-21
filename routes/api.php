@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Journals\JournalAnalyzerControllerNew;
 use App\Http\Controllers\Api\AiChatController\ChatAnalyzerController;
 use App\Http\Controllers\Api\FollowFollowing\FollowFollowingController;
 use App\Http\Controllers\Api\ChatController\GroupChatController;
+use App\Http\Controllers\Api\Quota\QuotaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,6 +87,11 @@ Route::middleware(['with_fast_api_key','is_verified_email','auth:api'])->control
 
 
 
+Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
+ 
+    Route::resource('userQuota', QuotaController::class);
+});
+
 
 
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function () {
@@ -97,10 +103,6 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('community/members', [CommunityController::class,'communityUsers']);
     Route::put('community/udpateRequest', [CommunityController::class,'acceptRejectCommunityRequest']);
     Route::resource('community', CommunityController::class);
-
-
-    
-
 });
 
 
@@ -109,7 +111,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('groupChat/getInbox', [GroupChatController::class,'getInbox']);
     Route::post('groupChat/sendMessage', [GroupChatController::class,'sendMessage']);
     Route::resource('groupChat', GroupChatController::class);
-    
+
 });
 
 

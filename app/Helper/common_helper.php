@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\Comment;
 use App\Models\Message;
 use App\Models\PostLike;
+use App\Models\UserQuota;
 use App\Models\BlockedUser;
 use App\Models\GroupMember;
 use App\Models\UserFollower;
@@ -814,5 +815,28 @@ function checkLastMessage($message_id, $myId){
 
 #-------------------------- C H A T         H I S T O R Y --------------_____________#
 // 
+
+if(!function_exists('userQuota')){
+
+    function userQuota($userId){
+
+        $date           =   date('Y-m-d');
+        $quota          =   UserQuota::firstOrCreate(
+
+            ['user_id' => $userId, 'date' => $date],
+            [
+                'community_posts' => 0,
+                'chatbot_messages' => 0,
+                'journal_entries' => 0,
+                'rewrite_with_ai' => 0,
+                'friend_requests' => 0,
+                'post_comments' => 0,
+                'community_join_requests' => 0
+            ]
+        );
+        return $quota;
+
+    }
+}
 
 #-------------------------- C H A T         H I S T O R Y ---------------------------#

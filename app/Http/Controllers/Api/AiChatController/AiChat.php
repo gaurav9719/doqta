@@ -109,16 +109,20 @@ class AiChat extends BaseController
     public function store(Request $request)
     {
         DB::beginTransaction();
+
         try {
+
             $validator                          =       Validator::make($request->all(), [
                 'messages' => 'required|json'
             ]);
+
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-            } else {
-                $messages                         =         json_decode($request->messages, true);
 
+            } else {
+
+                $messages                         =         json_decode($request->messages, true);
                 // Validate each message
                 $validator = Validator::make($messages, [
                     '*.id' => 'required|string',
@@ -131,7 +135,6 @@ class AiChat extends BaseController
 
                     return $this->sendResponsewithoutData($validator->errors()->first(), 422);
                 }
-
                 $myId                               =   Auth::id();
                 $ai                                 =   User::select('id')->where(['role' => 4])->first();
                 if (isset($ai) && !empty($ai)) {
@@ -150,9 +153,9 @@ class AiChat extends BaseController
                 }
                 #-------- check thread is exist or not
                 $inbox                              =               AiThread::where(function ($query) use ($myId) {
-                    $query->where('sender_id', $myId)
-                        ->orWhere('receiver_id', $myId);
-                })->first();
+                                                                        $query->where('sender_id', $myId)
+                                                                        ->orWhere('receiver_id', $myId);
+                                                                    })->first();
 
                 if (isset($inbox) && !empty($inbox)) {
 
@@ -658,6 +661,7 @@ class AiChat extends BaseController
                     $inserted_id                   =        $lastMessage->id;
                     #--------------  RECORD USER QUOTA PER DAY-------------#
                     if(isset($inserted_id) && !empty($inserted_id)){
+                        
                         if($senderId==$myId){
 
                             $quotaUpdated               = UserQuota::updateQuota($myId, 'chatbot_message');
@@ -669,8 +673,14 @@ class AiChat extends BaseController
                 DB::commit();
 
                 $messageData                       =    AiThread::find($threadId);
-
-                return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
+                $userQuotas                        =   userQuota($myId);
+                // return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
+                return response()->json([
+                                        'status' => 200,
+                                        'message' =>  trans('message.saved_successfully'),
+                                        'data'=>$messageData,
+                                        "user_quota"=>$userQuotas
+                ]);
                 // return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
             }
         } catch (Exception $e) {
@@ -738,16 +748,31 @@ class AiChat extends BaseController
 
                     $messages->setCollection($messages->getCollection()->reverse()->values());
 
-                    return $this->sendResponse($messages, trans('message.chat_logs'), 200);
+                    // return $this->sendResponse($messages, trans('message.chat_logs'), 200);
+                    $userQuotas                        =   userQuota($myId);
+                    // return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
+                    return response()->json([
+                                            'status' => 200,
+                                            'message' =>  trans('message.chat_logs'),
+                                            'data'=>$messages,
+                                            "user_quota"=>$userQuotas
+                    ]);
 
                 } else {
 
+                    $userQuotas                     =   userQuota($myId);
                     $inbox                          =               AiThread::where(function ($query) use ($myId) {
                         $query->where('sender_id', $myId)
                             ->orWhere('receiver_id', $myId);
                     })->where('id',$request->thread_id)->simplePaginate(1);
     
-                    return $this->sendResponse($inbox, trans('message.chat_logs'), 200);
+                    return response()->json([
+                        'status' => 200,
+                        'message' =>  trans('message.chat_logs'),
+                        'data'=>$inbox,
+                        "user_quota"=>$userQuotas
+                    ]);
+
                 }
             }
         } catch (Exception $e) {

@@ -140,6 +140,7 @@ return [
     "Invalid_notification"=>"Invalid notification",
     "read_notification"=>"Read notification successfully",
     "top_health_provider"=>"Top health provider",
+    "user_quota"=>"User quota",
 "all_pinned_message"=>"Pinned message",
 "email_changed_successfully"=>"Email changed successfully",
 "search_community"=>"Search community",
