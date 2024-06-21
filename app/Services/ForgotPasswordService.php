@@ -163,8 +163,9 @@ class ForgotPasswordService extends BaseController
                         DB::commit();
                         #send notification
                         $receiver = User::find($setUserPassword->id);
-                        $sender = User::where('role', 3)->first();
-                        $sender = isset($sender) ? $sender : $receiver;
+                        // $sender = User::where('role', 3)->first();
+                        // $sender = isset($sender) ? $sender : $receiver;
+                        $sender = $receiver;
                         $data = ["message" => trans('notification_message.password_changed_successfully_message')];
                         $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.password_changed_successfully_type'), $data);
                         return $this->sendResponsewithoutData(trans('message.changed_password'), 200);

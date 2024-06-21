@@ -17,7 +17,7 @@ class ParticipantCategorySeeder extends Seeder
         $categories = [
             ['name' => 'Patient', 'reason' => 'I am here for my own health','image'=>"roles/patient.png"],
             ['name' => 'Caretaker', 'reason' => 'I am here for another person’s health','image'=>"roles/caretaker.png"],
-            ['name' => 'Health provider', 'reason' => 'I am a doctor','image'=>"roles/health_provider.png"],
+            ['name' => 'Health provider', 'reason' => 'I am here to help others with their health','image'=>"roles/health_provider.png"],
         ];
 
         foreach ($categories as $category) {

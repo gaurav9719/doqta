@@ -925,20 +925,54 @@ class AddCommunityPost extends BaseController
         try {
 
             $comment = Comment::where(['id' => $request->comment_id, 'is_active' => 1])->with([
+
                 'commentUser' => function ($query) {
+
                     $query->select('id', 'name', 'user_name', 'profile');
+                },
+                'commentUser.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'commentUser.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
                 },
                 'replies.commentUser' => function ($query) {
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
+
+                'replies.commentUser.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+
+                },
+                'replies.commentUser.user_medical_certificate.medical_certificate'=>function($q){
+
+                    $q->select('id','name');
+                },
+                
+
                 'replies.replied_to' => function ($query) {
                     $query->select('id', 'name', 'user_name', 'profile');
-                }
+                },
+                'replies.replied_to.user_medical_certificate'=>function($q){
+
+                    $q->select('id','medicial_degree_type','user_id');
+    
+                    },
+                    'replies.replied_to.user_medical_certificate.medical_certificate'=>function($q){
+    
+                        $q->select('id','name');
+                    },
             ])
                 ->withCount(['total_comment'])
+
                 ->where('post_id', $request->post_id)
                 // ->whereNull('parent_id')
                 ->whereNotExists(function ($query) use ($authId) {
+
                     $query->select(DB::raw(1))
                         ->from('blocked_users')
                         ->where(function ($query) use ($authId) {
