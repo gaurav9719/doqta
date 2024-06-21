@@ -108,13 +108,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
  
     Route::get('groupChat/getInbox', [GroupChatController::class,'getInbox']);
     Route::post('groupChat/sendMessage', [GroupChatController::class,'sendMessage']);
-
-    
     Route::resource('groupChat', GroupChatController::class);
-
     
-    
-
 });
 
 

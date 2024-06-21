@@ -96,15 +96,15 @@ class AddCommunityPost extends BaseController
             $postId                     = $post->id;
 
              #--------------  RECORD USER QUOTA PER DAY-------------#
-             DB::commit();
             if (isset($postId) && !empty($postId)) {
-
-                Log::info("add user quota function");
-                
-                $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
-                dd($quotaUpdated);
+                 
+                 // Log::info("add user quota function");
+                 
+                 $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
+                 
             }
-            #--------------  RECORD USER QUOTA PER DAY-------------#\
+                #--------------  RECORD USER QUOTA PER DAY-------------#\
+            DB::commit();
             try {
                 // new SummarizePostJob($postId);
                 // Dispatch Job1 and chain Job2 and Job3
