@@ -32,4 +32,5 @@ class Conversation extends Model
     {
         return $this->hasOne(ParticipantMessage::class)->latest();
     }
+   
 }

@@ -54,7 +54,6 @@ class GroupChatController extends BaseController
 
                 $limit                      =               $request->limit;
             }
-
             $myId                           =               Auth::id();
             $data                           =               $request->all();
 
@@ -415,8 +414,8 @@ class GroupChatController extends BaseController
         })
 
             ->with(['participants' => function ($query) {
-
-                $query->with('user:id,name'); // Assuming the user's name is needed
+                $query->select('id','conversation_id','user_id','status')
+                ->with('user:id,name,user_name,profile'); // Assuming the user's name is needed
 
             }, 'lastMessage' => function ($query) use ($userId) {
 
@@ -458,23 +457,42 @@ class GroupChatController extends BaseController
             })
             ->orderByDesc('last_message_sent_at');
 
-        if (!empty($search)) {
-            
-            $inboxQuery->where(function ($query) use ($search) {
-                $query->where('conversations.title', 'like', '%' . $search . '%');
-            });
-        }
+            if (!empty($search)) {
+                $inboxQuery->where(function ($query) use ($search) {
+                    $query->WhereHas('participants.user', function ($query) use ($search) {
+                              $query->where('user_name', 'like', '%' . $search . '%');
+                          });
+                });
+            }
         if ($isGroup !== null) {
 
             $inboxQuery->where('conversations.is_group', $isGroup);
 
         }
+
         $inbox = $inboxQuery->simplePaginate($perPage);
 
         if (isset($inbox[0]) && !empty($inbox[0])) {
 
-            $inbox->each(function ($result) use ($userId) {
+            $inbox->getCollection()->transform(function ($result) use ($userId) {
+           
+                if(isset($result->participants) && !empty($result->participants)){
 
+                    foreach ($result->participants as $participant) {
+
+                        if(isset($participant->user) && !empty($participant->user)){
+
+                            $participant->is_blocked             =       isBlockedUser($userId, $participant->user_id);
+
+                            $participant->blocked_by             =       isBlockedUser($participant->user_id, $userId);
+                            
+                            if(isset($participant->user->profile) && !empty($participant->user->profile)){
+
+                                $participant->user->profile     =   addBaseUrl($participant->user->profile);
+                            }
+                        }
+                    }
+                }
                 $result['unread_message_count'] =   Message::where(['inbox_id' => $result->id])->where(function ($query) use ($userId) {
 
                     $query->where('is_user1_trash', '!=', $userId)->orWhere('is_user2_trash', '!=', $userId);
@@ -486,12 +504,13 @@ class GroupChatController extends BaseController
                     $result['profile']          =       $this->addBaseInImage($result->profile);
 
                 }
+
                 $result['last_message']         =       Message::select('id', 'message', 'sender_id', 'media', 'media_thumbnail', 'message_type', 'replied_to_message_id', 'is_user1_trash', 'is_user2_trash', 'isread')->where(['id' => $result->message_id])->first();
                 $result->time_ago               =       time_elapsed_string($result->updated_at);
-              //  $result->is_blocked             =       isBlockedUser($userId, $result->other_user_id);
-              //  $result->blocked_by             =       isBlockedUser($result->other_user_id, $userId);
+                //  $result->is_blocked             =       isBlockedUser($userId, $result->other_user_id);
+                //  $result->blocked_by             =       isBlockedUser($result->other_user_id, $userId);
 
-                
+                return $result;
             });
         }
 
@@ -518,10 +537,10 @@ class GroupChatController extends BaseController
                 return $this->sendResponsewithoutData(trans('message.blocked_user'), 403);
             }
         }
+
         $senderId = $myId;
         $participantIds = array_merge([$senderId], $receiverIds);
         sort($participantIds);
-
         DB::transaction(function () use ($request, $senderId, $participantIds, $type) {
 
             $messageContent = $request->message;

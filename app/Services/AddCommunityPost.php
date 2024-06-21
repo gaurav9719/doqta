@@ -666,9 +666,20 @@ class AddCommunityPost extends BaseController
                 return $comment;
             });
 
-            $post                                               =       Post::withCount(['comment'])->with('post_user', function ($q) {
+            $post                                               =       Post::withCount(['comment'])->with(['post_user'=>function ($q) {
                 $q->select('id', 'name', 'user_name', 'profile');
-            })->find($request->post_id);
+            },
+            'post_user.user_medical_certificate'=>function($q){
+
+                $q->select('id','medicial_degree_type','user_id');
+
+            },
+            'post_user.user_medical_certificate.medical_certificate'=>function($q){
+
+                $q->select('id','name');
+            }
+        
+            ])->find($request->post_id);
 
             
 

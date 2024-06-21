@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('deleted_messages', function (Blueprint $table) {
-
+            
             $table->id();
             $table->unsignedBigInteger('message_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
