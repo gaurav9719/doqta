@@ -232,6 +232,18 @@ class User extends Authenticatable
         return $this->hasMany(HiddenPost::class, 'user_id');
     }
 
+    public function messageReads()
+    {
+        return $this->hasMany(MessageRead::class,'user_id','id');
+    }
+
+    public function conversations()
+    {
+        return $this->belongsToMany(Conversation::class, 'participants')
+            ->withPivot('status');
+           // ->wherePivot('status', 'active');
+    }
+
 
     public function portfolio()
     {

@@ -123,20 +123,20 @@ class JournalService extends BaseController
             // dd(DB::getQueryLog());
             $journalEntry->each(function ($journal) {
 
-                if ($journal->media) {
+                if (isset($journal->media) && !empty($journal->media)) {
 
-                    $journal->media     =   asset('storage/' . $journal->media);
+                    $journal->media     =   addBaseUrl($journal->media);
                 }
 
-                if ($journal->audio) {
+                if (isset($journal->audio) && !empty($journal->audio)) {
 
-                    $journal->audio     =   asset('storage/' . $journal->audio);
+                    $journal->audio     =   addBaseUrl($journal->audio);
                 }
 
                 if (isset($journal->feeling) && !empty($journal->feeling)) {
 
-                    $journal->feeling->feeling     =   asset('storage/' . $journal->feeling->feeling);
-                    $journal->feeling->selected     =   asset('storage/' . $journal->feeling->selected);
+                    $journal->feeling->feeling     =   addBaseUrl($journal->feeling->feeling);
+                    $journal->feeling->selected     =   addBaseUrl($journal->feeling->selected);
                 }
             });
             return $this->sendResponse($journalEntry, trans("message.journals"), 200);

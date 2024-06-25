@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Conversation extends Model
 {
@@ -17,10 +18,17 @@ class Conversation extends Model
         'message_id',
     ];
 
+    public function conversation_participants()
+    {
+        return $this->hasMany(Participant::class,'conversation_id','id');
+    }
+
     public function participants()
     {
-        return $this->hasMany(Participant::class);
+        return $this->belongsToMany(User::class, 'participants')
+            ->withPivot('status');
     }
+
 
     public function messages()
     {
@@ -31,6 +39,24 @@ class Conversation extends Model
     public function lastMessage()
     {
         return $this->hasOne(ParticipantMessage::class)->latest();
+    }
+
+    public function unreadMessagesForUser($userId)
+    {
+        return $this->hasMany(ParticipantMessage::class, 'conversation_id')
+                    ->where('sender_id', '!=', $userId)
+                    ->whereNotExists(function ($query) use ($userId) {
+                        $query->select(DB::raw(1))
+                              ->from('message_reads')
+                              ->whereColumn('message_reads.message_id', 'participant_messages.id')
+                              ->where('message_reads.user_id', $userId);
+                    })
+                    ->whereNotExists(function ($query) use ($userId) {
+                        $query->select(DB::raw(1))
+                              ->from('deleted_messages')
+                              ->whereColumn('deleted_messages.message_id', 'participant_messages.id')
+                              ->where('deleted_messages.user_id', $userId);
+                    });
     }
    
 }

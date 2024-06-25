@@ -1018,4 +1018,8 @@ class CommunityPost extends BaseController
             }
         }
     }
+
+    public function textSum(){
+        return $this->addCommunityPost->checkSum();
+    }
 }

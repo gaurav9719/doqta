@@ -24,6 +24,7 @@ use App\Services\NotificationService;
                 });
             #-------------- TRENDING POST --------------#
             if (!empty($request->trending)) {
+
                 $posts = applyTrendingFilter($posts, $request->trending_type);
             }
             #-------------------------------------------#
@@ -37,9 +38,23 @@ use App\Services\NotificationService;
 
             #-------------- LOCATION -------------------#
             if (!empty($request->location)) {
-
+                
                 $distance   =   $request->distance ?? 100;
-                $posts = applyLocationFilter($posts, $distance, $authUser->lat, $authUser->long);
+
+                $lat        =   $authUser->lat;
+                $long       =   $authUser->long;
+
+                if(!empty($request->lat) &&  !empty($request->long)){
+
+                    $posts = applyLocationFilter($posts, $distance, $request->lat, $request->long);
+
+                }else{
+
+                    if(!empty($lat) && !empty($long)){
+
+                        $posts = applyLocationFilter($posts, $distance, $lat, $long);
+                    }
+                }
             }
             #-------------------------------------------#
 

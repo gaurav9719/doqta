@@ -28,7 +28,7 @@ class JournalEntry extends FormRequest
             'link' => 'nullable|url',
             'media' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             // 'audio' => 'nullable|file|mimes:mpeg,wav,mp3|max:9048',
-            'audio' => 'nullable|file|mimes:application/octet-stream,audio/mpeg,mpga,mp3,wav,3gp|max:9048',
+            'audio' => 'nullable|file|mimes:application/octet-stream,audio/mpeg,mpga,mp3,wav,3gp,mp4a,m4a,aac,mpga|max:9048',
         ];
     }
 

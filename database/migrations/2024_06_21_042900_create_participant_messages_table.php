@@ -25,6 +25,7 @@ return new class extends Migration
             $table->integer('message_type')->default(1)->comment('1:text,2image: 3audio,4:video,5:location,6:contact_share,7:document_share');
             $table->bigInteger('replied_to_message_id')->default(0)->comment('it show the reply of message id');
             $table->tinyInteger('is_active')->default(1)->comment('1:active,0:inactive');
+            $table->timestamp('deleted_at')->nullable();
 
             $table->timestamps();
             $table->foreign('conversation_id')->references('id')->on('conversations')->onDelete('cascade');
