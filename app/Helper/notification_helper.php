@@ -221,3 +221,34 @@ if (!function_exists('sendPushNotificationNew')) {
         // }
     }
 }
+
+if (!function_exists('ChatNotification')) {
+    function ChatNotification($sender_id,$notification_data)
+    {
+          dispatch(new NotificationJob($sender_id,$notification));
+
+        // $userDevices     =   UserDevice::where(['user_id' => $userData['id']])->get();
+
+        // if (isset($userDevices) && !empty($userDevices[0])) {
+
+        //     foreach ($userDevices as $userDevice) {
+
+        //         if (isset($userDevice['device_token']) && !empty($userDevice['device_token'])) {
+
+        //             if ($userDevice['device_type'] == 1) {        // call ios function
+
+        //                 IosPush($userData['device_token'], $notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+        //             } elseif ($userDevice['device_type'] == 2) {     // call andriod function
+
+        //                 //  androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
+
+        //             }
+        //         }
+        //     }
+        // }
+    }
+}
+
+
+
+

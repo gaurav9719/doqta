@@ -218,13 +218,16 @@ function topHealthProviderOLd($request, $authId, $limit, $type = "")
 function topHealthProvider($request, $authId, $limit, $type = "")
 {
     try {
-        $defaultLimit = $type ? 3 : 10;
-        $limit = !empty($request->limit) && isset($request->limit) ? $request->limit : $defaultLimit;
+        
+        $defaultLimit   = $limit ? 3 : 10;
+
+        $limit          = !empty($request->limit) && isset($request->limit) ? $request->limit : $defaultLimit;
+
         $allTopHealthProviders = [];
 
         if (!empty($type)) {
 
-            $topLikeUser = getTopLikesPost($request, $authId);
+            $topLikeUser        = getTopLikesPost($request, $authId);
 
             if(isset($topLikeUser) && !empty($topLikeUser)){
 
@@ -233,19 +236,23 @@ function topHealthProvider($request, $authId, $limit, $type = "")
             $allTopHealthProviders[] = $topLikeUser;
 
             $allTopHealthProviders[] = getTopHighConfidenceComment($request, $authId,$user1);
+
             return $allTopHealthProviders;
 
         } else {
 
             $allTopHealthProviders = getAllTopHealthProviders($request, $authId, $limit);
         }
+
         $notificationCount = notification_count();
+
         return response()->json([
             'status' => 200,
             'message' => trans('message.top_health_provider'),
             'data' => $allTopHealthProviders,
             'notification' => $notificationCount
         ]);
+
     } catch (Exception $e) {
         Log::error('Error caught: "topHealthProvider" ' . $e->getMessage());
         return response()->json(['status' => 400, 'message' => $e->getMessage()]);

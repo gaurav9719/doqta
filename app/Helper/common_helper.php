@@ -840,3 +840,71 @@ if(!function_exists('userQuota')){
 }
 
 #-------------------------- C H A T         H I S T O R Y ---------------------------#
+
+
+#-----------------  G E T       C H A T         I N S I D E   D A T A 
+
+if(!function_exists('processProfile')){
+
+     function processProfile($profile)
+    {
+        if (isset($profile) && !empty($profile)) {
+            if (isset($profile->profile) && !empty($profile->profile)) {
+                $profile->profile = addBaseUrl($profile->profile);
+            }
+        }
+    }
+}
+
+if(!function_exists('processMedia')){
+
+    function processMedia(&$result)
+    {
+        if (isset($result->media) && !empty($result->media)) {
+            $result->media = addBaseUrl($result->media);
+        }
+        if (isset($result->media_thumbnail) && !empty($result->media_thumbnail)) {
+            $result->media_thumbnail = addBaseUrl($result->media_thumbnail);
+        }
+    }
+}
+
+if(!function_exists('processReplyTo')){
+
+    function processReplyTo($replyTo)
+    {
+        if (isset($replyTo) && !empty($replyTo)) {
+
+            processMedia($replyTo);
+            processProfile($replyTo->sender);
+        }
+    }
+}
+
+if(!function_exists('processPost')){
+
+    function processPost($post)
+    {
+        if (isset($post) && !empty($post)) {
+            if (isset($post->media_url) && !empty($post->media_url)) {
+                $post->media_url = addBaseUrl($post->media_url);
+            }
+            if (isset($post->thumbnail) && !empty($post->thumbnail)) {
+                $post->thumbnail = addBaseUrl($post->thumbnail);
+            }
+            if (isset($post->post_user) && !empty($post->post_user->profile)) {
+                $post->post_user->profile = addBaseUrl($post->post_user->profile);
+            }
+            $post->postedAt = time_elapsed_string($post->created_at);
+        }
+    }
+}
+
+if(!function_exists('addTimestampsAndBlockStatus')){
+    function addTimestampsAndBlockStatus(&$result, $userId)
+    {
+        $result->time_ago = time_elapsed_string($result->created_at);
+        $result->is_blocked = isBlockedUser($userId, $result->sender_id);
+        $result->blocked_by = isBlockedUser($result->sender_id, $userId);
+    }
+}

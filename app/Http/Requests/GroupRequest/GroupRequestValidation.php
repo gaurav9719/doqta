@@ -24,51 +24,55 @@ class GroupRequestValidation extends FormRequest
     public function rules(): array
     {
         $allowedMimeTypes = [];
-    
+
         switch ($this->message_type) {
             case 1:
                 // No validation for text messages
                 break;
-    
+
             case 2:
                 $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
                 break;
-    
+
             case 3:
                 $allowedMimeTypes = ['audio/mpeg', 'audio/wav'];
                 break;
-    
+
             case 4:
                 $allowedMimeTypes = ['video/mp4', 'video/mpeg'];
                 break;
-    
+
             case 5:
                 // No validation for location messages
                 break;
-    
+
             case 6:
                 // No validation for contact_share messages
                 break;
-    
+
             case 7:
                 // No validation for document_share messages
                 break;
-    
-            case 2:
-            case 3:
-            case 4:
-                $allowedMimeTypes = ['file'];
-                break;
-    
+
             default:
-                Log::error('Error caught: Invalid message type ' . $this->message_type);
-                throw new \Exception('Invalid message type ' . $this->message_type);
+                // Handle invalid message type
+                return [
+                    'message_type' => [
+                        'required',
+                        'integer',
+                        'between:1,7',
+                        function ($attribute, $value, $fail) {
+                            $fail('Invalid message type ' . $value);
+                        },
+                    ],
+                ];
         }
 
         return [
-            'type'=>'nullable|string',
+
+            'type'=>'required|integer|between:1,2',
             'receiver_id' => 'required|string',
-            'message_type' => 'required|numeric|between:1,7',
+            'message_type' => 'required|integer|between:1,7',
             'message'=> 'required_if:message_type,1',
             'media' => [
                 'required_if:message_type,2,3,4,5,7',
@@ -77,6 +81,7 @@ class GroupRequestValidation extends FormRequest
 
                     return in_array($this->message_type, [2, 3, 4, 7]); // Check if message_type is 2, 3, 4, or 7
                 }),
+
                 function ($attribute, $value, $fail) use ($allowedMimeTypes) {
                     
                     // Check if the uploaded file MIME type is in the allowedMimeTypes array
@@ -89,6 +94,9 @@ class GroupRequestValidation extends FormRequest
                 },
             ],
         ];
+
+
+        
     }
   
 
@@ -100,7 +108,6 @@ class GroupRequestValidation extends FormRequest
             'message.message_type'=>"Message required"
         ];
     }
-
 
     public function failedValidation(Validator $validator)
     {

@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('participant_messages', function (Blueprint $table) {
+        Schema::create('conversation_messages', function (Blueprint $table) {
 
             $table->id();
             $table->unsignedBigInteger('conversation_id')->nullable();
             $table->unsignedBigInteger('sender_id')->nullable();
+            $table->unsignedBigInteger('post_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->text('message')->nullable();
             $table->text('media')->nullable();
             $table->string('media_thumbnail')->nullable();
@@ -30,7 +32,9 @@ return new class extends Migration
             $table->timestamps();
             $table->foreign('conversation_id')->references('id')->on('conversations')->onDelete('cascade');
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->index(['conversation_id', 'sender_id', 'is_active']);
+            $table->foreign('post_id')->references('id')->on('posts')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users');
+            $table->index(['conversation_id', 'sender_id', 'is_active', 'post_id', 'user_id'], 'conversation_indexing');
         });
     }
 
@@ -39,6 +43,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('participant_messages');
+        Schema::dropIfExists('conversation_messages');
     }
 };

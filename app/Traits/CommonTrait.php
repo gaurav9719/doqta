@@ -10,9 +10,13 @@ use App\Models\Inbox;
 use App\Models\Journal;
 use App\Models\Message;
 use App\Models\SharePost;
+use App\Models\Participant;
+use App\Models\Conversation;
+use App\Models\ConversationMessage;
 use App\Models\JournalTopic;
 use App\Models\UserFollower;
 use App\Models\JournalReport;
+use App\Models\ParticipantMessage;
 use App\Models\PhysicalSymptom;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -287,6 +291,7 @@ trait CommonTrait
     public function shareInChat($request, $myId, $recievers)
     {
         DB::beginTransaction();
+
         try {
             $userIDs = explode(',', $recievers);
 
@@ -358,14 +363,15 @@ trait CommonTrait
                         if ($type == 1) {
     
                             $isCreated = SharePost::updateOrCreate(
+
                                 ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
                                 ['message_id' => $lastMessageId]
+
                             );
     
                             if ($isCreated->wasRecentlyCreated) {
     
                                 increment('posts', ['id' => $relatedDataId], 'share_count', 1);
-    
                             }
                         }
                         // Send notification
@@ -390,6 +396,133 @@ trait CommonTrait
         }
     }
 
+    public function shareInChatNew($request, $myId, $recievers)
+    {
+        DB::beginTransaction();
+        
+        try {
+
+            $userIDs                    =       explode(',', $recievers);
+
+            if (isset($userIDs) && !empty($userIDs)) {
+
+                $messageContent         =       '';
+                $relatedDataId          =       null;
+                $type                   =       $request->type;
+
+                if ($type == 1) {
+                    // Sharing a post
+                    $message_type       =       5;
+                    $postData           =       Post::where(['id' => $request->post_id, 'is_active' => 1])->first();
+                    $messageContent     =       $postData->title;
+                    $relatedDataId      =       $postData->id;
+
+                } elseif ($type == 2) {
+
+                    $message_type       =       6;
+                    // Sharing a user profile
+                    $userData           =       User::where(['id' => $request->user_id, 'is_active' => 1])->first();
+                    $messageContent     =       "shared profile @". $userData->user_name;
+                    $relatedDataId      =       $userData->id;
+                }
+
+                
+                foreach ($userIDs as $reciever) {
+                
+                    log($reciever);
+                   
+                    $isBlocked          =       IsUserBlocked($reciever,$myId,1);
+
+                    if($isBlocked){
+
+                        $participantIds =       array_merge([$myId], [$reciever]);
+
+                        sort($participantIds);
+
+                        $conversation = Conversation::where('is_group', false)
+
+                            ->whereHas('conversation_participants', function ($query) use ($myId) {
+
+                                $query->where('user_id', $myId);
+                            })
+                            ->whereHas('conversation_participants', function ($query) use ($reciever) {
+                                $query->where('user_id', $reciever);
+                            })
+                        ->first();
+                       
+                        if (empty($conversation)) {
+
+                            $addCoversation = Conversation::create([
+                                'title' => 'chat',
+                                'creator_id' => $myId,
+                                'is_group' => false,
+                            ]);
+                            foreach ($participantIds as $userId) {
+                            
+                                Participant::create([
+
+                                    'conversation_id' => $addCoversation->id,
+                                    'user_id' => $userId,
+                                    'status' => 'active',
+                                ]);
+                            }
+                            $conversation = Conversation::where('id', $addCoversation->id)->first();
+                        }
+                        $sendMessage                    =          new ConversationMessage();
+                        $sendMessage->conversation_id   =          $conversation->id;
+                        $sendMessage->sender_id         =          $myId;
+                        $sendMessage->message           =          $messageContent;
+                        $sendMessage->message_type      =           $message_type;
+
+                        if ($type == 1) {
+
+                            $sendMessage->post_id       =           $relatedDataId;
+
+                        } elseif ($type == 2) {
+
+                            $sendMessage->user_id       =           $relatedDataId;
+                        }
+
+                        $sendMessage->save();
+
+                        $lastMessageId                  =           $sendMessage->id;
+
+                        // Share post with user (if type is 1)
+                        if ($type == 1) {
+
+                            $isCreated = SharePost::updateOrCreate(
+                                ['user_id' => $myId, 'send_to' => $reciever, 'post_id' => $relatedDataId],
+                                ['message_id' => $lastMessageId]
+                            );
+                            
+                            if ($isCreated->wasRecentlyCreated) {
+    
+                                increment('posts', ['id' => $relatedDataId], 'share_count', 1);
+    
+                            }
+                        }
+                        // Send notification
+                        $receiver                       = User::find($reciever);
+                        $sender                         = User::find($myId);
+                        $notificationMessage            = "New message from " . $sender->name;
+                        $data                           = ["message" => $notificationMessage, 'notification_type' => trans('notification_message.send_message_type')];
+                        sendPushNotificationNew($sender, $receiver, $data);
+                    }
+                }
+                DB::commit();
+                return $this->sendResponsewithoutData(trans('message.shared_successfully'), 200);
+            } else {
+
+                return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
+                
+            }
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::error('Error caught: "shareInChat" ' . $e->getMessage());
+            Log::error('Error caught: "shareInChat" ' . $e->getLine());
+            return $this->sendError($e->getMessage(), [], 422);
+        }
+    }
 
 
 

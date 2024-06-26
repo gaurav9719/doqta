@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class ParticipantMessage extends Model
+class ConversationMessage extends Model
 {
     use HasFactory;
-
     protected $fillable = [
         'conversation_id',
         'sender_id',
+        'post_id',
+        'user_id',
         'message',
         'media',
         'media_thumbnail',
@@ -42,7 +43,21 @@ class ParticipantMessage extends Model
         return $this->hasMany(ReadReceipt::class, 'message_id');
     }
 
-    
 
+    public function reply_to()
+    {
+        return $this->belongsTo(Message::class, 'replied_to_message_id', 'id');
+    }
 
+    public function post(){
+
+        return $this->belongsTo(Post::class,'post_id','id')->where('is_active',1);
+
+    }
+
+    public function share_user(){
+
+        return $this->belongsTo(User::class,'user_id','id');
+
+    }
 }

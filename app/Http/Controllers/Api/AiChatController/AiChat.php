@@ -498,6 +498,7 @@ class AiChat extends BaseController
     public function pinUnpinMessage(Request $request)
     {
         DB::beginTransaction();
+
         try {
 
             $validator                          =       Validator::make($request->all(), [
@@ -518,8 +519,10 @@ class AiChat extends BaseController
                     $authId                     =    Auth::id();
                     $pinnedMessage              =    PinnedMessage::where(['message_id' => $request->message_id, 'user_id' => $authId])->first();
                     if (isset($pinnedMessage) && !empty($pinnedMessage)) {
+
                         $pinnedMessage->delete();
                         $message                =    trans('message.unpinned_message');
+                        $data                   =   0;
                     } else {
 
                         $pinMessage             =    new PinnedMessage();
@@ -527,9 +530,11 @@ class AiChat extends BaseController
                         $pinMessage->user_id    =    $authId;
                         $pinMessage->save();
                         $message                =   trans('message.pinned_message');
+                        $data                   =   1;
                     }
                     DB::commit();
-                    return $this->sendResponsewithoutData($message, 200);
+                    return $this->sendResponse($data,$message, 200);
+
                 } else {
 
                     return $this->sendResponsewithoutData(trans('message.invalid_message'), 400);
@@ -619,6 +624,7 @@ class AiChat extends BaseController
                 }
                 #-------- check thread is exist or not
                 if($request->is_new_thread==0){
+
                     $inserted_id                        =               null;
                     $inbox                              =               AiThread::where(function ($query) use ($myId) {
                         $query->where('sender_id', $myId)
@@ -634,6 +640,7 @@ class AiChat extends BaseController
                         return $this->sendResponsewithoutData(trans('message.invalid_thread'), 409);
 
                     } 
+
                 }else {                                          // create chat thread
 
                     $newThread                    =           new AiThread();
@@ -647,7 +654,6 @@ class AiChat extends BaseController
                 if (isset($threadId) && !empty($threadId)) {
 
                     $senderId                     =         ($request->participant == "user") ? $myId : $aiId;
-
                     $message                      =         ['sender_id' => $senderId,'participant'=>$request->participant, 'message' => $request->message, 'inbox_id' => $threadId];
 
                     if(isset($request->media) && !empty($request->media)){
@@ -655,12 +661,15 @@ class AiChat extends BaseController
                         $media                     =       upload_file($request->media,'ai_chat');
                         $message['media']          =       $media;
                         $message['message_type']   =       2;
+
                     }
 
                     $lastMessage                   =        AiMessage::create($message);
                     $inserted_id                   =        $lastMessage->id;
                     #--------------  RECORD USER QUOTA PER DAY-------------#
                     if(isset($inserted_id) && !empty($inserted_id)){
+
+                        AiThread::where('id',$threadId)->update(['thread_name'=>$request->message]);
                         
                         if($senderId==$myId){
 
@@ -670,10 +679,10 @@ class AiChat extends BaseController
                     #--------------  RECORD USER QUOTA PER DAY-------------#
                     AiThread::find($threadId)->update(['message_id'=>$inserted_id]);
                 }
-                DB::commit();
 
+                DB::commit();
                 $messageData                       =    AiThread::find($threadId);
-                $userQuotas                        =   userQuota($myId);
+                $userQuotas                        =    userQuota($myId);
                 // return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
                 return response()->json([
                                         'status' => 200,

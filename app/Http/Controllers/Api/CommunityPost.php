@@ -864,6 +864,7 @@ class CommunityPost extends BaseController
         try {
 
             $validate = Validator::make($request->all(), [
+
                 'type' => 'required|integer|between:1,2',
                 'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
                 'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
@@ -900,7 +901,10 @@ class CommunityPost extends BaseController
                         return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
                     }
                 }
-                return $this->shareInChat($request, $myId, $reciever);
+                // return $this->shareInChat($request, $myId, $reciever);
+                return $this->shareInChatNew($request, $myId, $reciever);
+
+                
             }
         } catch (Exception $e) {
 

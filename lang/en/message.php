@@ -142,6 +142,13 @@ return [
     "top_health_provider"=>"Top health provider",
     "user_quota"=>"User quota",
 "all_pinned_message"=>"Pinned message",
+"you_have_left_group"=>"You have left the group",
+
+
+
+
+
+
 "email_changed_successfully"=>"Email changed successfully",
 "search_community"=>"Search community",
 "shared_media"=>"Shared media",
