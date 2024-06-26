@@ -228,17 +228,20 @@ function topHealthProvider($request, $authId, $limit, $type = "")
         if (!empty($type)) {
 
             $user1              =   "";
-            
-            $topLikeUser        = getTopLikesPost($request, $authId);
+
+            $topLikeUser        =   getTopLikesPost($request, $authId);
 
             if(isset($topLikeUser) && !empty($topLikeUser)){
 
-                $user1          =   $topLikeUser['id'];
+                $user1                      =   $topLikeUser['id'];
+                $allTopHealthProviders[]    =   $topLikeUser;
             }
+            $topConfidenceCommentUser       =   getTopHighConfidenceComment($request, $authId,$user1);
 
-            $allTopHealthProviders[] = $topLikeUser;
-
-            $allTopHealthProviders[] = getTopHighConfidenceComment($request, $authId,$user1);
+            if(isset($topConfidenceCommentUser) && !empty($topConfidenceCommentUser)){
+                
+                $allTopHealthProviders[]    = $topConfidenceCommentUser;
+            }
 
             return $allTopHealthProviders;
 
@@ -265,9 +268,9 @@ function topHealthProvider($request, $authId, $limit, $type = "")
 function getTopLikesPost($request, $authId)
 {
     $query = User::query()
+
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId)
-
         ->whereNotNull('users.user_name')
         ->whereHas('user_medical_certificate.medical_certificate')
         ->with([
@@ -277,7 +280,7 @@ function getTopLikesPost($request, $authId)
                 },
                 'user_medical_certificate.medical_certificate' => function ($q) {
 
-                    $q->select('id', 'name');
+                    $q->select('id','name');
                 },
         ])
 
