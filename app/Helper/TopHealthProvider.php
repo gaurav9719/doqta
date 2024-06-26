@@ -227,12 +227,15 @@ function topHealthProvider($request, $authId, $limit, $type = "")
 
         if (!empty($type)) {
 
+            $user1              =   "";
+            
             $topLikeUser        = getTopLikesPost($request, $authId);
 
             if(isset($topLikeUser) && !empty($topLikeUser)){
 
                 $user1          =   $topLikeUser['id'];
             }
+
             $allTopHealthProviders[] = $topLikeUser;
 
             $allTopHealthProviders[] = getTopHighConfidenceComment($request, $authId,$user1);
