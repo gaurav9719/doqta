@@ -143,6 +143,7 @@ return [
     "user_quota"=>"User quota",
 "all_pinned_message"=>"Pinned message",
 "you_have_left_group"=>"You have left the group",
+"location_updated"=>"location_updated",
 
 
 

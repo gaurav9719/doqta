@@ -291,6 +291,9 @@ Route::middleware(['auth:api','with_fast_api_key','is_verified_email'])->control
     Route::post('switchUser','switchUser');
     Route::get('checkAiFInder','checkAiFInder');
     Route::post('requestEmailChange','requestEmailChange');
+    Route::put('updateLocation','updateLocation');
+
+
     Route::post('iosPush','iosPush');
     
 });

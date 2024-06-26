@@ -36,7 +36,7 @@ class UserController extends BaseController
 {
     //
 
-    use postCommentLikeCount,IsLikedPostComment;
+    use postCommentLikeCount, IsLikedPostComment;
     protected $user, $userProfile, $authId, $getUser, $notification_sent;
     // protected $userProfile;
     public function __construct(UserProfileUpdate $userProfile, GetUserService $getUser, NotificationService $notification_sent)
@@ -66,7 +66,7 @@ class UserController extends BaseController
                         ->mixedCase()   // Must contain both upper and lower case letters
                         ->numbers()     // Must contain at least one number
                         ->symbols()     // Must contain at least one special character
-                       
+
                 ]
             ]);
             if ($validator->fails()) {
@@ -114,22 +114,23 @@ class UserController extends BaseController
     #-----------------************ G E T        P R O F I L E  *************---------------------#
     public function getUserProfile(Request $request)
     {
-        $validate= Validator::make($request->all(), [
+        $validate = Validator::make($request->all(), [
             'type' => 'nullable|integer|between:1,2',
-            'limit'=> 'nullable|integer',
-            'user_id'=> 'required|integer|exists:users,id',
+            'limit' => 'nullable|integer',
+            'user_id' => 'required|integer|exists:users,id',
         ]);
-        if($validate->fails()){
+
+        if ($validate->fails()) {
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
 
         $authId             =   Auth::id();
-        if(isset($request->type) && $request->type == 2){
-            
+        if (isset($request->type) && $request->type == 2) {
+
             $limit      =   isset($request->limit) ? $request->limit : 10;
 
-            $activity   =    $this->getActivity($request,$limit);
+            $activity   =    $this->getActivity($request, $limit);
 
             return $this->sendResponse($activity, "Your Activities", 200);
         }
@@ -137,34 +138,30 @@ class UserController extends BaseController
         if (isset($request->user_id) && !empty($request->user_id)) {
 
             $getUser        =   $request->user_id;
-
         } else {
 
             $getUser        =   $authId;
         }
 
-        if(User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
+        if (User::where(['id' => $getUser, 'is_active' => 1])->exists()) {
 
-            $blocked = BlockedUser::where(function($query) use ($authId, $getUser) {
+            $blocked = BlockedUser::where(function ($query) use ($authId, $getUser) {
 
                 $query->where('user_id', $authId)
-                      ->where('blocked_user_id', $getUser);
-            })->orWhere(function($query) use ($authId, $getUser) {
+                    ->where('blocked_user_id', $getUser);
+            })->orWhere(function ($query) use ($authId, $getUser) {
 
                 $query->where('user_id', $getUser)
-                      ->where('blocked_user_id', $authId);
-
+                    ->where('blocked_user_id', $authId);
             })->exists();
 
             if ($blocked) {
 
                 return $this->sendResponsewithoutData('Either you have blocked this user or they have blocked you', 403);
-
-            } 
+            }
             $userProfile        =   $this->getUser->getUser($getUser, $authId);
-        
-            return $this->sendResponse($userProfile, trans("message.user_profile"), 200);
 
+            return $this->sendResponse($userProfile, trans("message.user_profile"), 200);
         } else {
 
             return $this->sendError(trans('message.invalidUser'), [], 422);
@@ -175,7 +172,6 @@ class UserController extends BaseController
     #--------------------- G E T        U S E R         P O S T     ----------------------------#
     public function getUserPost(Request $request)
     {
-
         $validator                 =      Validator::make($request->all(), ['user_id' => 'required|integer|exists:users,id']);
 
         if ($validator->fails()) {
@@ -188,23 +184,20 @@ class UserController extends BaseController
                 //check user is blocked or not
                 if ($authId != $getUser) {
 
-                   
+
                     $isBlocked = BlockedUser::where(function ($query) use ($authId, $getUser) {
                         // Check if the exact combination exists
                         $query->where(['user_id' => $authId, 'blocked_user_id' => $getUser])
-                        
-                            ->orWhere(function($query) use($authId, $getUser){
-                                
-                                 $query->where(['user_id' => $getUser, 'blocked_user_id' => $authId]);
-                                
+
+                            ->orWhere(function ($query) use ($authId, $getUser) {
+
+                                $query->where(['user_id' => $getUser, 'blocked_user_id' => $authId]);
                             });
-                                
                     })->exists();
 
                     if ($isBlocked) {
 
                         return $this->sendError(trans('message.blocked_user'), [], 403);
-
                     } else {
 
                         $isSupporting   =   UserFollower::where(['user_id' => $getUser, 'follower_user_id' => $authId, 'status' => 2])->exists();
@@ -227,7 +220,7 @@ class UserController extends BaseController
     }
     #--------------------- G E T        U S E R         P O S T     ----------------------------#
 
-    
+
     #------------------  E M A I L       C H A N G E         R E Q U E S T ---------------------#
     public function requestEmailChange(Request $request)
     {
@@ -263,12 +256,11 @@ class UserController extends BaseController
                 Mail::to($newEmail)->send(new ChangeEmailRequest($verificationCode));
 
                 return $this->sendResponsewithoutData(trans('message.sent_email_verification_code'), 200);
-
             } elseif ($request->type == 2) {            // Match the verification code
 
 
                 $emailChangeRequest = EmailChangeRequest::where('new_email', $newEmail)->first();
-                
+
 
                 if (!$emailChangeRequest) {
 
@@ -305,7 +297,6 @@ class UserController extends BaseController
                 DB::commit();
                 return $this->sendResponsewithoutData(trans('message.email_changed_successfully'), 200);
             }
-
         } catch (Exception $e) {
             DB::rollback();
             Log::error('Error caught: "requestEmailChange" ' . $e->getMessage());
@@ -313,52 +304,90 @@ class UserController extends BaseController
         }
     }
 
-    function getActivity($request,$limit){
+
+    #---------------- U P D A T E       L A T       L O N G ---------------------#
+
+
+    public function updateLocation(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            $id         =   Auth::id();
+            $user       =   User::find($id);
+
+            if (!$user) {
+
+                return response()->json(['message' => 'User not found'], 400);
+            }
+            if (isset($request->lat) && !empty($request->lat) && isset($request->long) && !empty($request->long)) {
+
+                $user->lat  = $request->lat;
+                $user->long     = $request->long;
+                $user->save();
+            }
+            DB::commit();
+            return $this->sendResponsewithoutData(trans('message.location_updated'), 200);
+
+        } catch (Exception $e) {
+            DB::rollback();
+            Log::info("locationUpdated".$e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+    #---------------- U P D A T E       L A T       L O N G ---------------------#
+
+
+
+
+
+    function getActivity($request, $limit)
+    {
 
 
         $loginId         =   Auth::id();
         $userId          =   $request->user_id;
-        $userData        =   User::where(['is_active'=>1,'id'=>$userId])->first();
+        $userData        =   User::where(['is_active' => 1, 'id' => $userId])->first();
         //dd($userData['user_name']);
         // if(empty($userData)){
 
 
 
         // }
-        $user_name     =    ($loginId == $request->user_id)? "You" :$userData['user_name'];
+        $user_name     =    ($loginId == $request->user_id) ? "You" : $userData['user_name'];
         // dd($user_name);
-        $types=[10,11,12,13,14,15];
-        $actions= [
+        $types = [10, 11, 12, 13, 14, 15];
+        $actions = [
             10 => "posted in the community",
             11 => "liked this post",
             12 => "Commented on this post",
             13 => "liked comment of this post",
-            14 =>"replied comment of this post",
+            14 => "replied comment of this post",
             15 => "reposted the post",
         ];
-        
+
 
         $caseStatement = "CASE";
         foreach ($actions as $type => $message) {
             $caseStatement .= " WHEN action = $type THEN '$message'";
         }
         $caseStatement .= " ELSE 'Your action' END AS action_message";
-        
-        $activities =ActivityLog::select('id','user_id','post_id','community_id','like_id','community_member_id','parent_id','action','action_details','is_active','created_at','updated_at','comment_id')
+
+        $activities = ActivityLog::select('id', 'user_id', 'post_id', 'community_id', 'like_id', 'community_member_id', 'parent_id', 'action', 'action_details', 'is_active', 'created_at', 'updated_at', 'comment_id')
             ->selectRaw($caseStatement)
             ->where('user_id', $userId)
             ->whereIn('action', $types)
-            ->with(['post_details'=> function($query) use($userId){
-                
-                $query->with(['post_user'=>function($query){
+            ->with(['post_details' => function ($query) use ($userId) {
 
-                    $query->select('id','name','user_name','profile');
-                    },
-                    'group'=>function($query){
+                $query->with([
+                    'post_user' => function ($query) {
 
-                        $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
+                        $query->select('id', 'name', 'user_name', 'profile');
                     },
-                    'comment' => function($query) use ($userId){
+                    'group' => function ($query) {
+
+                        $query->select('id', 'name', 'description', 'cover_photo', 'member_count', 'post_count', 'created_by');
+                    },
+                    'comment' => function ($query) use ($userId) {
                         $query->where('user_id', $userId);
                     },
                     'parent_post' => function ($query) {
@@ -366,86 +395,86 @@ class UserController extends BaseController
                             ->where('is_active', 1)
                             ->with([
                                 'post_user' => function ($query) {
-                                    $query->select('id', 'name','user_name', 'profile');
+                                    $query->select('id', 'name', 'user_name', 'profile');
                                 }
                             ]);
-                    },'parent_post.group'=>function($query){
+                    }, 'parent_post.group' => function ($query) {
 
-                        $query->select('id','name','description','created_by');
+                        $query->select('id', 'name', 'description', 'created_by');
                     }
-                ])->withCount(['total_likes','total_comment']);
-            },'user'=>function($q){
-                $q->select('id','name','user_name','profile');
+                ])->withCount(['total_likes', 'total_comment']);
+            }, 'user' => function ($q) {
+                $q->select('id', 'name', 'user_name', 'profile');
             }])
             ->orderBy('id', 'desc')
             ->simplePaginate($limit);
 
-            $activities->each(function ($homeScreenPost) use($loginId) {
+        $activities->each(function ($homeScreenPost) use ($loginId) {
 
-                if (isset($homeScreenPost->post_details->media_url) && !empty($homeScreenPost->post_details->media_url)) {
+            if (isset($homeScreenPost->post_details->media_url) && !empty($homeScreenPost->post_details->media_url)) {
 
-                    $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
+                $homeScreenPost->post_details->media_url      =  $this->addBaseInImage($homeScreenPost->post_details->media_url);
+            }
+
+
+            if (isset($homeScreenPost->post_details->thumbnail) && !empty($homeScreenPost->post_details->thumbnail)) {
+
+                $homeScreenPost->post_details->thumbnail      =  $this->addBaseInImage($homeScreenPost->post_details->thumbnail);
+            }
+
+
+
+            if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
+
+                $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
+            }
+
+            if (isset($homeScreenPost->post_details->post_user) &&  !empty($homeScreenPost->post_details->post_user->profile)) {
+
+                $homeScreenPost->post_details->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_details->post_user->profile);
+            }
+            if ($homeScreenPost->post_details->group &&  $homeScreenPost->post_details->group->cover_photo) {
+
+                $homeScreenPost->post_details->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->post_details->group->cover_photo);
+            }
+
+            if (isset($homeScreenPost->user) && !empty($homeScreenPost->user->profile)) {
+
+                $homeScreenPost->user->profile      =  $this->addBaseInImage($homeScreenPost->user->profile);
+            }
+
+
+            $isExist                                       =   $this->IsPostLiked($homeScreenPost->post_details->id, $loginId);
+            $homeScreenPost->post_details->is_liked        =   $isExist['is_liked'];
+            $homeScreenPost->post_details->reaction        =   $isExist['reaction'];
+            $isRepost                                      =   Post::where(['parent_id' => $homeScreenPost->post_details->id, 'user_id' => $loginId, 'is_active' => 1])->exists();
+            $homeScreenPost->post_details->is_reposted     =  ($isRepost) ? 1 : 0;
+            $homeScreenPost->post_details->postedAt        =   time_elapsed_string($homeScreenPost->post_details->created_at);
+
+
+            #------------ parent post data-----------------#
+            if (isset($homeScreenPost->post_details->parent_post) && !empty($homeScreenPost->post_details->parent_post)) {
+
+                if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
+
+                    $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
                 }
 
 
-                if (isset($homeScreenPost->post_details->thumbnail) && !empty($homeScreenPost->post_details->thumbnail)) {
+                if (isset($homeScreenPost->post_details->parent_post->thumbnail) && !empty($homeScreenPost->post_details->parent_post->thumbnail)) {
 
-                    $homeScreenPost->post_details->thumbnail      =  $this->addBaseInImage($homeScreenPost->post_details->thumbnail);
+                    $homeScreenPost->post_details->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->thumbnail);
                 }
-
-
-
-                if ($homeScreenPost->post_details->parent_post && $homeScreenPost->post_details->parent_post->post_user && $homeScreenPost->post_details->parent_post->post_user->profile) {
-
-                    $homeScreenPost->post_details->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->post_details->parent_post->post_user->profile);
-                }
-
-                if (isset($homeScreenPost->post_details->post_user) &&  !empty($homeScreenPost->post_details->post_user->profile)) {
-
-                    $homeScreenPost->post_details->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_details->post_user->profile);
-                }
-                if ($homeScreenPost->post_details->group &&  $homeScreenPost->post_details->group->cover_photo) {
-
-                    $homeScreenPost->post_details->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->post_details->group->cover_photo );
-                }
-
-                if (isset($homeScreenPost->user) && !empty($homeScreenPost->user->profile)) {
-
-                    $homeScreenPost->user->profile      =  $this->addBaseInImage($homeScreenPost->user->profile);
-                }
-
-                
-                $isExist                                       =   $this->IsPostLiked($homeScreenPost->post_details->id, $loginId);
-                $homeScreenPost->post_details->is_liked        =   $isExist['is_liked'];
-                $homeScreenPost->post_details->reaction        =   $isExist['reaction'];
-                $isRepost                                      =   Post::where(['parent_id'=>$homeScreenPost->post_details->id,'user_id'=>$loginId,'is_active'=>1])->exists();
-                $homeScreenPost->post_details->is_reposted     =  ($isRepost)?1:0;
-                $homeScreenPost->post_details->postedAt        =   time_elapsed_string($homeScreenPost->post_details->created_at);
-
-
-                #------------ parent post data-----------------#
-                if(isset($homeScreenPost->post_details->parent_post) && !empty($homeScreenPost->post_details->parent_post)){
-
-                    if (isset($homeScreenPost->post_details->parent_post->media_url) && !empty($homeScreenPost->post_details->parent_post->media_url)) {
-
-                        $homeScreenPost->post_details->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->media_url);
-                    }
-
-
-                    if (isset($homeScreenPost->post_details->parent_post->thumbnail) && !empty($homeScreenPost->post_details->parent_post->thumbnail)) {
-
-                        $homeScreenPost->post_details->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->post_details->parent_post->thumbnail);
-                    }
-                    $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $loginId);
-                    $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];
-                    $homeScreenPost->post_details->parent_post->reaction        =   $isExist['reaction'];
-                    $homeScreenPost->post_details->parent_post->total_likes_count =   $isExist['total_likes_count'];
-                    $homeScreenPost->post_details->parent_post->total_comment_count =   Comment::where('post_id',$homeScreenPost->post_details->parent_post->id)->count();
-                    $isRepost                                     =   Post::where(['parent_id'=>$homeScreenPost->post_details->parent_post->id,'user_id'=>$loginId,'is_active'=>1])->exists();
-                    $homeScreenPost->post_details->parent_post->is_reposted     =  ($isRepost)?1:0;
-                    $homeScreenPost->post_details->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->post_details->parent_post->created_at);
-                }
-            });
+                $isExist                                      =   $this->IsPostLiked($homeScreenPost->post_details->parent_post->id, $loginId);
+                $homeScreenPost->post_details->parent_post->is_liked        =   $isExist['is_liked'];
+                $homeScreenPost->post_details->parent_post->reaction        =   $isExist['reaction'];
+                $homeScreenPost->post_details->parent_post->total_likes_count =   $isExist['total_likes_count'];
+                $homeScreenPost->post_details->parent_post->total_comment_count =   Comment::where('post_id', $homeScreenPost->post_details->parent_post->id)->count();
+                $isRepost                                     =   Post::where(['parent_id' => $homeScreenPost->post_details->parent_post->id, 'user_id' => $loginId, 'is_active' => 1])->exists();
+                $homeScreenPost->post_details->parent_post->is_reposted     =  ($isRepost) ? 1 : 0;
+                $homeScreenPost->post_details->parent_post->postedAt        =  time_elapsed_string($homeScreenPost->post_details->parent_post->created_at);
+            }
+        });
 
         return $activities;
     }
@@ -453,11 +482,9 @@ class UserController extends BaseController
 
 
 
-public function iosPush(){
+    public function iosPush()
+    {
 
-    dd(IosPush("96fee2946e3214071409278ca8e3d337bc3aa5998e36c16efa8141929e230c5e","Hello sir",1,['name'=>"param"],$mood_icon = ''));
-}
-
-
-
+        dd(IosPush("96fee2946e3214071409278ca8e3d337bc3aa5998e36c16efa8141929e230c5e", "Hello sir", 1, ['name' => "param"], $mood_icon = ''));
+    }
 }
