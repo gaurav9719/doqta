@@ -65,7 +65,7 @@ class AddCommunityPost extends BaseController
             if ($request->hasFile('thumbnail')) {
 
                 $thumbnail          = $request->file('thumbnail');
-                $ThumbnailUploaded  = upload_file($post_image, 'post_thumbnail');
+                $ThumbnailUploaded  = upload_file($thumbnail, 'post_thumbnail');
                 $post->thumbnail    = $ThumbnailUploaded;
                 
             }

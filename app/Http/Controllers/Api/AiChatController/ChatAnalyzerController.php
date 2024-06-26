@@ -53,7 +53,6 @@ class ChatAnalyzerController extends BaseController
                 ->whereBetween('created_at', [$start_time, $end_time])
                 ->pluck('id')->toArray();
     
-                
             $ids_count  = count($request_ids);
             $start_id   = reset($request_ids);
             $end_id     = end($request_ids);
@@ -86,7 +85,7 @@ class ChatAnalyzerController extends BaseController
     
                 foreach ($messages as $message) {
     
-                    $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                    $date       =   Carbon::parse($message->created_at)->format('Y-m-d H:i A');
                     $details= "id: ".$message->id;
                     $details.= ", Date: ".$date;
                     $details.= ", Sender: ".$message->sender->name;
@@ -134,6 +133,7 @@ class ChatAnalyzerController extends BaseController
 
                     #insights & suggestion
                     $insight = json_decode($insight, true);
+
                         foreach($insight['insights'] as $insights){
                 
                             $insig = ChatInsight::create([
