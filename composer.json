@@ -47,7 +47,9 @@
             "app/Helper/stripe_helper.php",
             "app/Helper/common_helper.php",
             "app/Helper/CommunityPostFilter.php",
-            "app/Helper/TopHealthProvider.php"
+            "app/Helper/TopHealthProvider.php",
+            "app/Helper/SytemInstructionHelper.php"
+            
 
         ]
     },

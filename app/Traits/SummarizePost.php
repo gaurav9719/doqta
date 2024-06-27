@@ -2,15 +2,30 @@
 
 namespace App\Traits;
 
-use App\Models\Post;
 use Exception;
-use GeminiAPI\Resources\Parts\TextPart;
-use GeminiAPI\Laravel\Facades\Gemini;
-use Illuminate\Support\Facades\File;
+use App\Models\Post;
+use App\Models\Comment;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\File;
+use GeminiAPI\Laravel\Facades\Gemini;
+use GeminiAPI\Resources\Parts\TextPart;
 
 trait SummarizePost
 {
+    protected $apiKey;
+
+    public function init()
+    {
+        // Initialization code that you want to run
+        dd("cc");
+        $this->apiKey = env('GEMINI_API_KEY');
+
+        dd($this->apiKey);
+    }
+   
+
+
+
     #--------------  S U M M A R I Z E      T H E       P O S T  ---------------------#
     public function summerize($postid)
     {
@@ -63,7 +78,6 @@ trait SummarizePost
 
     public function postSummaryInstruction($content)
     {
-
         // $systemInstruction = 'Generate PHP code to display "Hello World"';
 
         $guidelines = [
@@ -133,13 +147,116 @@ trait SummarizePost
             $prompt_template
         );
         return $compiled_prompt;
-
     }
 
     #-------------------------  C O M M E N T       T H R E A D     S U M M A R Y -------------------------#
-    public function commentThreadSummary(){
+    public function commentThreadSummary($post_id,$comment_id)
+    {
+        $comment       = Comment::where('id', $comment_id)->where('is_active', 1)->first();
 
+        if (isset($comment) && !empty($comment)) {
 
+            if (isset($comment->parent_id) && !empty($comment->parent_id)) {
+
+                //comment
+                $total_comment       = Comment::where('parent_id', $comment->parent_id)->where(['is_active' => 1, 'is_comment_flag' => 1])->count();
+
+                if ($total_comment >= 2) {
+
+                    $postData       =   Post::select('title', 'content')->where('id', $post_id)->first();
+                    //summarize comments thread
+                    if (isset($postData) && !empty($postData)) {
+
+                        $data = array(["text" => "Post Title: $postData->title"], ["text" => "Post Description: $postData->content"]);
+
+                        $totalComments       = Comment::where('parent_id', $comment->parent_id)->where(['is_active' => 1, 'is_comment_flag' => 1])->get();
+
+                        foreach ($totalComments as $comment) {
+
+                            $details    = "Comment: $comment->comment";
+
+                            array_push($data, ['text' => $details]);
+                        }
+                    }
+                }
+            }
+        }
+        array_push(
+            $data,
+            array("text" => "---------------------------------------------------------------------------"),
+            array("text" => "Summrize the comment of the post in simple text language and easy to understand"),
+            array("text" => "These comments are related to medical field, so summarize the comments accordingly"),
+            array("text" => "give response in simple text, do not add headning or any style in the text"),
+        );
+        // return $data;
+
+        $response           = $this->summarizeCommentByAi($data);
+        return $response;
     }
     #-------------------------  C O M M E N T       T H R E A D     S U M M A R Y -------------------------#
+
+
+    function summarizeCommentByAi($content, $count = 1)
+    {
+        if ($count > 3) {
+
+            return null;
+        }
+        // Define your API key
+        // $API_KEY    = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
+        $API_KEY    =   env('GEMINI_API_KEY');
+        $url        = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+        // return $data;
+        $data = array(
+
+            "system_instruction" => array("parts" => geminiInstruction(4)),
+            "contents" => array(
+                array(
+                    "role" => "user",
+                    "parts" => $content
+                )
+            )
+        );
+        // return $data;
+        // Initialize cURL session
+        $curl = curl_init($url);
+        // Set cURL options
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+        // Execute cURL request
+        $response = curl_exec($curl);
+        // Check for errors
+        if ($response === false) {
+            $error = curl_error($curl);
+            $response = [
+                'status' => 400,
+                "message" => "Curl Error",
+                "data" => $error,
+            ];
+            return $response;
+        } else {
+            // Close cURL session
+            curl_close($curl);
+            $response = json_decode($response, true);
+            // return $response;
+            try {
+                if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
+
+                    $result = $response['candidates'][0]['content']['parts'][0]['text'];
+
+                    $finalResponse = $this->convertIntoJson($result);
+                    return $finalResponse;
+                } 
+            } catch (Exception $e) {
+                Log::error('Error while creating journal report: ' . $e->getMessage());
+                return [
+                    'status' => 400,
+                    "message" => "Exception Error",
+                    'data' => $e->getMessage()
+                ];
+            }
+        }
+    }
 }

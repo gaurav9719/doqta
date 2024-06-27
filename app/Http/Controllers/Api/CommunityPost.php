@@ -36,10 +36,10 @@ use App\Jobs\DeleteJobs\PostRecalculation;
 
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Validation\ValidationException;
-
+use App\Traits\SummarizePost;
 class CommunityPost extends BaseController
 {
-    use CommonTrait, IsCommunityJoined, postCommentLikeCount;
+    use CommonTrait, IsCommunityJoined, postCommentLikeCount,SummarizePost;
     /**
      * Display a listing of the resource.
      */
@@ -929,6 +929,9 @@ class CommunityPost extends BaseController
     #=================== SUMMARIZE COMMENT 7 JUNE ========================#
     function summarizeComment(Request $request)
     {
+
+        $a=$this->postSummaryInstruction(1);
+        dd($a);
         $validate = Validator::make($request->all(), [
 
             'post_id' => 'required|integer|exists:posts,id',
@@ -1102,7 +1105,8 @@ public function calculateScoreByAi(Request $request)
 {
     try {
 
-       
+        $a=$this->postSummaryInstruction(1);
+        dd($a);
         if ($request->content && !empty($request->content)) {
             $curl = curl_init();
             curl_setopt_array($curl, [
