@@ -459,7 +459,7 @@ class JournalService extends BaseController
     {
         try {
             // Default limit if not provided
-            DB::enableQueryLog();
+            
             $limit          =   $request->limit ?? 10;
 
             $journalEntry   =   JournalEntry::where(['user_id' => $authId, 'is_active' => 1])->whereDate('created_at', $request->date)->with([
@@ -483,6 +483,7 @@ class JournalService extends BaseController
                 'symptom.journalSymtom' => function ($q) {
 
                     $q->select('id', 'symptom');
+
                 },'journal'=>function($q){
 
                     $q->select('id','title','writing_for','is_favorite','writing_for','created_at','entry_date');
@@ -497,7 +498,9 @@ class JournalService extends BaseController
 
             if (isset($request->journal_id) && !empty($request->journal_id)) {
 
-                $journalEntry = $journalEntry->where(['journal_id' => $request->journal_id]);
+                $journalIds     =   explode(',',$request->journal_id);
+                // $journalEntry   =   $journalEntry->where(['journal_id' => $request->journal_id]);
+                $journalEntry   =   $journalEntry->whereIn('journal_id',$journalIds);
             }
             $journalEntry = $journalEntry->orderByDesc('id')->simplePaginate($limit);
             

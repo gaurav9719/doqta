@@ -28,11 +28,11 @@ use App\Http\Controllers\Api\Journals\JournalAnalyzerController;
 
 class AiChat extends BaseController
 {
-    use postCommentLikeCount,CommonTrait;
+    use postCommentLikeCount, CommonTrait;
 
     public function __construct()
     {
-       // $this->middleware('checkUserQuota:chatbot_messages')->only('store');
+        // $this->middleware('checkUserQuota:chatbot_messages')->only('store');
     }
     /**
      * Display a listing of the resource.
@@ -119,7 +119,6 @@ class AiChat extends BaseController
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-
             } else {
 
                 $messages                         =         json_decode($request->messages, true);
@@ -128,7 +127,7 @@ class AiChat extends BaseController
                     '*.id' => 'required|string',
                     '*.message' => 'required|string',
                     '*.participant' => 'required|string',
-                    '*.media'=>"nullable|"
+                    '*.media' => "nullable|"
                 ]);
 
                 if ($validator->fails()) {
@@ -140,7 +139,6 @@ class AiChat extends BaseController
                 if (isset($ai) && !empty($ai)) {
 
                     $aiId                          =    $ai->id;
-
                 } else {
                     //create ai
                     $addAi                         =    new User();
@@ -153,14 +151,13 @@ class AiChat extends BaseController
                 }
                 #-------- check thread is exist or not
                 $inbox                              =               AiThread::where(function ($query) use ($myId) {
-                                                                        $query->where('sender_id', $myId)
-                                                                        ->orWhere('receiver_id', $myId);
-                                                                    })->first();
+                    $query->where('sender_id', $myId)
+                        ->orWhere('receiver_id', $myId);
+                })->first();
 
                 if (isset($inbox) && !empty($inbox)) {
 
                     $threadId                     =         $inbox->id;
-
                 } else {                                          // create chat thread
 
                     $newThread                    =           new AiThread();
@@ -243,7 +240,6 @@ class AiChat extends BaseController
 
                 $query->where('sender_id', $myId)
                     ->orWhere('receiver_id', $myId);
-                    
             })->paginate($limit);
             $groupedNotifications      = $notifications->getCollection()->groupBy(function ($date) {
 
@@ -303,7 +299,6 @@ class AiChat extends BaseController
                 'to' => $notifications->lastItem(),
             ];
             return $this->sendResponse($data, trans('message.chat_logs'), 200);
-             
         } catch (Exception $e) {
 
             Log::error('Error caught: "aiChatLogs" ' . $e->getMessage());
@@ -312,96 +307,100 @@ class AiChat extends BaseController
     }
 
     public function chatLogs(Request $request)
-{
-    try {
+    {
+        try {
 
-        $myId           = Auth::id();
-        $limit          = $request->get('limit', 10);
-        $search = $request->input('search',""); // Get the search parameter f
-       $notifications = AiThread::where(function ($query) use ($myId) {
-        $query->where('sender_id', $myId)
-              ->orWhere('receiver_id', $myId);
-    })
-    ->when($search, function ($query, $search) {
-        return $query->where('thread_name', 'like', '%' . $search . '%');
-    })
-    ->orderBy('created_at', 'desc')
-    ->paginate($limit);
+            $myId           = Auth::id();
+            $limit          = $request->get('limit', 10);
+            $search         = $request->input('search', ""); // Get the search parameter f
+            $notifications  = AiThread::where(function ($query) use ($myId) {
 
-        $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) {
-            $notificationDate = Carbon::parse($date->created_at)->startOfDay();
-            $today = Carbon::now()->startOfDay();
-            $yesterday = Carbon::yesterday()->startOfDay();
-            $startOfWeek = Carbon::now()->startOfWeek();
-            $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
-            $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
+                $query->where('sender_id', $myId)
 
-            if ($notificationDate->equalTo($today)) {
-                return 'Today';
-            } elseif ($notificationDate->equalTo($yesterday)) {
-                return 'Yesterday';
-            } elseif ($notificationDate->between($startOfWeek, $today)) {
-                return 'This Week';
-            } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
-                return 'Last Week';
-            } else {
-                return 'Older';
-            }
-        });
+                    ->orWhere('receiver_id', $myId);
+            })
+                ->when($search, function ($query, $search) {
 
-        $responseData = $groupedNotifications->map(function ($notificationsGroup, $date) {
-            return [
-                'message_on' => $date,
-                'message' => $notificationsGroup->map(function ($notification) {
-                    return [
-                        'id' => $notification->id,
-                        'sender_id' => $notification->sender_id,
-                        'receiver_id' => $notification->receiver_id,
-                        'thread_name' => $notification->thread_name,
-                        'is_user1_trash' => $notification->is_user1_trash,
-                        'is_user2_trash' => $notification->is_user2_trash,
-                        'created_at' => $notification->created_at,
-                        'updated_at' => $notification->updated_at,
-                        'time_ago' => time_elapsed_string($notification->created_at),
-                    ];
+                    return $query->where('thread_name', 'like', '%' . $search . '%');
                 })
+                ->orderBy('created_at', 'desc')
+                ->paginate($limit);
+
+            $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) {
+
+                $notificationDate   = Carbon::parse($date->created_at)->startOfDay();
+                $today              = Carbon::now()->startOfDay();
+                $yesterday          = Carbon::yesterday()->startOfDay();
+                $startOfWeek            = Carbon::now()->startOfWeek();
+                $startOfLastWeek    = Carbon::now()->subWeek()->startOfWeek();
+                $endOfLastWeek      = Carbon::now()->subWeek()->endOfWeek();
+
+                if ($notificationDate->equalTo($today)) {
+                    return 'Today';
+                } elseif ($notificationDate->equalTo($yesterday)) {
+                    return 'Yesterday';
+                } elseif ($notificationDate->between($startOfWeek, $today)) {
+                    return 'This Week';
+                } elseif ($notificationDate->between($startOfLastWeek, $endOfLastWeek)) {
+                    return 'Last Week';
+                } else {
+                    return 'Older';
+                }
+            });
+
+            $responseData = $groupedNotifications->map(function ($notificationsGroup, $date,$myId) {
+                return [
+                    'message_on' => $date,
+                    'message' => $notificationsGroup->map(function ($notification,$myId) {
+                        return [
+                            'id' => $notification->id,
+                            'sender_id' => $notification->sender_id,
+                            'receiver_id' => $notification->receiver_id,
+                            'thread_name' => $notification->thread_name,
+                            'is_user1_trash' => $notification->is_user1_trash,
+                            'is_user2_trash' => $notification->is_user2_trash,
+                            'created_at' => $notification->created_at,
+                            'updated_at' => $notification->updated_at,
+                            'time_ago' => time_elapsed_string($notification->created_at),
+                            'is_pinned_message'=>(PinnedMessage::where(['message_id'=>$notification->id,'user_id'=>$myId])->exists())?1:0
+                        ];
+                    })
+                ];
+            })->values();
+
+            $data = [
+                'current_page' => $notifications->currentPage(),
+                'data' => $responseData,
+                'first_page_url' => $notifications->url(1),
+                'from' => $notifications->firstItem(),
+                'next_page_url' => $notifications->nextPageUrl(),
+                'path' => $notifications->path(),
+                'per_page' => $notifications->perPage(),
+                'prev_page_url' => $notifications->previousPageUrl(),
+                'to' => $notifications->lastItem(),
             ];
-        })->values();
 
-        $data = [
-            'current_page' => $notifications->currentPage(),
-            'data' => $responseData,
-            'first_page_url' => $notifications->url(1),
-            'from' => $notifications->firstItem(),
-            'next_page_url' => $notifications->nextPageUrl(),
-            'path' => $notifications->path(),
-            'per_page' => $notifications->perPage(),
-            'prev_page_url' => $notifications->previousPageUrl(),
-            'to' => $notifications->lastItem(),
-        ];
-        
-        return $this->sendResponse($data, trans('message.chat_logs'), 200);
-
-    } catch (Exception $e) {
-        Log::error('Error caught: "aiChatLogs" ' . $e->getMessage());
-        return $this->sendError($e->getMessage(), [], 400);
+            return $this->sendResponse($data, trans('message.chat_logs'), 200);
+        } catch (Exception $e) {
+            Log::error('Error caught: "aiChatLogs" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
     }
-}
 
-   
+
     // public function chatLogs(Request $request)
     // {
     //     try {
     //         $myId = Auth::id();
     //         $limit = $request->get('limit', 10);
     //         $page = $request->get('page', 1);
-    
+
     //         // Fetch all notifications sorted by creation date in descending order
     //         $allNotifications = AiThread::where(function ($query) use ($myId) {
     //             $query->where('sender_id', $myId)
     //                 ->orWhere('receiver_id', $myId);
     //         })->orderBy('created_at', 'desc')->get();
-    
+
     //         // Group notifications by date
     //         $groupedNotifications = $allNotifications->groupBy(function ($notification) {
     //             $notificationDate = Carbon::parse($notification->created_at)->startOfDay();
@@ -410,7 +409,7 @@ class AiChat extends BaseController
     //             $startOfWeek = Carbon::now()->startOfWeek();
     //             $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
     //             $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
-    
+
     //             if ($notificationDate->equalTo($today)) {
     //                 return 'Today';
     //             } elseif ($notificationDate->equalTo($yesterday)) {
@@ -423,16 +422,16 @@ class AiChat extends BaseController
     //                 return 'Older';
     //             }
     //         });
-    
+
     //         // Sort the grouped notifications by date in descending order
     //         $sortedGroupedNotifications = $groupedNotifications->sortKeysDesc();
-    
+
     //         // Flatten the sorted groups into a single collection
     //         $flattenedNotifications = $sortedGroupedNotifications->flatten();
-    
+
     //         // Paginate the flattened notifications manually
     //         $paginatedNotifications = $flattenedNotifications->slice(($page - 1) * $limit, $limit);
-    
+
     //         // Map the paginated notifications to the required response structure
     //         $responseData = $paginatedNotifications->groupBy(function ($notification) {
     //             $notificationDate = Carbon::parse($notification->created_at)->startOfDay();
@@ -441,7 +440,7 @@ class AiChat extends BaseController
     //             $startOfWeek = Carbon::now()->startOfWeek();
     //             $startOfLastWeek = Carbon::now()->subWeek()->startOfWeek();
     //             $endOfLastWeek = Carbon::now()->subWeek()->endOfWeek();
-    
+
     //             if ($notificationDate->equalTo($today)) {
     //                 return 'Today';
     //             } elseif ($notificationDate->equalTo($yesterday)) {
@@ -471,7 +470,7 @@ class AiChat extends BaseController
     //                 })
     //             ];
     //         })->values(); // Ensure we return an indexed array, not associative
-    
+
     //         // Prepare the paginated response
     //         $data = [
     //             'current_page' => $notifications->currentPage(),
@@ -485,13 +484,13 @@ class AiChat extends BaseController
     //             'to' => $notifications->lastItem(),
     //         ];
     //         return $this->sendResponse($data, trans('message.chat_logs'), 200);
-    
+
     //     } catch (Exception $e) {
     //         Log::error('Error caught: "chatLogs" ' . $e->getMessage());
     //         return $this->sendError($e->getMessage(), [], 400);
     //     }
     // }
-    
+
 
     #----------- PIN/UNPIN MESSAGE -------------------_#
 
@@ -533,8 +532,7 @@ class AiChat extends BaseController
                         $data                   =   1;
                     }
                     DB::commit();
-                    return $this->sendResponse($data,$message, 200);
-
+                    return $this->sendResponse($data, $message, 200);
                 } else {
 
                     return $this->sendResponsewithoutData(trans('message.invalid_message'), 400);
@@ -561,7 +559,6 @@ class AiChat extends BaseController
             $pinnedMessage      =   PinnedMessage::where('user_id', $authId)->with(['message', 'message.sender' => function ($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
-
             }])->orderByDesc('created_at')->simplePaginate($limit);
 
             if (isset($pinnedMessage[0]) && !empty($pinnedMessage[0])) {
@@ -588,7 +585,8 @@ class AiChat extends BaseController
 
 
     #-------------  S T O R E       M E S S A G E --------------------#
-    public function storeMessage(Request $request){
+    public function storeMessage(Request $request)
+    {
 
         DB::beginTransaction();
 
@@ -597,21 +595,20 @@ class AiChat extends BaseController
             $validator                          =       Validator::make($request->all(), [
                 'message' => 'required',
                 'participant' => 'required|string|in:user,system',
-                'media'=>"nullable|mimes:jpg,jpeg,png,bmp,tiff",
-                'is_new_thread'=>"required|integer|between:0,1",
-                'thread_id' => 'required_if:is_new_thread,0|integer|exists:ai_threads,id' ],['thread_id.required_if'=>"invalid thread_id"]);
+                'media' => "nullable|mimes:jpg,jpeg,png,bmp,tiff",
+                'is_new_thread' => "required|integer|between:0,1",
+                'thread_id' => 'required_if:is_new_thread,0|integer|exists:ai_threads,id'
+            ], ['thread_id.required_if' => "invalid thread_id"]);
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-
             } else {
-    
+
                 $myId                               =   Auth::id();
                 $ai                                 =   User::select('id')->where(['role' => 4])->first();
                 if (isset($ai) && !empty($ai)) {
 
                     $aiId                          =    $ai->id;
-
                 } else {
                     //create ai
                     $addAi                         =    new User();
@@ -623,25 +620,22 @@ class AiChat extends BaseController
                     $aiId                          =   $addAi->id;
                 }
                 #-------- check thread is exist or not
-                if($request->is_new_thread==0){
+                if ($request->is_new_thread == 0) {
 
                     $inserted_id                        =               null;
                     $inbox                              =               AiThread::where(function ($query) use ($myId) {
                         $query->where('sender_id', $myId)
                             ->orWhere('receiver_id', $myId);
-                    })->where('id',$request->thread_id)->first();
-    
+                    })->where('id', $request->thread_id)->first();
+
                     if (isset($inbox) && !empty($inbox)) {
-    
+
                         $threadId                     =         $inbox->id;
-    
-                    }else{
+                    } else {
 
                         return $this->sendResponsewithoutData(trans('message.invalid_thread'), 409);
-
-                    } 
-
-                }else {                                          // create chat thread
+                    }
+                } else {                                          // create chat thread
 
                     $newThread                    =           new AiThread();
                     $newThread->sender_id         =           $myId;
@@ -654,30 +648,29 @@ class AiChat extends BaseController
                 if (isset($threadId) && !empty($threadId)) {
 
                     $senderId                     =         ($request->participant == "user") ? $myId : $aiId;
-                    $message                      =         ['sender_id' => $senderId,'participant'=>$request->participant, 'message' => $request->message, 'inbox_id' => $threadId];
+                    $message                      =         ['sender_id' => $senderId, 'participant' => $request->participant, 'message' => $request->message, 'inbox_id' => $threadId];
 
-                    if(isset($request->media) && !empty($request->media)){
+                    if (isset($request->media) && !empty($request->media)) {
 
-                        $media                     =       upload_file($request->media,'ai_chat');
+                        $media                     =       upload_file($request->media, 'ai_chat');
                         $message['media']          =       $media;
                         $message['message_type']   =       2;
-
                     }
 
                     $lastMessage                   =        AiMessage::create($message);
                     $inserted_id                   =        $lastMessage->id;
                     #--------------  RECORD USER QUOTA PER DAY-------------#
-                    if(isset($inserted_id) && !empty($inserted_id)){
+                    if (isset($inserted_id) && !empty($inserted_id)) {
 
-                        AiThread::where('id',$threadId)->update(['thread_name'=>$request->message]);
-                        
-                        if($senderId==$myId){
+                        AiThread::where('id', $threadId)->update(['thread_name' => $request->message]);
+
+                        if ($senderId == $myId) {
 
                             $quotaUpdated               = UserQuota::updateQuota($myId, 'chatbot_message');
                         }
                     }
                     #--------------  RECORD USER QUOTA PER DAY-------------#
-                    AiThread::find($threadId)->update(['message_id'=>$inserted_id]);
+                    AiThread::find($threadId)->update(['message_id' => $inserted_id]);
                 }
 
                 DB::commit();
@@ -685,10 +678,10 @@ class AiChat extends BaseController
                 $userQuotas                        =    userQuota($myId);
                 // return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
                 return response()->json([
-                                        'status' => 200,
-                                        'message' =>  trans('message.saved_successfully'),
-                                        'data'=>$messageData,
-                                        "user_quota"=>$userQuotas
+                    'status' => 200,
+                    'message' =>  trans('message.saved_successfully'),
+                    'data' => $messageData,
+                    "user_quota" => $userQuotas
                 ]);
                 // return $this->sendResponsewithoutData(trans('message.saved_successfully'), 200);
             }
@@ -697,10 +690,11 @@ class AiChat extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-    
+
 
     #-------------- T H R E A D         M E S S A G E S     ----------------------#
-    public function threadMessage(Request $request){
+    public function threadMessage(Request $request)
+    {
 
         try {
 
@@ -710,7 +704,6 @@ class AiChat extends BaseController
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-
             } else {
 
                 $myId                           =               Auth::id();
@@ -723,7 +716,7 @@ class AiChat extends BaseController
                 $inbox                          =               AiThread::where(function ($query) use ($myId) {
                     $query->where('sender_id', $myId)
                         ->orWhere('receiver_id', $myId);
-                })->where('id',$request->thread_id)->first();
+                })->where('id', $request->thread_id)->first();
 
                 if (isset($inbox) && !empty($inbox)) {
 
@@ -761,27 +754,25 @@ class AiChat extends BaseController
                     $userQuotas                        =   userQuota($myId);
                     // return $this->sendResponse($messageData, trans('message.saved_successfully'), 200);
                     return response()->json([
-                                            'status' => 200,
-                                            'message' =>  trans('message.chat_logs'),
-                                            'data'=>$messages,
-                                            "user_quota"=>$userQuotas
+                        'status' => 200,
+                        'message' =>  trans('message.chat_logs'),
+                        'data' => $messages,
+                        "user_quota" => $userQuotas
                     ]);
-
                 } else {
 
                     $userQuotas                     =   userQuota($myId);
                     $inbox                          =               AiThread::where(function ($query) use ($myId) {
                         $query->where('sender_id', $myId)
                             ->orWhere('receiver_id', $myId);
-                    })->where('id',$request->thread_id)->simplePaginate(1);
-    
+                    })->where('id', $request->thread_id)->simplePaginate(1);
+
                     return response()->json([
                         'status' => 200,
                         'message' =>  trans('message.chat_logs'),
-                        'data'=>$inbox,
-                        "user_quota"=>$userQuotas
+                        'data' => $inbox,
+                        "user_quota" => $userQuotas
                     ]);
-
                 }
             }
         } catch (Exception $e) {
@@ -809,7 +800,7 @@ class AiChat extends BaseController
     // public function insights(Request $request){
 
     //     $validate= Validator::make($request->all(), [
-           
+
     //         'start_date' => 'required|date_format:Y-m-d',
     //         'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
     //     ]);
@@ -818,7 +809,7 @@ class AiChat extends BaseController
 
     //         return $this->sendResponsewithoutData($validate->errors()->first(), 422);
     //     }
-       
+
     //     $myId                        =       Auth::id();
     //     $inbox                          =       AiThread::where(function ($query) use ($myId) {
     //         $query->where('sender_id', $myId)
@@ -872,9 +863,9 @@ class AiChat extends BaseController
 
     //                 return response()->json($insight, 400);
     //             }
-    
-            
-    
+
+
+
     //         }
 
     //       //  $instructions = "Hey Gemini, when responding to user queries, let's keep our language clear and relatable, avoiding complex terms or medical jargon. Ensure our responses resonate with the experiences and perspectives of the Black community. Let's maintain a focus on health-related issues and provide empathetic support. Encourage others to share insights, advice, and personal anecdotes to support the original poster.";
@@ -886,7 +877,7 @@ class AiChat extends BaseController
     //         // Let's create a supportive and informative environment for users seeking health-related guidance.
     //         // INSTRUCTIONS;
     //     }
-    
+
     // }
 
     function convertIntoJson($text)
@@ -899,14 +890,14 @@ class AiChat extends BaseController
         return $text;
     }
 
-#------------ OLD ONE MAY 31 --------_____
+    #------------ OLD ONE MAY 31 --------_____
     // public function insights(Request $request){
 
     //     $validate = Validator::make($request->all(), [
     //         'start_date' => 'required|date_format:Y-m-d',
     //         'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
     //     ]);
-    
+
     //     if($validate->fails()){
 
     //         return $this->sendResponsewithoutData($validate->errors()->first(), 422);
@@ -918,7 +909,7 @@ class AiChat extends BaseController
     //     })->first();
 
     //     if (isset($inbox) && !empty($inbox)) {
-            
+
     //         $inboxId = $inbox->id;
     //         // DB::enableQueryLog();
     //         $messages = AiMessage::with(['sender' => function ($query) {
@@ -938,7 +929,7 @@ class AiChat extends BaseController
     //             $details.= ", Message: ".$message->message;
     //             $details.= ", Media link: ".$media;
     //             array_push($chatData, ['text'=> $details]);
-               
+
     //         }
     //         array_push($chatData, 
     //         array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
@@ -964,231 +955,227 @@ class AiChat extends BaseController
     //         }
     //     }
     // }
-#----------------------------------------__#
+    #----------------------------------------__#
 
 
 
     public function shareMedia(Request $request)
-{
-    try {
-        $authId = Auth::id();
-        $limit = $request->limit ?? 10;
-        $inbox = AiThread::where(function ($query) use ($authId) {
-            $query->where('sender_id', $authId)
-                ->orWhere('receiver_id', $authId);
-        })->first();
-
-        if (isset($inbox) && !empty($inbox)) {
-
-            $inboxId = $inbox->id;
-            $media = AiMessage::select('id','media','message_type')
-            
-                ->where(['message_type' => 2, 'inbox_id' => $inboxId])
-                ->where(function($query) use($authId) {
-                    $query->where('is_user1_trash', '<>', $authId)->orWhere('is_user2_trash', '<>', $authId);
-                })
-                ->simplePaginate($limit);
-
-            if($media[0] && !empty($media[0])){
-
-                $media->getCollection()->transform(function($query) {
-                    if (empty($query->media)) {
-                        return null;
-                    } elseif (Storage::disk('public')->exists($query->media)) {
-                        $query->media = $this->addBaseInImage($query->media);
-                        return $query;
-                    } else {
-                        return null;
-                    }
-                });
-                $media->setCollection($media->getCollection()->filter());
-            }
-            return $this->sendResponse($media, trans('message.shared_media'), 200);
-        }else{
-
+    {
+        try {
+            $authId = Auth::id();
+            $limit = $request->limit ?? 10;
             $inbox = AiThread::where(function ($query) use ($authId) {
                 $query->where('sender_id', $authId)
                     ->orWhere('receiver_id', $authId);
-            })->simplePaginate(1);
-            // If no media found, construct response with pagination parameters and empty data
-            return $this->sendResponse($inbox, trans('message.shared_media'), 200);
+            })->first();
 
-        }
-    } catch (Exception $e) {
-        Log::error('Error caught: "getShareMedia" ' . $e->getMessage());
-        return $this->sendError($e->getMessage(), [], 400);
-    }
-}
+            if (isset($inbox) && !empty($inbox)) {
 
+                $inboxId = $inbox->id;
+                $media = AiMessage::select('id', 'media', 'message_type')
 
-public function insights(Request $request){
-        
-           
-    $validate = Validator::make($request->all(), [
-        'start_date' => 'required|date_format:Y-m-d',
-        'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
-    ]);
-
-    if($validate->fails()){
-        return $this->sendResponsewithoutData($validate->errors()->first(), 422);
-    }
-    
-    $myId = Auth::id();
-    $inbox_ids = AiThread::where(function ($query) use ($myId) {
-        $query->where('sender_id', $myId)
-        ->orWhere('receiver_id', $myId);
-        })
-        ->pluck('id')
-        ->toArray();
-    
-    if (count($inbox_ids) > 0) {
-        
-        #check report available for request time
-        $start_time     = Carbon::parse($request->start_date)->startOfDay();
-        $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
-        $request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
-            ->where(function ($query) use ($myId) {
-                $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);
-            })
-            ->where('is_active', 1)
-            ->whereBetween('created_at', [$start_time, $end_time])
-            ->pluck('id')->toArray();
-
-           
-        $ids_count  = count($request_ids);
-        $start_id   = reset($request_ids);
-        $end_id     = end($request_ids);
-        $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
-        if($ids_count > 0){
-            if(count($reports) > 0){
-                
-                foreach($reports as $report){
-                    $reportIds= AiMessage::whereIn('inbox_id', $inbox_ids)
-                    ->where(function ($query) use ($myId) {
-                        $query->where('is_user1_trash', '!=', $myId)
-                            ->orWhere('is_user2_trash', '!=', $myId);
+                    ->where(['message_type' => 2, 'inbox_id' => $inboxId])
+                    ->where(function ($query) use ($authId) {
+                        $query->where('is_user1_trash', '<>', $authId)->orWhere('is_user2_trash', '<>', $authId);
                     })
-                    ->where('is_active', 1)
-                    ->whereBetween('created_at', [$report->start_date, $report->end_date])
-                    ->pluck('id')->toArray();
-                    if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
-                        if(count($request_ids) == $report->ids_count  && $start_id == $report->start_id && $end_id == $report->end_id){
-                            $response= json_decode($report->report);
-                            return $this->sendResponse($response, "Insights & Suggestions generated successfully", 200);
+                    ->simplePaginate($limit);
+
+                if ($media[0] && !empty($media[0])) {
+
+                    $media->getCollection()->transform(function ($query) {
+                        if (empty($query->media)) {
+                            return null;
+                        } elseif (Storage::disk('public')->exists($query->media)) {
+                            $query->media = $this->addBaseInImage($query->media);
+                            return $query;
+                        } else {
+                            return null;
+                        }
+                    });
+                    $media->setCollection($media->getCollection()->filter());
+                }
+                return $this->sendResponse($media, trans('message.shared_media'), 200);
+            } else {
+
+                $inbox = AiThread::where(function ($query) use ($authId) {
+                    $query->where('sender_id', $authId)
+                        ->orWhere('receiver_id', $authId);
+                })->simplePaginate(1);
+                // If no media found, construct response with pagination parameters and empty data
+                return $this->sendResponse($inbox, trans('message.shared_media'), 200);
+            }
+        } catch (Exception $e) {
+            Log::error('Error caught: "getShareMedia" ' . $e->getMessage());
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+
+
+    public function insights(Request $request)
+    {
+
+
+        $validate = Validator::make($request->all(), [
+            'start_date' => 'required|date_format:Y-m-d',
+            'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
+        ]);
+
+        if ($validate->fails()) {
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+        }
+
+        $myId = Auth::id();
+        $inbox_ids = AiThread::where(function ($query) use ($myId) {
+            $query->where('sender_id', $myId)
+                ->orWhere('receiver_id', $myId);
+        })
+            ->pluck('id')
+            ->toArray();
+
+        if (count($inbox_ids) > 0) {
+
+            #check report available for request time
+            $start_time     = Carbon::parse($request->start_date)->startOfDay();
+            $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
+            $request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
+                ->where(function ($query) use ($myId) {
+                    $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);
+                })
+                ->where('is_active', 1)
+                ->whereBetween('created_at', [$start_time, $end_time])
+                ->pluck('id')->toArray();
+
+
+            $ids_count  = count($request_ids);
+            $start_id   = reset($request_ids);
+            $end_id     = end($request_ids);
+            $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
+            if ($ids_count > 0) {
+                if (count($reports) > 0) {
+
+                    foreach ($reports as $report) {
+                        $reportIds = AiMessage::whereIn('inbox_id', $inbox_ids)
+                            ->where(function ($query) use ($myId) {
+                                $query->where('is_user1_trash', '!=', $myId)
+                                    ->orWhere('is_user2_trash', '!=', $myId);
+                            })
+                            ->where('is_active', 1)
+                            ->whereBetween('created_at', [$report->start_date, $report->end_date])
+                            ->pluck('id')->toArray();
+                        if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
+                            if (count($request_ids) == $report->ids_count  && $start_id == $report->start_id && $end_id == $report->end_id) {
+                                $response = json_decode($report->report);
+                                return $this->sendResponse($response, "Insights & Suggestions generated successfully", 200);
+                            }
                         }
                     }
                 }
-            }
-            #end check report section
-            
-            $messages = AiMessage::with(['sender' => function ($query) {
-                $query->select('id', 'name', 'user_name', 'profile');
-            }])->where(function ($query) use ($myId) {
-                $query->where('is_user1_trash', '!=', $myId)
-                    ->orWhere('is_user2_trash', '!=', $myId);
-            })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
+                #end check report section
+
+                $messages = AiMessage::with(['sender' => function ($query) {
+                    $query->select('id', 'name', 'user_name', 'profile');
+                }])->where(function ($query) use ($myId) {
+                    $query->where('is_user1_trash', '!=', $myId)
+                        ->orWhere('is_user2_trash', '!=', $myId);
+                })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
 
 
-            // return $messages;
-            $chatData = [];
+                // return $messages;
+                $chatData = [];
 
-            foreach ($messages as $message) {
+                foreach ($messages as $message) {
 
-                $date=Carbon::parse($message->created_at)->format('Y-m-d H:i A');
-                $details= "Date:".$date;
-                $details.= ", Sender: ".$message->sender->name;
-                $details.= ", Message: ".$message->message;
-                if(isset($message->media) && !empty($message->media)){
-                    $media  =   $this->addBaseInImage($message->media);
-                    $details.= ", Media link: ".$media;
+                    $date = Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                    $details = "Date:" . $date;
+                    $details .= ", Sender: " . $message->sender->name;
+                    $details .= ", Message: " . $message->message;
+                    if (isset($message->media) && !empty($message->media)) {
+                        $media  =   $this->addBaseInImage($message->media);
+                        $details .= ", Media link: " . $media;
+                    }
+                    array_push($chatData, ['text' => $details]);
                 }
-                array_push($chatData, ['text'=> $details]);
-            
-            }
-            // return $chatData;
-            array_push($chatData, 
-            array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
-            array("text" => "provide result in json format"),
-            array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
-            array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
-            array("text" => "if Media link: available, analyze the image and give response accordingly"),
-            array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
-            );
-            $analyzer   = new JournalAnalyzerController();
+                // return $chatData;
+                array_push(
+                    $chatData,
+                    array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
+                    array("text" => "provide result in json format"),
+                    array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+                    array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the conversation'"),
+                    array("text" => "if Media link: available, analyze the image and give response accordingly"),
+                    array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+                );
+                $analyzer   = new JournalAnalyzerController();
 
-            $insight    = $this->generateReportAIChatTrait($chatData);
+                $insight    = $this->generateReportAIChatTrait($chatData);
 
-            if(isset($insight['status']) && $insight['status'] == 200){
+                if (isset($insight['status']) && $insight['status'] == 200) {
 
-                $newReport=JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
-                if(!isset($newReport)){
-                    $newReport = new JournalReport;
+                    $newReport = JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
+                    if (!isset($newReport)) {
+                        $newReport = new JournalReport;
+                    }
+                    $newReport->user_id         = $myId;
+                    $newReport->start_date      = $start_time;
+                    $newReport->end_date        = $end_time;
+                    $newReport->report          = json_encode($insight['data']);
+                    $newReport->ids_count       = $ids_count;
+                    $newReport->start_id        = $start_id;
+                    $newReport->end_id          = $end_id;
+                    $newReport->type            = 1;
+                    $newReport->report_type     = 2;
+                    $newReport->save();
+                    return response()->json($insight, 200);
+                } else {
+
+                    return response()->json($insight, 201);
                 }
-                $newReport->user_id         = $myId;
-                $newReport->start_date      = $start_time;
-                $newReport->end_date        = $end_time;
-                $newReport->report          = json_encode($insight['data']);
-                $newReport->ids_count       = $ids_count;
-                $newReport->start_id        = $start_id;
-                $newReport->end_id          = $end_id;
-                $newReport->type            = 1;
-                $newReport->report_type     = 2;
-                $newReport->save();
-                return response()->json($insight, 200);
-            }
-            else{
+            } else {
 
-                return response()->json($insight, 201);
+                return $this->sendResponse(null, 'No message found', 200);
             }
-        }
-        else{
-
-            return $this->sendResponse(null,'No message found', 200);
+        } else {
+            return $this->sendResponse(null, 'No message found', 200);
         }
     }
-    else{
-        return $this->sendResponse(null,'No message found', 200);
-    }
-}
-    
+
 
     #------------------- C H A T         F E E D B A C K -----------______#
-    public function chatFeedback(Request $request){
+    public function chatFeedback(Request $request)
+    {
         DB::beginTransaction();
 
         try {
 
             if ($request->isMethod('post')) {
-              
-                $validator      =  Validator::make($request->all(),['message_id'=>'required|integer|exists:ai_messages,id','feedback'=>'nullable|string|max:200']);
 
-                if($validator->fails()){
-        
+                $validator      =  Validator::make($request->all(), ['message_id' => 'required|integer|exists:ai_messages,id', 'feedback' => 'nullable|string|max:200']);
+
+                if ($validator->fails()) {
+
                     return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-        
-                }else{
+                } else {
                     $authId     =   Auth::id();
-                    $exist      =   AiMessage::where('id',$request->message_id)->whereHas('thread')->exists();
-        
-                    $feedBack   =   $request->feedback??null;
-                    $reaction   =   $request->reaction??0;
-        
-                    if($exist){
-        
-                        if(!empty($feedBack) || !empty($reaction)){
+                    $exist      =   AiMessage::where('id', $request->message_id)->whereHas('thread')->exists();
 
-                            $added  =   AiMessageFeedback::updateOrCreate(['message_id'=>$request->message_id,'user_id'=>$authId],['reaction'=>$reaction,'feedback'=>$feedBack]);
+                    $feedBack   =   $request->feedback ?? null;
+                    $reaction   =   $request->reaction ?? 0;
 
-                            $getFeedback    =AiMessageFeedback::find($added->id);
+                    if ($exist) {
+
+                        if (!empty($feedBack) || !empty($reaction)) {
+
+                            $added  =   AiMessageFeedback::updateOrCreate(['message_id' => $request->message_id, 'user_id' => $authId], ['reaction' => $reaction, 'feedback' => $feedBack]);
+
+                            $getFeedback    = AiMessageFeedback::find($added->id);
                             DB::commit();
 
                             return $this->sendResponse($getFeedback, "Feedback submit successfully", 200);
+                        } else {
 
-                        }else{
-        
                             return $this->sendResponsewithoutData("feedback or reaction is required", 422);
                         }
-                    }else{
+                    } else {
 
                         return $this->sendResponsewithoutData("Invalid message", 422);
                     }
@@ -1196,7 +1183,6 @@ public function insights(Request $request){
             } else {
 
                 return $this->sendError("invalid method", [], 403);
-
             }
         } catch (Exception $e) {
             DB::rollBack();

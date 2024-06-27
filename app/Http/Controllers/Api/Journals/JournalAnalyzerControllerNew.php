@@ -263,7 +263,8 @@ class JournalAnalyzerControllerNew extends BaseController
         // Define the URL
         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
 
-        $instructions =      $this->geminiInstruction($type);
+        // $instructions =      $this->geminiInstruction($type);
+        $instructions =      geminiInstruction($type);
         // return $data;
         $data = array(
 

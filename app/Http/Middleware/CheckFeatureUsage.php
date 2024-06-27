@@ -17,7 +17,7 @@ class CheckFeatureUsage
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
 
-     protected $limits = [
+    protected $limits = [
         'community_posts' => 2,
         'chatbot_messages' => 10,
         'journal_entries' => 2,
@@ -31,27 +31,23 @@ class CheckFeatureUsage
     {
         $user = Auth::user();
 
-        if ($user->plan_status==1 || $user->plan_status=="1") {
+        if ($user->plan_status == 1 || $user->plan_status == "1") {
 
             return $next($request);
         }
         $date       =   Carbon::today()->toDateString();
 
         $usage      =   UserQuota::firstOrCreate(['user_id' => $user->id, 'date' => $date]);
-        
+
         if ($usage->$feature >= $this->limits[$feature]) {
 
             return response()->json([
-                'status'=>406,
+                'status' => 406,
                 'message' => "We’re so sorry, but your account has exceeded the maximum amount of {$feature} allowed per day.Please upgrade your account to premium to receive unlimited access to all of Doqta’s features.",
 
             ], 406);
         }
 
         return $next($request);
-
     }
-
-
-    
 }

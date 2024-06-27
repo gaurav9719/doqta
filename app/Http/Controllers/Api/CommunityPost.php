@@ -970,38 +970,38 @@ class CommunityPost extends BaseController
         return $response;
     }
 
-    function summarizeCommentNew($comment_id)
+    function summarizeCommentNew($post_id,$comment_id)
     {
         
-        $comment       = Comment::where('post_id', $comment_id)->where('is_active', 1)->first();
+        $comment       = Comment::where('id', $comment_id)->where('is_active', 1)->first();
 
         if(isset($comment) && !empty($comment)){
 
             if(isset($comment->parent_id) && !empty($comment->parent_id)){
 
-
                 //comment
+                $total_comment       = Comment::where('parent_id',$comment->parent_id)->where(['is_active'=>1,'is_comment_flag'=>1])->count();
 
+                if($total_comment>=2){
+
+                    $postData       =   Post::select('title','content')->where('id',$post_id)->first();
+                    //summarize comments thread
+                    if(isset($postData) && !empty($postData)){
+
+                        $data = array(["text" => "Post Title: $postData->title"], ["text" => "Post Description: $postData->content"]);
+
+                        $totalComments       = Comment::where('parent_id',$comment->parent_id)->where(['is_active'=>1,'is_comment_flag'=>1])->get();
+
+                        foreach ($totalComments as $comment) {
+
+                            $details    = "Comment: $comment->comment";
+
+                            array_push($data, ['text' => $details]);
+                        }
+                    }
+                }
             }
-
-
-
         }
-
-        //$data = array(["text" => "Post Title: $post->title"], ["text" => "Post Description: $post->content"]);
-
-        // if (count($comments) > 0) {
-
-        //     foreach ($comments as $comment) {
-
-        //         $details    = "Comment: $comment->comment";
-
-        //         array_push($data, ['text' => $details]);
-        //     }
-        // }
-
-
-
         array_push(
             $data,
             array("text" => "---------------------------------------------------------------------------"),
@@ -1031,6 +1031,8 @@ class CommunityPost extends BaseController
 
         // return $data;
         $data = array(
+
+            "system_instruction" => array("parts" => geminiInstruction(4)),
             "contents" => array(
                 array(
                     "role" => "user",
@@ -1069,9 +1071,7 @@ class CommunityPost extends BaseController
 
                     $finalResponse = $this->convertIntoJson($result);
                     return $finalResponse;
-                } else {
-                    return $this->validateSymptoms($data, $count + 1);
-                }
+                } 
             } catch (Exception $e) {
                 Log::error('Error while creating journal report: ' . $e->getMessage());
                 return [
