@@ -107,10 +107,9 @@ trait CalculateScore
 
     public function calculateScoreByAi($postId)
     {
-      
         try {
-            $post = Post::where('id', $postId)->first();
 
+            $post = Post::where('id', $postId)->first();
             if ($post && !empty($post->content)) {
                 $curl = curl_init();
                 curl_setopt_array($curl, [

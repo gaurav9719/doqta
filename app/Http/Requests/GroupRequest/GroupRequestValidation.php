@@ -70,8 +70,9 @@ class GroupRequestValidation extends FormRequest
 
         return [
 
-            'type'=>'required|integer|between:1,2',
-            'receiver_id' => 'required|string',
+            'type'=>'required|integer|between:1,2', 
+            'conversation_id'=>'nullable|integer|exists:conversations,id', 
+            'receiver_id' => 'nullable|integer|exists:users,id',
             'message_type' => 'required|integer|between:1,7',
             'message'=> 'required_if:message_type,1',
             'media' => [
@@ -105,7 +106,8 @@ class GroupRequestValidation extends FormRequest
     {
         return [
 
-            'message.message_type'=>"Message required"
+            'message.message_type'=>"Message required",
+            'conversation_id.integer'=>"Invalid conversation id"
         ];
     }
 

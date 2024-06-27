@@ -58,5 +58,10 @@ class Conversation extends Model
                               ->where('deleted_messages.user_id', $userId);
                     });
     }
+
+    public function blocks()
+    {
+        return $this->hasManyThrough(BlockedUser::class, Participant::class, 'conversation_id', 'user_id', 'id', 'user_id');
+    }
    
 }

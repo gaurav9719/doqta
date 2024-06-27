@@ -40,7 +40,6 @@ use App\Services\NotificationService;
             if (!empty($request->location)) {
                 
                 $distance   =   $request->distance ?? 100;
-
                 $lat        =   $authUser->lat;
                 $long       =   $authUser->long;
 
@@ -149,7 +148,10 @@ use App\Services\NotificationService;
 
         function applyLocationFilter($posts, $distance, $lat, $long)
         {
-            $posts->select('*', DB::raw("round(6371 * acos(cos(radians($lat)) 
+            $earthRadiusMiles       = 3959;
+            $earthRadiusKilometer   = 6371;
+
+            $posts->select('*', DB::raw("round($earthRadiusMiles * acos(cos(radians($lat)) 
                 * cos(radians(`lat`)) 
                 * cos(radians(`long`) - radians($long)) 
                 + sin(radians($lat)) 

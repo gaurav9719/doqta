@@ -41,6 +41,7 @@ class DicoverService extends BaseController
             if ($request->type == 1) {          //posts
 
                 return $this->getDiscoverPost($request, $userId);
+
             } elseif ($request->type == 2) {   // community
 
                 return $this->getDiscoverCommunity($request, $userId);
@@ -973,11 +974,6 @@ class DicoverService extends BaseController
         }
     }
 
-
-
-
-
-
     public function getDiscoverCommunityOLD($request, $authId)
     {
         try {
@@ -1046,22 +1042,25 @@ class DicoverService extends BaseController
 
             $data               =   [];
 
-            $discoverCommunity  =       Group::where('is_active', 1)
+            $discoverCommunity  =   Group::where('is_active', 1);
 
-                ->whereHas('groupOwner', function ($query) use ($authId) {
+                #----------- jun 27 commented ----------------____#
+                // ->whereHas('groupOwner', function ($query) use ($authId) {
 
-                    $query->where('is_active', 1) // Check if group owner is active
+                //     $query->where('is_active', 1) // Check if group owner is active
 
-                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                //         ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                            $query->where('user_id', $authId);
-                        })
-                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                //             $query->where('user_id', $authId);
+                //         })
+                //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
-                            $query->where('blocked_user_id', $authId);
-                        });
-                });
+                //             $query->where('blocked_user_id', $authId);
+                //         });
+                // });
+                #----------- jun 27 commented ----------------____#
 
+               
             if (!empty($request->search)) {
 
                 $discoverCommunity =   $discoverCommunity->where('name', 'like', "%$request->search%");
@@ -1090,6 +1089,10 @@ class DicoverService extends BaseController
 
                 $discoveredCommunity       = $discoverCommunity->simplePaginate($limit);
             }
+
+
+
+
             $discoveredCommunity->each(function ($query) use ($authId) {
 
                 // if (isset($query->member_count) && !empty($query->member_count)) {

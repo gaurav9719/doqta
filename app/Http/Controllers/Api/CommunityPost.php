@@ -46,6 +46,8 @@ class CommunityPost extends BaseController
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification, GetCommunityService $getCommunityPost)
     {
+
+        $this->middleware('checkUserQuota:community_posts')->only('store');
         $this->addCommunityPost = $addCommunityPost;
         $this->notification = $notification;
         $this->getCommunityPost = $getCommunityPost;
@@ -76,6 +78,8 @@ class CommunityPost extends BaseController
     public function store(AddPostRequest $request)
     {
         $authId = Auth::id();
+
+        // dd(Auth::id());
         //check if you are the member of 
         //check group is active or not
         $isGroupExist = Group::where(['id' => $request->community_id, 'is_active' => 1])->exists();
@@ -419,6 +423,8 @@ class CommunityPost extends BaseController
                     $rePost->link = $isExist->link;
                     $rePost->post_type = $isExist->post_type;
                     $rePost->group_id = $isExist->group_id;
+                    $rePost->post_category = $isExist->post_category;
+                    $rePost->media_type = $isExist->media_type;
                     $rePost->save();
 
                     increment('posts', ['id' => $parent_id], 'repost_count', 1);
@@ -666,9 +672,10 @@ class CommunityPost extends BaseController
                 $addComment->mention_user_id = $request->mention_user_id;
             }
 
-            $addComment->comment = $request->comment;
+            $addComment->comment        = $request->comment;
+            $addComment->is_comment_flag = strlen($request->comment) > 75 ? 1 : 0;// Determine is_comment_flag based on comment length
             $addComment->save();
-            $commentId             = $addComment->id;
+            $commentId                   = $addComment->id;
 
             #--------------  RECORD USER QUOTA PER DAY-------------#
             if (isset($commentId) && !empty($commentId)) {
@@ -742,6 +749,7 @@ class CommunityPost extends BaseController
     public function savedPosts(Request $request)
     {
         try {
+
             $limit      = 10;
 
             if (isset($request->limit) && !empty($request->limit)) {
@@ -922,19 +930,27 @@ class CommunityPost extends BaseController
     function summarizeComment(Request $request)
     {
         $validate = Validator::make($request->all(), [
+
             'post_id' => 'required|integer|exists:posts,id',
+
         ]);
+
         if ($validate->fails()) {
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
-        $post = Post::find($request->post_id);
+        $post       = Post::find($request->post_id);
+
         $comments = Comment::where('post_id', $request->post_id)->where('is_active', 1)->get();
 
         $data = array(["text" => "Post Title: $post->title"], ["text" => "Post Description: $post->content"]);
+
         if (count($comments) > 0) {
 
             foreach ($comments as $comment) {
+
                 $details    = "Comment: $comment->comment";
+
                 array_push($data, ['text' => $details]);
             }
         }
@@ -954,6 +970,50 @@ class CommunityPost extends BaseController
         return $response;
     }
 
+    function summarizeCommentNew($comment_id)
+    {
+        
+        $comment       = Comment::where('post_id', $comment_id)->where('is_active', 1)->first();
+
+        if(isset($comment) && !empty($comment)){
+
+            if(isset($comment->parent_id) && !empty($comment->parent_id)){
+
+
+                //comment
+
+            }
+
+
+
+        }
+
+        //$data = array(["text" => "Post Title: $post->title"], ["text" => "Post Description: $post->content"]);
+
+        // if (count($comments) > 0) {
+
+        //     foreach ($comments as $comment) {
+
+        //         $details    = "Comment: $comment->comment";
+
+        //         array_push($data, ['text' => $details]);
+        //     }
+        // }
+
+
+
+        array_push(
+            $data,
+            array("text" => "---------------------------------------------------------------------------"),
+            array("text" => "Summrize the comment of the post in simple text language and easy to understand"),
+            array("text" => "These comments are related to medical field, so summarize the comments accordingly"),
+            array("text" => "give response in simple text, do not add headning or any style in the text"),
+        );
+        // return $data;
+
+        $response = $this->summarizeCommentAi($data);
+        return $response;
+    }
 
 
 
@@ -1026,4 +1086,122 @@ class CommunityPost extends BaseController
     public function textSum(){
         return $this->addCommunityPost->checkSum();
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+public function calculateScoreByAi(Request $request)
+{
+    try {
+
+       
+        if ($request->content && !empty($request->content)) {
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => json_encode([
+                    'model' => 'llama-3-sonar-small-32k-online',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => '
+
+                            Instructions: You will be provided with posts from the Doqta health forum for the Black community. Your task is to thoroughly search for reputable medical sources (research papers, trusted health websites, etc.) that either support or refute the health information and advice contained in each post.
+                            For each post, your output should follow this format:
+                            <post> [User\'s original post text here] </post>
+                            <medical_source_analysis> [Your analysis here, including:
+
+                            A clear statement on whether you found sources supporting the medical claims made in the post
+
+                            If sources were found:
+
+                            An explanation of why those sources validate the health information shared
+
+                            The specific sources cited (research papers, websites, etc.) with links
+
+                            Relevant excerpts or summaries from the sources
+
+                            If no supporting sources were found:
+
+                            A statement clarifying that the post did not contain any verifiable medical information from trusted sources
+
+                            Any other relevant analysis or context to assess the factual accuracy of the post\'s medical advice ] </medical_source_analysis>
+
+                            Guidelines:
+
+                            Focus solely on analyzing the health/medical aspects of each post. Ignore any non-medical statements.
+
+                            Prioritize sources from authoritative medical journals, universities, health organizations, and government bodies when possible.
+
+                            Provide links and citation details for all referenced sources.
+
+                            Use clear, accessible language in your analysis to maximize understandability.
+
+                            If multiple users discuss the same health topic across posts, you may reference and build upon your previous source analysis.
+
+                            Maintain an objective, impartial tone focusing solely on the factual accuracy of claims.
+
+                            Your role is to comprehensively validate or refute the medical advice provided in each Doqta user post by finding supporting or contradicting evidence from reputable sources. This will help ensure the community receives factual health guidance.'
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $request->content
+                        ]
+                    ]
+                ]),
+                CURLOPT_HTTPHEADER => [
+                    "accept: application/json",
+                    "authorization: Bearer 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",
+                    "content-type: application/json"
+                ],
+            ]);
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            curl_close($curl);
+
+            dd($response);
+
+            if (!$err) {
+                $response_data = json_decode($response, true);
+                if (isset($response_data['choices'][0]['message']['content'])) {
+                    $score = $response_data['choices'][0]['message']['content'];
+
+                    if (is_numeric($score)) {
+                        Log::info('is_numeric' . $score);
+                        return $score;
+                    } 
+                }
+              
+            } 
+        }
+    } catch (Exception $e) {
+        Log::error('Calculation score with AI failed: ' . $e->getMessage());
+        throw $e;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 }

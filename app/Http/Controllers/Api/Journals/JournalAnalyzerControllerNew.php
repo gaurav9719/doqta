@@ -401,7 +401,8 @@ class JournalAnalyzerControllerNew extends BaseController
 
                     $insights = $insights->where('journal_id', $request->journal_id);
                 }
-                $insights = $insights->whereDate('created_at', '=', $date)->get();
+
+                $insights = $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
 
                 if ($insights->isNotEmpty()) {
 

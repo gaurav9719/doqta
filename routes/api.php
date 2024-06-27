@@ -113,15 +113,9 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('groupChat/history', [GroupChatController::class,'getChatHistory']);
 
     
-
     // create group
 
     Route::post('groupChat/create', [GroupChatController::class,'createGroup']);
-
-
-
-
-
     Route::resource('groupChat', GroupChatController::class);
 
 });
@@ -139,6 +133,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
     Route::get('communityPosts/textSum', [CommunityPost::class,'textSum']);
+
+    Route::get('communityPosts/calculateScoreByAi', [CommunityPost::class,'calculateScoreByAi']);
 
     
     Route::resource('communityPosts', CommunityPost::class);

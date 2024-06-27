@@ -135,4 +135,8 @@ trait SummarizePost
             );
             return $compiled_prompt; 
         }
+
+
+    
+
 }

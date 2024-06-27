@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::table('comments', function (Blueprint $table) {
             //
             $table->boolean('is_high_confidence')->default(0)->comment('0:no,1:yes')->after('comment_type');
-            $table->double('ai_score')->after('is_high_confidence')->default(0);
-            $table->index(['is_high_confidence']);
+            $table->double('ai_score')->after('is_high_confidence')->default(0)->comment('0:not,1:yes');
+            $table->boolean('is_comment_flag')->default(0)->comment('0: comment less than 75, 1: comment greater than 75')->after('ai_score');
+            $table->index(['is_high_confidence','is_comment_flag']);
 
         });
     }
@@ -29,6 +30,7 @@ return new class extends Migration
             //
             $table->dropColumn('is_high_confidence');
             $table->dropColumn('ai_score');
+            $table->dropColumn('is_comment_flag');
         });
     }
 };

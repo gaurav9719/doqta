@@ -47,6 +47,7 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
+        
         try {
             $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
             $post               = new Post();
@@ -73,18 +74,22 @@ class AddCommunityPost extends BaseController
 
                 $post->lat = $request->lat;
             }
+
             if (isset($request->long) && !empty($request->long)) {
 
                 $post->long = $request->long;
             }
+
             if (isset($request->link) && !empty($request->link)) {
 
                 $post->link = $request->link;
             }
+
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
 
                 $post->wrote_by = $request->wrote_by;
             }
+
             $post->group_id             = $request->community_id;
             $post->post_type            = $request->post_type; //normal,community
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
@@ -678,6 +683,9 @@ class AddCommunityPost extends BaseController
             'post_user.user_medical_certificate.medical_certificate'=>function($q){
 
                 $q->select('id','name');
+            },'group'=>function($query){
+
+                $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
             }
         
             ])->find($request->post_id);
@@ -699,6 +707,11 @@ class AddCommunityPost extends BaseController
                 if (!empty($post->post_user)) {
 
                     $post->post_user->profile = (isset($post->post_user) && !empty($post->post_user->profile)) ? $this->addBaseInImage($post->post_user->profile) : null;
+                }
+
+                if ($post->group &&  $post->group->cover_photo) {
+
+                    $post->group->cover_photo      =  addBaseUrl($post->group->cover_photo);
                 }
 
                 $post->is_joined            =       $this->checkCommunityJoind($post->group_id);

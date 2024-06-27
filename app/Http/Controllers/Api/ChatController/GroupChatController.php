@@ -1260,7 +1260,6 @@ class GroupChatController extends BaseController
         if ($participant->deleted_at) {
 
             $messagesQuery->where('created_at', '>', $participant->deleted_at);
-
         } elseif ($participant->left_at && $participant->status == 'left') {
 
             $messagesQuery->where('created_at', '<=', $participant->left_at);
@@ -1530,6 +1529,7 @@ class GroupChatController extends BaseController
 
             return $this->sendResponsewithoutData(trans('message.blocked_user'), 403);
         }
+
         try {
 
             DB::beginTransaction();
@@ -1538,21 +1538,70 @@ class GroupChatController extends BaseController
             $conversation = null;
 
             if ($type == 1) {
+
+
+
+
+
+
+
                 // Peer-to-peer conversation
+                // $conversation = Conversation::where('is_group', false)
+
+                //     ->whereHas('conversation_participants', function ($query) use ($myId, $receiverId) {
+
+                //         $query->whereIn('user_id', [$myId, $receiverId])
+
+                //             ->groupBy('conversation_id')
+
+                //             ->havingRaw('COUNT(conversation_id) = ?', [2]);
+                //     })
+                //     ->when($conversationId, function ($query, $conversationId) {
+
+                //         $query->where('id', $conversationId);
+                //     })
+                //     ->first();
+
                 $conversation = Conversation::where('is_group', false)
+
                     ->whereHas('conversation_participants', function ($query) use ($myId, $receiverId) {
-                        $query->whereIn('user_id', [$myId, $receiverId])
+
+                        $query->whereIn('user_id', $receiverId ? [$myId, $receiverId] : [$myId])
                             ->groupBy('conversation_id')
-                            ->havingRaw('COUNT(conversation_id) = ?', [2]);
+                            ->havingRaw('COUNT(conversation_id) = ?', [$receiverId ? 2 : 1]);
                     })
-                    ->when($conversationId, function ($query, $conversationId) {
-                        $query->where('id', $conversationId);
+                    ->when($conversationId, function ($query) use ($conversationId, $myId) {
+
+                        $query->where('id', $conversationId)
+                            ->whereDoesntHave('blocks', function ($query) use ($myId) {
+
+                                $query->where(function ($query) use ($myId) {
+                                    $query->where('blocked_users.user_id', $myId)
+                                        ->orWhere('blocked_users.blocked_user_id', $myId);
+                                });
+                            });
+                    })
+                    ->whereDoesntHave('blocks', function ($query) use ($myId, $receiverId) {
+
+                        $query->where(function ($query) use ($myId) {
+                            $query->where('blocked_users.user_id', $myId)
+                                ->orWhere('blocked_users.blocked_user_id', $myId);
+                        });
+
+                        if ($receiverId) {
+                            $query->orWhere(function ($query) use ($receiverId) {
+                                $query->where('blocked_users.user_id', $receiverId)
+                                    ->orWhere('blocked_users.blocked_user_id', $receiverId);
+                            });
+                        }
                     })
                     ->first();
             } elseif ($type == 2) {
                 // Group conversation
                 $conversation = Conversation::where('is_group', true)
+
                     ->whereHas('conversation_participants', function ($query) use ($myId) {
+
                         $query->where('user_id', $myId);
                     })
                     ->when($conversationId, function ($query, $conversationId) {
@@ -1583,7 +1632,7 @@ class GroupChatController extends BaseController
                 'message_type' => $request->message_type,
             ];
 
-            if (isset($message) && !empty($message)) {
+            if (isset($request->message) && !empty($request->message)) {
 
                 $sendMessageData['message'] = $request->message;
             }

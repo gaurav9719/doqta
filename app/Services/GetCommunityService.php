@@ -550,24 +550,26 @@ class GetCommunityService extends BaseController
 
                     ->whereHas('communities', function ($query) use ($authId) {
 
-                        $query->where('is_active', 1)
+                        $query->where('is_active', 1);
 
-                            ->whereHas('groupOwner', function ($query) use ($authId) {
+                            // ->whereHas('groupOwner', function ($query) use ($authId) {
                                 
-                                $query->where('is_active', 1) // Ensure group owner is active
+                            //     $query->where('is_active', 1) // Ensure group owner is active
 
-                                    ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                            //         ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                                        $query->where('user_id', $authId);
-                                    })
-                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                            //             $query->where('user_id', $authId);
+                            //         })
+                            //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
-                                        $query->where('blocked_user_id', $authId);
+                            //             $query->where('blocked_user_id', $authId);
 
-                                    });
-                            });
+                            //         });
+                            // });
                             
                     })->pluck('group_id');
+
+                   
 
             $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
             return $this->communityLoop($communities, $authId);
