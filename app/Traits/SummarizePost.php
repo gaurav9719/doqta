@@ -150,9 +150,10 @@ trait SummarizePost
     }
 
     #-------------------------  C O M M E N T       T H R E A D     S U M M A R Y -------------------------#
-    public function commentThreadSummary($post_id,$comment_id)
+    public function generateCommentThreadSummary($post_id,$comment_id)
     {
-        $comment       = Comment::where('id', $comment_id)->where('is_active', 1)->first();
+        $data          =   [];
+        $comment       =    Comment::where('id', $comment_id)->where('is_active', 1)->first();
 
         if (isset($comment) && !empty($comment)) {
 
@@ -181,17 +182,23 @@ trait SummarizePost
                 }
             }
         }
-        array_push(
-            $data,
-            array("text" => "---------------------------------------------------------------------------"),
-            array("text" => "Summrize the comment of the post in simple text language and easy to understand"),
-            array("text" => "These comments are related to medical field, so summarize the comments accordingly"),
-            array("text" => "give response in simple text, do not add headning or any style in the text"),
-        );
+        // array_push(
+        //     $data,
+        //     array("text" => "---------------------------------------------------------------------------"),
+        //     array("text" => "Summrize the comment of the post in simple text language and easy to understand"),
+        //     array("text" => "These comments are related to medical field, so summarize the comments accordingly"),
+        //     array("text" => "give response in simple text, do not add headning or any style in the text"),
+        // );
         // return $data;
+        if(isset($data) && !empty($data)){
 
-        $response           = $this->summarizeCommentByAi($data);
-        return $response;
+            $response           = $this->summarizeCommentByAi($data);
+            if(isset($response) && !empty($response)){
+
+                Comment::where('id',$comment->parent_id)->update(['thread_summary'=>$response]);
+            }
+            
+        }
     }
     #-------------------------  C O M M E N T       T H R E A D     S U M M A R Y -------------------------#
 
@@ -205,7 +212,7 @@ trait SummarizePost
         // Define your API key
         // $API_KEY    = "AIzaSyCN9891vVrDvLHsQvZU9M2mv-9W85dOX8g";
         $API_KEY    =   env('GEMINI_API_KEY');
-        $url        = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
+        $url        =   "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=" . $API_KEY;
         // return $data;
         $data = array(
 
@@ -242,11 +249,13 @@ trait SummarizePost
             $response = json_decode($response, true);
             // return $response;
             try {
+
                 if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
 
                     $result = $response['candidates'][0]['content']['parts'][0]['text'];
 
                     $finalResponse = $this->convertIntoJson($result);
+
                     return $finalResponse;
                 } 
             } catch (Exception $e) {

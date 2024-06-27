@@ -16,6 +16,7 @@ return new class extends Migration
             $table->boolean('is_high_confidence')->default(0)->comment('0:no,1:yes')->after('comment_type');
             $table->double('ai_score')->after('is_high_confidence')->default(0)->comment('0:not,1:yes');
             $table->boolean('is_comment_flag')->default(0)->comment('0: comment less than 75, 1: comment greater than 75')->after('ai_score');
+            $table->text('thread_summary')->nullable()->after('is_comment_flag');
             $table->index(['is_high_confidence','is_comment_flag']);
 
         });

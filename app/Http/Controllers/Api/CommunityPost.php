@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Jobs\Summarize\CommentThreadSummary;
 use Exception;
 use App\Models\Post;
 use App\Models\User;
@@ -37,9 +38,10 @@ use App\Jobs\DeleteJobs\PostRecalculation;
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Validation\ValidationException;
 use App\Traits\SummarizePost;
+
 class CommunityPost extends BaseController
 {
-    use CommonTrait, IsCommunityJoined, postCommentLikeCount,SummarizePost;
+    use CommonTrait, IsCommunityJoined, postCommentLikeCount, SummarizePost;
     /**
      * Display a listing of the resource.
      */
@@ -622,16 +624,13 @@ class CommunityPost extends BaseController
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
             }
-            $authId = Auth::id();
-            $post = Post::find($request->post_id);
-
+            $authId             =   Auth::id();
+            $post               =   Post::find($request->post_id);
             if (!$post || !$post->is_active) {
-
                 throw new Exception(trans('message.no_post_found'), 422);
             }
             // check i am group member or not 
             $isMember = GroupMember::where(['group_id' => $post->group_id, 'user_id' => $authId, 'is_active' => 1])->exists();
-
             if (!$isMember) {
 
                 return $this->sendError(trans('message.you_are_not_group_member'), [], 201);
@@ -652,7 +651,6 @@ class CommunityPost extends BaseController
                 $type                   = trans('notification_message.comment_reply_type');
 
             } else {
-
                 #notification data preparation
                 $sender                 = Auth::user();
                 $receiver               = User::find($post->user_id);
@@ -660,48 +658,43 @@ class CommunityPost extends BaseController
                 $message                = $sender->name . " " . trans('notification_message.comment_on_post') . " " . $title;
                 $activityLogMessage     = "Comment on post: " . $title;
                 $type = trans('notification_message.comment_on_post_type');
-
             }
-
             if (isset($request->comment_type) && !empty($request->comment_type)) {
 
-                $addComment->comment_type = $request->comment_type;
+                $addComment->comment_type       = $request->comment_type;
             }
             if (isset($request->mention_user_id) && !empty($request->mention_user_id)) {
 
-                $addComment->mention_user_id = $request->mention_user_id;
+                $addComment->mention_user_id    = $request->mention_user_id;
             }
-
-            $addComment->comment        = $request->comment;
-            $addComment->is_comment_flag = strlen($request->comment) > 75 ? 1 : 0;// Determine is_comment_flag based on comment length
+            $addComment->comment                = $request->comment;
+            $addComment->is_comment_flag        = strlen($request->comment) > 75 ? 1 : 0; // Determine is_comment_flag based on comment length
             $addComment->save();
-            $commentId                   = $addComment->id;
-
+            $commentId                          = $addComment->id;
             #--------------  RECORD USER QUOTA PER DAY-------------#
             if (isset($commentId) && !empty($commentId)) {
 
                 $quotaUpdated               = UserQuota::updateQuota($authId, 'post_comment');
             }
             #--------------  RECORD USER QUOTA PER DAY-------------#
-            $request['comment_id'] = $commentId;
+            $request['comment_id']      = $commentId;
             #----------- R E C O R D        A C T I V I T Y -------------#
-            $activityType = $type;
-            $addActivityLog = new ActivityLog();
-            $addActivityLog->user_id = $authId;
-            $addActivityLog->post_id = $post->id;
+            $activityType               =   $type;
+            $addActivityLog             =   new ActivityLog();
+            $addActivityLog->user_id    =   $authId;
+            $addActivityLog->post_id    =   $post->id;
             $addActivityLog->community_id = $post->group_id;
-            $addActivityLog->comment_id = $commentId;
-            $addActivityLog->action = $activityType;
-            $addActivityLog->parent_id = isset($request->parent_comment_id) ? $request->parent_comment_id : null;
+            $addActivityLog->comment_id =   $commentId;
+            $addActivityLog->action     =   $activityType;
+            $addActivityLog->parent_id  =   isset($request->parent_comment_id) ? $request->parent_comment_id : null;
             $addActivityLog->action_details = $activityLogMessage;
             $addActivityLog->save();
             #send notification
             $data = [
-
                 "message" => $message,
                 "post_id" => $post->id,
                 "community_id" => $post->group_id,
-                "comment_id" => $addComment->id,
+                "comment_id" => $commentId,
                 "parent_id" => isset($request->parent_comment_id) ? $request->parent_comment_id : null
             ];
             if ($sender->id != $receiver->id) {
@@ -709,6 +702,8 @@ class CommunityPost extends BaseController
                 $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
             }
             DB::commit();
+            #-------- generate comment thread summary----------#
+            dispatch(new CommentThreadSummary($request->post_id, $commentId));
             #-----------        R E C O R D        A C T I V I T Y  -------------#
             return $this->addCommunityPost->getCommentById($request, $authId, trans('message.add_comment'));
         } catch (Exception $e) {
@@ -911,8 +906,6 @@ class CommunityPost extends BaseController
                 }
                 // return $this->shareInChat($request, $myId, $reciever);
                 return $this->shareInChatNew($request, $myId, $reciever);
-
-                
             }
         } catch (Exception $e) {
 
@@ -930,7 +923,7 @@ class CommunityPost extends BaseController
     function summarizeComment(Request $request)
     {
 
-        $a=$this->postSummaryInstruction(1);
+        $a = $this->postSummaryInstruction(1);
         dd($a);
         $validate = Validator::make($request->all(), [
 
@@ -973,27 +966,27 @@ class CommunityPost extends BaseController
         return $response;
     }
 
-    function summarizeCommentNew($post_id,$comment_id)
+    function summarizeCommentNew($post_id, $comment_id)
     {
-        
+
         $comment       = Comment::where('id', $comment_id)->where('is_active', 1)->first();
 
-        if(isset($comment) && !empty($comment)){
+        if (isset($comment) && !empty($comment)) {
 
-            if(isset($comment->parent_id) && !empty($comment->parent_id)){
+            if (isset($comment->parent_id) && !empty($comment->parent_id)) {
 
                 //comment
-                $total_comment       = Comment::where('parent_id',$comment->parent_id)->where(['is_active'=>1,'is_comment_flag'=>1])->count();
+                $total_comment       = Comment::where('parent_id', $comment->parent_id)->where(['is_active' => 1, 'is_comment_flag' => 1])->count();
 
-                if($total_comment>=2){
+                if ($total_comment >= 2) {
 
-                    $postData       =   Post::select('title','content')->where('id',$post_id)->first();
+                    $postData       =   Post::select('title', 'content')->where('id', $post_id)->first();
                     //summarize comments thread
-                    if(isset($postData) && !empty($postData)){
+                    if (isset($postData) && !empty($postData)) {
 
                         $data = array(["text" => "Post Title: $postData->title"], ["text" => "Post Description: $postData->content"]);
 
-                        $totalComments       = Comment::where('parent_id',$comment->parent_id)->where(['is_active'=>1,'is_comment_flag'=>1])->get();
+                        $totalComments       = Comment::where('parent_id', $comment->parent_id)->where(['is_active' => 1, 'is_comment_flag' => 1])->get();
 
                         foreach ($totalComments as $comment) {
 
@@ -1074,7 +1067,7 @@ class CommunityPost extends BaseController
 
                     $finalResponse = $this->convertIntoJson($result);
                     return $finalResponse;
-                } 
+                }
             } catch (Exception $e) {
                 Log::error('Error while creating journal report: ' . $e->getMessage());
                 return [
@@ -1086,11 +1079,11 @@ class CommunityPost extends BaseController
         }
     }
 
-    public function textSum(){
+    public function textSum()
+    {
         return $this->addCommunityPost->checkSum();
     }
 
-    
 
 
 
@@ -1101,28 +1094,29 @@ class CommunityPost extends BaseController
 
 
 
-public function calculateScoreByAi(Request $request)
-{
-    try {
 
-        $a=$this->postSummaryInstruction(1);
-        dd($a);
-        if ($request->content && !empty($request->content)) {
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => "",
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => "POST",
-                CURLOPT_POSTFIELDS => json_encode([
-                    'model' => 'llama-3-sonar-small-32k-online',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => '
+    public function calculateScoreByAi(Request $request)
+    {
+        try {
+
+            $a = $this->commentThreadSummary(540, 568);
+            dd($a);
+            if ($request->content && !empty($request->content)) {
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => "https://api.perplexity.ai/chat/completions",
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => "",
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => "POST",
+                    CURLOPT_POSTFIELDS => json_encode([
+                        'model' => 'llama-3-sonar-small-32k-online',
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => '
 
                             Instructions: You will be provided with posts from the Doqta health forum for the Black community. Your task is to thoroughly search for reputable medical sources (research papers, trusted health websites, etc.) that either support or refute the health information and advice contained in each post.
                             For each post, your output should follow this format:
@@ -1160,52 +1154,40 @@ public function calculateScoreByAi(Request $request)
                             Maintain an objective, impartial tone focusing solely on the factual accuracy of claims.
 
                             Your role is to comprehensively validate or refute the medical advice provided in each Doqta user post by finding supporting or contradicting evidence from reputable sources. This will help ensure the community receives factual health guidance.'
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $request->content
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => $request->content
+                            ]
                         ]
-                    ]
-                ]),
-                CURLOPT_HTTPHEADER => [
-                    "accept: application/json",
-                    "authorization: Bearer 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",
-                    "content-type: application/json"
-                ],
-            ]);
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            curl_close($curl);
+                    ]),
+                    CURLOPT_HTTPHEADER => [
+                        "accept: application/json",
+                        "authorization: Bearer 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",
+                        "content-type: application/json"
+                    ],
+                ]);
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+                curl_close($curl);
 
-            dd($response);
+                dd($response);
 
-            if (!$err) {
-                $response_data = json_decode($response, true);
-                if (isset($response_data['choices'][0]['message']['content'])) {
-                    $score = $response_data['choices'][0]['message']['content'];
+                if (!$err) {
+                    $response_data = json_decode($response, true);
+                    if (isset($response_data['choices'][0]['message']['content'])) {
+                        $score = $response_data['choices'][0]['message']['content'];
 
-                    if (is_numeric($score)) {
-                        Log::info('is_numeric' . $score);
-                        return $score;
-                    } 
+                        if (is_numeric($score)) {
+                            Log::info('is_numeric' . $score);
+                            return $score;
+                        }
+                    }
                 }
-              
-            } 
+            }
+        } catch (Exception $e) {
+            Log::error('Calculation score with AI failed: ' . $e->getMessage());
+            throw $e;
         }
-    } catch (Exception $e) {
-        Log::error('Calculation score with AI failed: ' . $e->getMessage());
-        throw $e;
     }
-}
-
-
-
-
-
-
-
-
-
-
-
 }
