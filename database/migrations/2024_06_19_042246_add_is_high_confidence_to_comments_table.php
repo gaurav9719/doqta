@@ -28,9 +28,9 @@ return new class extends Migration
     {
         Schema::table('comments', function (Blueprint $table) {
             //
-            $table->dropColumn('is_high_confidence');
-            $table->dropColumn('ai_score');
-            $table->dropColumn('is_comment_flag');
+            // $table->dropColumn('is_high_confidence');
+            // $table->dropColumn('ai_score');
+            // $table->dropColumn('is_comment_flag');
         });
     }
 };
