@@ -324,6 +324,7 @@ class AiChat extends BaseController
                     return $query->where('thread_name', 'like', '%' . $search . '%');
                 })
                 ->orderBy('created_at', 'desc')
+
                 ->paginate($limit);
 
             $groupedNotifications = $notifications->getCollection()->groupBy(function ($date) {
@@ -331,7 +332,7 @@ class AiChat extends BaseController
                 $notificationDate   = Carbon::parse($date->created_at)->startOfDay();
                 $today              = Carbon::now()->startOfDay();
                 $yesterday          = Carbon::yesterday()->startOfDay();
-                $startOfWeek            = Carbon::now()->startOfWeek();
+                $startOfWeek        = Carbon::now()->startOfWeek();
                 $startOfLastWeek    = Carbon::now()->subWeek()->startOfWeek();
                 $endOfLastWeek      = Carbon::now()->subWeek()->endOfWeek();
 
@@ -348,9 +349,12 @@ class AiChat extends BaseController
                 }
             });
 
-            $responseData = $groupedNotifications->map(function ($notificationsGroup, $date,$myId) {
+            $responseData = $groupedNotifications->map(function ($notificationsGroup,$date) use($myId) {
+
                 return [
+
                     'message_on' => $date,
+
                     'message' => $notificationsGroup->map(function ($notification,$myId) {
                         return [
                             'id' => $notification->id,
