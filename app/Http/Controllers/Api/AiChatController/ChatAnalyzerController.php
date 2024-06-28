@@ -23,6 +23,7 @@ class ChatAnalyzerController extends BaseController
     function insightsNew(Request $request){
            
         $validate = Validator::make($request->all(), [
+            
             'start_date' => 'required|date_format:Y-m-d',
             'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
         ]);
@@ -113,8 +114,8 @@ class ChatAnalyzerController extends BaseController
     
                 if(isset($insight['status']) && $insight['status'] == 200){
 
-                    $insight = json_encode($insight['data']);
-                    $newReport=JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
+                    $insight    = json_encode($insight['data']);
+                    $newReport  =JournalReport::where('user_id', $myId)->where('report_type', 2)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->first();
                     if(!isset($newReport)){
                         $newReport = new JournalReport;
                     }

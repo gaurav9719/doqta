@@ -272,8 +272,15 @@ function getTopLikesPost($request, $authId)
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId)
         ->whereNotNull('users.user_name')
+        ->whereHas('userParticipant',function($q){  // added on jun 28
+
+            $q->where(['participant_id'=>3,'is_verify'=>1]);
+        })
+
         ->whereHas('user_medical_certificate.medical_certificate')
+
         ->with([
+            
             'user_medical_certificate' => function ($q) {
 
                 $q->select('id', 'medicial_degree_type', 'user_id');

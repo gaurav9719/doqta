@@ -331,7 +331,7 @@ class DicoverService extends BaseController
         try {
             $data                               =   [];
             #------------------ T O P        A R T I C L E S -------------------#
-            $topArticles  =   $this->topArticles($request, $authId, $limit, 1);
+            $topArticles                     =   $this->topArticles($request, $authId, $limit, 1);
 
             if ($topArticles !== "400") {
                 $data['care_articles']       =  $topArticles;
@@ -684,7 +684,9 @@ class DicoverService extends BaseController
     {
         try {
             $discoverPost        =      Post::where(['is_active'=>1,'media_type'=>2]);
+
             $discoverPost       =       getPost($authId,$discoverPost);
+            
             if (isset($request->search) && !empty($request->search)) {
 
                 $search = $request->search;
@@ -825,11 +827,14 @@ class DicoverService extends BaseController
 
                 $search         =       $request->search;
             }
-            $homeScreenPosts    =   Post::where('posts.is_active', 1)
+            $homeScreenPosts    =       Post::where('posts.is_active', 1)
 
                 ->whereNotExists(function ($query) use ($authId) {
+
                     $query->select(DB::raw(1))
+
                         ->from('report_posts')
+
                         ->whereColumn('report_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('report_posts.user_id', '=', $authId); // Check if the current user has reported the post
                 })
@@ -847,6 +852,7 @@ class DicoverService extends BaseController
                         ->orWhere(function ($query) use ($authId) {
                             // Check if the authenticated user has been blocked by someone
                             $query->where('blocked_user_id', $authId)
+
                                 ->whereColumn('blocked_users.user_id', 'posts.user_id');
                         });
                 })
@@ -860,6 +866,7 @@ class DicoverService extends BaseController
                         });
                 })
                 ->with(['parent_post' => function ($query) {
+
                     $query->where('is_active', 1)
 
                         ->with(['post_user' => function ($query) {
@@ -883,6 +890,7 @@ class DicoverService extends BaseController
                 }, 'group' => function ($query) {
 
                     $query->select('id', 'name', 'description', 'created_by');
+
                 }, 'post_user' => function ($q) {
 
                     $q->select('id', 'user_name', 'name', 'profile');
@@ -895,6 +903,7 @@ class DicoverService extends BaseController
                 'post_user.user_medical_certificate.medical_certificate'=>function($q){
 
                     $q->select('id','name');
+
                 }])
                 ->orderBy('like_count', 'desc')
                 ->simplePaginate($limit);
@@ -937,7 +946,6 @@ class DicoverService extends BaseController
 
 
                     $homeScreenPost->parent_post->postedAt = time_elapsed_string($homeScreenPost->parent_post->created_at);
-
                     $isExist                                           = $this->IsPostLiked($homeScreenPost->parent_post['id'], $authId, 1);
 
                     $homeScreenPost->parent_post->is_liked              = $isExist['is_liked'];
@@ -965,7 +973,7 @@ class DicoverService extends BaseController
                 $homeScreenPost->total_comment_count    = $isExist['total_comment_count'];
                 $homeScreenPost->is_reposted            = $isExist['is_reposted'];
             });
-            $notification_count     =   notification_count();
+            $notification_count                         =   notification_count();
             return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200, $notification_count);
         } catch (Exception $e) {
 
@@ -1208,11 +1216,10 @@ class DicoverService extends BaseController
 
             $data                      =   [];
 
-           $support                   =   supportUserS($request, $authId, $limit, 1);
+           $support                    =   supportUserS($request, $authId, $limit, 1);
 
            //return $this->sendResponse($support, trans('message.discover_people'), 200);
             // dd($support);
-
 
             //$support                            =   $this->supportUsers($request, $authId, $limit, 1);
             

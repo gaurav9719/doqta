@@ -16,6 +16,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
+use App\Models\Like;
 
 class LikeController extends BaseController
 {
@@ -132,9 +133,55 @@ class LikeController extends BaseController
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request,string $id)
     {
-        //
+       
+        if(!Post::where(['id'=>$id,'is_active'=>1])->exists()){
+
+            return $this->sendResponsewithoutData("Invalid post", 422);
+
+        }
+
+        $authId                     =   Auth::id();
+
+        $reaction['totalLike']      =   PostLike::where('post_id',$id)->count();
+        $reaction['support']        =   PostLike::where(['post_id'=>$id,'reaction'=>1])->count();   //support
+        $reaction['helpful']        =   PostLike::where(['post_id'=>$id,'reaction'=>2])->count();   //helpful
+        $reaction['unhelpful']      =   PostLike::where(['post_id'=>$id,'reaction'=>3])->count();   //unhelpful
+        $limit          =   $request->input('limit',10);
+
+        $totalLike      =   PostLike::where('post_id',$id)->with('user',function($user) use($authId){
+
+                                    $user->select('id','name','user_name','profile')
+
+                                    ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                        $query->where('user_id', $authId);
+                                    })
+                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                
+                                        $query->where('blocked_user_id', $authId);
+                                    });
+
+                            })->when($request->type, function($filter) use($request){
+
+                                $filter->where('reaction',$request->type);
+
+                            })->simplePaginate($limit);
+
+        if(isset($totalLike[0]) && !empty($totalLike[0])){
+
+            $totalLike->getCollection()->transform(function ($user) {
+
+                if(isset($user) && !empty($user)){
+
+                    $user->user->profile  = addBaseUrl($user->user->profile);
+                }
+                return $user;
+            });
+
+        }
+        return response()->json(['status'=>200,'message'=>"Post reaction",'data'=>$totalLike,'reaction'=>$reaction]);
     }
 
     /**

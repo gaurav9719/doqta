@@ -32,25 +32,29 @@ class JournalAnalyzerControllerNew extends BaseController
     #make general report
     function generateReportNew(Request $request)
     {
-        $validate = Validator::make($request->all(), [
+        $validate               = Validator::make($request->all(), [
+
             'journal_ids'       => 'nullable|array|distinct',
             'journal_ids.*'     => 'nullable|integer|exists:journals,id',
             'start_date'        => 'required|date_format:Y-m-d',
             'end_date'          => 'required|date_format:Y-m-d|after_or_equal:start_date',
             'type'              => 'required|integer|between:1,2',
             'include_chat'      => 'required|integer|between:0,1',
+
         ]);
 
         if ($validate->fails()) {
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
 
-        $user_id = Auth::id();
+        $user_id                =   Auth::id();
 
         #Check if any journals belong to a different user
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
 
-            $invalidJournals = Journal::whereIn('id', $request->journal_ids)
+            $invalidJournals    =   Journal::whereIn('id', $request->journal_ids)
+
                 ->where('user_id', '<>', $user_id)
                 ->count();
 
@@ -62,6 +66,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
         $start_time     = Carbon::parse($request->start_date)->startOfDay();
         $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
+
 
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
 
@@ -381,44 +386,48 @@ class JournalAnalyzerControllerNew extends BaseController
     function getInsightSymptoms($request)
     {
         $authId             =   Auth::id();
-        $start_date         = $request->start_date;
-        $end_date           = $request->end_date;
-        $dates              = getDatesBetween($start_date, $end_date);
-        $insight            = array();
+        $start_date         =   $request->start_date;
+        $end_date           =   $request->end_date;
+        $dates              =   getDatesBetween($start_date, $end_date);
+        $insight            =   array();
 
         if (isset($dates[0]) && !empty($dates[0])) {
 
             foreach ($dates as $date) {
 
-                $insights = JournalEntry::with([
+                $insights                   =   JournalEntry::with([
 
-                    'feeling' => function ($query) {
+                                                'feeling' => function ($query) {
 
-                        $query->select('id', 'name'); // Rename 'id' and 'name'
-                    }
-                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
+                                                    $query->select('id', 'name'); // Rename 'id' and 'name'
+                                                }
 
-                if (isset($request->journal_id) && !empty($request->journal_id)) {
+                                                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
 
-                    $insights = $insights->where('journal_id', $request->journal_id);
+                if (isset($request->journal_ids) && !empty($request->journal_ids)) {
+
+                    $insights = $insights->whereIn('journal_id', $request->journal_ids);
+
                 }
 
-                $insights = $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
+                $insights                   =   $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
 
                 if ($insights->isNotEmpty()) {
 
-                    $query = JournalEntry::where('is_active', 1);
+                    $query                  =   JournalEntry::where('is_active', 1);
 
-                    if (!empty($request->journal_id)) {
+                    if (!empty($request->journal_ids)) {
 
-                        $query->where('journal_id', $request->journal_id);
+                        $query->whereIn('journal_id', $request->journal_ids);
                     }
+
                     $moodAvg    =   $query->whereDate('created_at', $date)
 
                         ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
                         ->first();
 
                     $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
+                    
                     $avg_pain    =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_pain'] : 0);
 
                     $insight[] = [

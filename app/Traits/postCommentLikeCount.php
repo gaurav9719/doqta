@@ -616,7 +616,7 @@ trait postCommentLikeCount
     }
     #------------------  G E T      C O M M U N I T Y      P O S T  --------------------#
 
-
+    #---------------------------- used in *show* function ---------------------------#
     public function getCommunityPost($community_id, $authId, $request,$authUser)
     {
         try {
@@ -646,7 +646,7 @@ trait postCommentLikeCount
                 $limit              =   $request['limit'];
             }
 
-            $posts                 =   fetchPosts($request, $community_id, $limit, $authUser);
+            $posts                  =   fetchPosts($request, $community_id, $limit, $authUser);
 
             $posts->getCollection()->transform(function ($post) use ($authId) {
 
@@ -654,17 +654,23 @@ trait postCommentLikeCount
 
                     $post  = transformPostData($post, $authId);
                 }
+
                 if (isset($post->parent_post) && !empty($post->parent_post)) {
 
                     $post = transformParentPostData($post, $authId);
                 }
+
                 return $post;
+
             });
 
             return response()->json(['status' => 200, 'message' => trans('message.community_post'), 'data' => $posts, 'group' => $group]);
 
+
         } catch (Exception $e) {
+
             Log::error('Error caught: "getCommunityPost" ' . $e->getMessage());
+
             return $this->sendError($e->getMessage(), [], 400);
         }
     }

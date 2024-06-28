@@ -187,23 +187,26 @@ class GetCommunityService extends BaseController
             }
             $user           =       User::findOrFail($authId);
 
-            $homeScreenPosts = $user->posts()
+            $homeScreenPosts = $user->posts()->where('posts.is_active', 1)->whereHas('group')
 
-                ->where('posts.is_active', 1)
+                #-------------- comment on jun 28 ----------------------#
 
-                ->whereHas('group', function ($query) use ($authId) {
+                //->whereHas('group', function ($query) use ($authId) {
 
-                    // $query->where('is_active', 1)
-                    $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+                    // $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
-                        $query->where('user_id', $authId);
+                    //     $query->where('user_id', $authId);
 
-                    })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+                    // })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
 
-                        $query->where('blocked_user_id', $authId);
+                    //     $query->where('blocked_user_id', $authId);
+                    // });
 
-                    });
-                })
+                //})
+                 #-------------- comment on jun 28 ----------------------#
+
+
+
                 ->whereDoesntHave('reportPosts', function ($query) use ($user) {
 
                     $query->where('user_id', $user->id);
@@ -236,7 +239,9 @@ class GetCommunityService extends BaseController
                             });
                     })
                         ->orWhereHas('parent_post', function ($query) use ($authId) {
+
                             $query->where('is_active', 1)
+
                                 ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
                                     // Check if post user is not blocked by the authenticated user
                                     $query->where('blocked_user_id', $authId);
@@ -244,19 +249,18 @@ class GetCommunityService extends BaseController
                         });
                 })
                 ->with([
+
                     'post_user:id,name,user_name,profile',
 
-                    'post_user.user_medical_certificate'=>function($q){
+                    'post_user.user_medical_certificate' => function ($q) {
 
-                        $q->select('id','medicial_degree_type','user_id');
-
+                        $q->select('id', 'medicial_degree_type', 'user_id');
                     },
-                    'post_user.user_medical_certificate.medical_certificate'=>function($q){
+                    'post_user.user_medical_certificate.medical_certificate' => function ($q) {
 
-                        $q->select('id','name');
+                        $q->select('id', 'name');
                     },
-        
-                   
+
                     'group:id,name,description,cover_photo,member_count,post_count,created_by',
                     'parent_post' => function ($query) {
 
@@ -265,14 +269,13 @@ class GetCommunityService extends BaseController
                             ->with([
                                 'post_user:id,name,user_name,profile,is_active',
 
-                                'post_user.user_medical_certificate'=>function($q){
+                                'post_user.user_medical_certificate' => function ($q) {
 
-                                    $q->select('id','medicial_degree_type','user_id');
-            
+                                    $q->select('id', 'medicial_degree_type', 'user_id');
                                 },
-                                'post_user.user_medical_certificate.medical_certificate'=>function($q){
-            
-                                    $q->select('id','name');
+                                'post_user.user_medical_certificate.medical_certificate' => function ($q) {
+
+                                    $q->select('id', 'name');
                                 },
                                 'group:id,name,description,created_by'
                             ]);
@@ -284,12 +287,12 @@ class GetCommunityService extends BaseController
 
             $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
 
-                $homeScreenPost= transformPostData($homeScreenPost, $authId);
+                $homeScreenPost = transformPostData($homeScreenPost, $authId);
                 #------------ parent post data-----------------#
 
                 if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
 
-                    $homeScreenPost= transformParentPostData($homeScreenPost, $authId);
+                    $homeScreenPost = transformParentPostData($homeScreenPost, $authId);
                 }
 
                 return $homeScreenPost;
@@ -437,7 +440,7 @@ class GetCommunityService extends BaseController
 
                         $homeScreenPost->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
                     }
-  
+
                     $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
                     $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
                     $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
@@ -465,13 +468,15 @@ class GetCommunityService extends BaseController
     public function getCommunityById($communityId, $authId, $message)   #---- changed on jun 11
     {
         try {
+
             $community = Group::with([
-                
+
                 'groupMember' => function ($query) use ($authId) {
 
                     $query->limit(10)
-                    
+
                         ->whereDoesntHave('groupUser.blockedBy', function ($query) use ($authId) {
+
                             $query->where('user_id', $authId);
                         })
                         ->whereDoesntHave('groupUser.blockedUsers', function ($query) use ($authId) {
@@ -480,22 +485,29 @@ class GetCommunityService extends BaseController
                         });
                 }
             ])
-            ->withCount(['groupMember'])
 
-            ->whereHas('groupOwner', function ($query) use ($authId) {
 
-                $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                ->withCount(['groupMember'])
 
-                    $query->where('user_id', $authId);
-                })
+                #-------- commented on jun 28 ---------------_#
 
-                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                // ->whereHas('groupOwner', function ($query) use ($authId) {
 
-                    $query->where('blocked_user_id', $authId);
+                //     $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                });
-            })
-            ->findOrFail($communityId);
+                //         $query->where('user_id', $authId);
+                //     })
+
+                //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                //             $query->where('blocked_user_id', $authId);
+                //         });
+                // })
+
+                #-------- commented on jun 28 ---------------_#
+
+
+                ->findOrFail($communityId);
 
             if (isset($community->cover_photo) && !empty($community->cover_photo)) {
 
@@ -503,6 +515,7 @@ class GetCommunityService extends BaseController
             }
             return $this->sendResponse($community, $message, 200);
         } catch (Exception $e) {
+
             Log::error('Error caught: "getCommunityById" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
@@ -517,7 +530,6 @@ class GetCommunityService extends BaseController
         if ($request->filled('search')) {
 
             return $this->getCommunityBySearch($request, $authId);
-
         } else {
 
             return $this->getJoinedCommunity($request, $authId);
@@ -546,34 +558,33 @@ class GetCommunityService extends BaseController
             //     })->pluck('group_id');
 
 
-                $communitiesQuery = GroupMember::where('user_id', $authId)  #------ changed on 11 jun
+            $communitiesQuery = GroupMember::where('user_id', $authId)  #------ changed on 11 jun
 
-                    ->whereHas('communities', function ($query) use ($authId) {
+                ->whereHas('communities', function ($query) use ($authId) {
 
-                        $query->where('is_active', 1);
+                    $query->where('is_active', 1);
 
-                            // ->whereHas('groupOwner', function ($query) use ($authId) {
-                                
-                            //     $query->where('is_active', 1) // Ensure group owner is active
+                    // ->whereHas('groupOwner', function ($query) use ($authId) {
 
-                            //         ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                    //     $query->where('is_active', 1) // Ensure group owner is active
 
-                            //             $query->where('user_id', $authId);
-                            //         })
-                            //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                    //         ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                            //             $query->where('blocked_user_id', $authId);
+                    //             $query->where('user_id', $authId);
+                    //         })
+                    //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
-                            //         });
-                            // });
-                            
-                    })->pluck('group_id');
+                    //             $query->where('blocked_user_id', $authId);
 
-                   
+                    //         });
+                    // });
+
+                })->pluck('group_id');
+
+
 
             $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
             return $this->communityLoop($communities, $authId);
-
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "getJoinedCommunity" ' . $e->getMessage());
@@ -588,40 +599,41 @@ class GetCommunityService extends BaseController
     {
         try {
 
-            $limit = 10;
+            $limit          =   10;
 
             if (isset($request->limit) && !empty($request->limit)) {
 
-                $limit  = $request->limit;
+                $limit      = $request->limit;
             }
-
-            $communities = Group::where('name', 'LIKE', "%$request->search%")
-                            ->where('is_active', 1)
-                            ->whereHas('groupOwner', function ($query) use ($authId) {
-                                $query->where('is_active', 1) // Check if group owner is active
-
-                                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
-
-                                    $query->where('user_id', $authId);
-
-                                })
-                                ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
-
-                                    $query->where('blocked_user_id', $authId);
-
-                                });
-                            })
-                            ->orderBy('name', 'asc')
-                            ->simplePaginate($limit);
-
-            // $communities    =   Group::where('name', 'LIKE', "%$request->search%")->where('is_active', 1)->orderBy('name', 'asc')->simplePaginate($limit);
-
+            $communities    = Group::where('name', 'LIKE', "%$request->search%")
+                ->where('is_active', 1)
+                ->orderBy('name', 'asc')
+                ->simplePaginate($limit);
             return $this->communityLoop($communities, $authId);
+
+            #-------- removed logic on jun28-----------#
+
+            // ->whereHas('groupOwner', function ($query) use ($authId) {
+
+            //     $query->where('is_active', 1) // Check if group owner is active
+
+            //     ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+            //         $query->where('user_id', $authId);
+
+            //     })
+            //     ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+            //         $query->where('blocked_user_id', $authId);
+
+            //     });
+            // })
+            #-------- removed logic on jun28-----------#
 
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "getCommunityBySearch" ' . $e->getMessage());
-            return response()->json(['error' => 'An error occurred.'], 400);
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
     #------------------------ G E T     C O M M U N I T Y   B Y     S E A R C H  -----------------------#
@@ -648,7 +660,7 @@ class GetCommunityService extends BaseController
                 $community->role      = $isExist->role;
             } else {
 
-                $request = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
+                $request                    = GroupMemberRequest::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
 
                 if (isset($request) && !empty($request)) {
 
@@ -698,25 +710,31 @@ class GetCommunityService extends BaseController
 
         try {
 
-            $alreadyMember                  =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
+            $alreadyMember         =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
 
             if ($alreadyMember) {
 
                 return $this->sendResponsewithoutData(trans('message.already_group_member'), 409);
             }
 
-            $isBlocked              =   IsCommunityOwnerBlocked($request->community_id, $authId);
+            #----------- commented on jun 28 -------------------#
+            // $isBlocked            =   IsCommunityOwnerBlocked($request->community_id, $authId);
 
-            if(!$isBlocked){
+            // if (!$isBlocked) {
 
-                return $this->sendResponsewithoutData(trans('message.invalid_group'), 409);
+            //     return $this->sendResponsewithoutData(trans('message.invalid_group'), 409);
+            // }
 
-            }
+            #----------- commented on jun 28 -------------------#
+
             if ($group->visibility == 1) {         ##--------- PUBLIC COMMUNITIES ------------#
 
                 $addGroupMember             =   new GroupMember();
+
                 $addGroupMember->group_id   =   $request->community_id;
+
                 $addGroupMember->user_id    =   $authId;
+                
                 $addGroupMember->role       =   "member";
 
                 if ($addGroupMember->save()) {

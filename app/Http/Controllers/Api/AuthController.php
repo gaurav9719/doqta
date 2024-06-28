@@ -283,12 +283,14 @@ class AuthController extends BaseController
                     return $this->sendResponsewithoutData("User already Deleted!", 400);
                 }
                 $hasDeleted->email      =               null;
-                $hasDeleted->user_name  =               "Deleted user";
-                $hasDeleted->name       =               "Deleted user";
+                $hasDeleted->user_name  =               "Deleted";
+                $hasDeleted->name       =               "Deleted";
                 $hasDeleted->social_id  =               null;
+                $hasDeleted->profile    =               null;
+                $hasDeleted->cover      =               null;
                 $hasDeleted->is_active  =               2;
                 $hasDeleted->save();
-                $tokens =  $hasDeleted->tokens->pluck('id');
+                $tokens                 =               $hasDeleted->tokens->pluck('id');
                 Token::whereIn('id', $tokens)
                     ->update(['revoked'=> true]);
                 RefreshToken::whereIn('access_token_id', $tokens)->update(['revoked' => true]);

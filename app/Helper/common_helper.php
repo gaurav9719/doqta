@@ -134,7 +134,9 @@ if (!function_exists('IsPostAvailable')) {
         return Post::where(function ($query) use ($authId) {
 
             $query->whereDoesntHave('post_user.blockedBy', function ($query) use ($authId) {
+
                 $query->where('user_id', $authId);
+                
             })
                 ->whereDoesntHave('post_user.blockedUsers', function ($query) use ($authId) {
                     $query->where('blocked_user_id', $authId);
@@ -252,17 +254,25 @@ if (!function_exists('getPost')) {
         return $postData->whereHas('post_user', function ($query) {
 
             $query->where('is_active', 1);
-        })->whereHas('group', function ($query) use ($authId) {
 
-            // $query->where('is_active', 1)
-            $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+        })->whereHas('group')
+        
+            // commented on july 28
+            // ->whereHas('group', function ($query) use ($authId) {
 
-                $query->where('user_id', $authId);
-            })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+            //     // $query->where('is_active', 1)
+            //     $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
-                $query->where('blocked_user_id', $authId);
-            });
-        })
+            //         $query->where('user_id', $authId);
+                    
+            //     })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+
+            //         $query->where('blocked_user_id', $authId);
+            //     });
+            // })
+
+          // commented on july 28
+
             ->whereDoesntHave('reportPosts', function ($query) use ($authId) {
 
                 $query->where('user_id', $authId);

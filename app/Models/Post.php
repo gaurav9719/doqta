@@ -30,7 +30,7 @@ class Post extends Model
 
     public function group(){
         
-        return $this->belongsTo(Group::class,'group_id','id');
+        return $this->belongsTo(Group::class,'group_id','id')->where('is_active',1);
     }
 
     public function total_likes(){

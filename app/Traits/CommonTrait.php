@@ -446,8 +446,10 @@ trait CommonTrait
                                 $query->where('user_id', $myId);
                             })
                             ->whereHas('conversation_participants', function ($query) use ($reciever) {
+
                                 $query->where('user_id', $reciever);
                             })
+                            
                         ->first();
                        
                         if (empty($conversation)) {

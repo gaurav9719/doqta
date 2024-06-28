@@ -47,15 +47,23 @@ class AddCommunityPost extends BaseController
     public function addPost($request, $authId)
     {
         DB::beginTransaction();
-        
+
         try {
-            $is_health_provider = UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
-            $post               = new Post();
-            $post->user_id      = $authId;
+
+            $is_health_provider =   UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
+
+            $post               =   new Post();
+
+            $post->user_id      =   $authId;
+
             $post->title        =   $request->title;
-            $post->content      = $request->content;
+
+            $post->content      =   $request->content;
+
             $post->is_health_provider = $is_health_provider; // add true is user is health provider
+
             $post->media_type   = $request->media_type;
+
             if ($request->hasFile('media')) {
 
                 $post_image         = $request->file('media');
@@ -63,31 +71,36 @@ class AddCommunityPost extends BaseController
                 $post->media_url    = $Uploaded;
                 $post->media_type   = $request->media_type;
             }
+
             if ($request->hasFile('thumbnail')) {
 
                 $thumbnail          = $request->file('thumbnail');
                 $ThumbnailUploaded  = upload_file($thumbnail, 'post_thumbnail');
                 $post->thumbnail    = $ThumbnailUploaded;
-                
-            }
-            if (isset($request->lat) && !empty($request->lat)) {
-
-                $post->lat = $request->lat;
             }
 
-            if (isset($request->long) && !empty($request->long)) {
+            $user                  = User::find($authId);
 
-                $post->long = $request->long;
+            if (!empty($user->lat) && !empty($user->long)) {
+
+                $post->lat          =   $user->lat;
+
+                $post->long         =   $user->long;
+            } elseif (!empty($request->lat) && !empty($request->long)) {
+
+                $post->lat          =   $request->lat;
+
+                $post->long         =   $request->long;
             }
 
             if (isset($request->link) && !empty($request->link)) {
 
-                $post->link = $request->link;
+                $post->link         =   $request->link;
             }
 
             if (isset($request->wrote_by) && !empty($request->wrote_by)) {
 
-                $post->wrote_by = $request->wrote_by;
+                $post->wrote_by     =   $request->wrote_by;
             }
 
             $post->group_id             = $request->community_id;
@@ -95,13 +108,14 @@ class AddCommunityPost extends BaseController
             $post->post_category        = $request->post_category; //1: seeing advice, 2: giving advice, 3: sharing media	
             $post->save();
             $postId                     = $post->id;
-             #--------------  RECORD USER QUOTA PER DAY-------------#
+            #--------------  RECORD USER QUOTA PER DAY-------------#
             if (isset($postId) && !empty($postId)) {
+
                 $quotaUpdated               = UserQuota::updateQuota($authId, 'community_post');
-                 
             }
-                #--------------  RECORD USER QUOTA PER DAY-------------#\
+            #--------------  RECORD USER QUOTA PER DAY-------------#\
             DB::commit();
+
             try {
 
                 if (strlen($post->content) > 75) {
@@ -111,18 +125,16 @@ class AddCommunityPost extends BaseController
                     ]);
 
                     $this->summerize($postId);
-
-                }else{
+                } else {
 
                     dispatch(new ScoreCalculation($postId));
-
                 }
                 // Dispatch job for summarizing post and calculating score
             } catch (\Throwable $exception) {
 
                 Log::error('Failed to dispatch jobs', ['exception' => $exception]);
             }
-                
+
             //Do summarize the post
             // $this->calculateScoreByAi($postId);
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
@@ -137,18 +149,21 @@ class AddCommunityPost extends BaseController
             $activity->save();
             #-------  A C T I V I T Y -----------#
             $this->feedPostNotification($request->community_id, $postId, Auth::user());
+
             DB::commit();
             // add increment to group post
             return $this->sendResponsewithoutData(trans("message.add_posted_successfully"), 200);
-            // return $this->getCommunityAndPost($request->community_id, $authId, trans("message.add_posted_successfully"), $request);
+
         } catch (Exception $e) {
+
             DB::rollback();
+
             Log::error('Error caught: "addPost" ' . $e->getMessage());
+
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
     #*******----------- A D D          P O S T  --------------***********#
-
 
 
     ##### ********* ------   E D I T      P O S T  ------ ******** ########
@@ -202,7 +217,7 @@ class AddCommunityPost extends BaseController
     public function getPost($id, $authId, $message)
     {
         try {
-            
+
             $post = Post::with([
                 'group' => function ($query) {
 
@@ -325,12 +340,12 @@ class AddCommunityPost extends BaseController
 
                 foreach ($posts as $groupPost) {
 
-                    $media_url                          = isset($groupPost->media_url) && !empty(isset($groupPost->media_url))?addBaseUrl($groupPost->media_url) : null;
+                    $media_url                          = isset($groupPost->media_url) && !empty(isset($groupPost->media_url)) ? addBaseUrl($groupPost->media_url) : null;
                     $thumbnail                          = isset($groupPost->thumbnail) && !empty($groupPost->thumbnail) ? addBaseUrl($groupPost->thumbnail) : null;
                     $cover_photo                        = isset($groupPost->group) && isset($groupPost->group->cover_photo) ?
-                    addBaseUrl($groupPost->group->cover_photo):null;
+                        addBaseUrl($groupPost->group->cover_photo) : null;
                     $profile                            = isset($groupPost->post_user) && isset($groupPost->post_user->profile) ?
-                    addBaseUrl($groupPost->post_user->profile) : '';
+                        addBaseUrl($groupPost->post_user->profile) : '';
                     $groupPost->media_url               = $media_url;
                     $groupPost->thumbnail               = $thumbnail;
                     $groupPost->group->cover_photo      = $cover_photo;
@@ -344,7 +359,7 @@ class AddCommunityPost extends BaseController
             if (isset($group) && !empty($group)) {
 
                 $group->cover_photo                     =   isset($group->cover_photo) && isset($group->cover_photo) ?
-                addBaseUrl($group->cover_photo) : null;
+                    addBaseUrl($group->cover_photo) : null;
             }
 
             return response()->json(['status' => 200, 'message' => $message, 'data' => $posts, 'group' => $group]);
@@ -422,8 +437,8 @@ class AddCommunityPost extends BaseController
                         });
                 }
             ])
-            
-            ->withCount(['totalLikes', 'total_comment'])
+
+                ->withCount(['totalLikes', 'total_comment'])
                 ->where('post_id', $request->post_id)
                 ->whereNull('parent_id')
                 // ->whereNotExists(function ($query) use ($authId) {
@@ -441,8 +456,8 @@ class AddCommunityPost extends BaseController
                 //                 ->whereColumn('blocked_users.user_id', 'comments.user_id');
                 //         });
                 // })
-                
-                
+
+
                 ->orderByDesc('id')->paginate($limit);
 
             $comments->getCollection()->transform(function ($comment) use ($authId) {
@@ -543,111 +558,136 @@ class AddCommunityPost extends BaseController
         }
     }
     #------  G E T      A L L       C O M M U N I T Y       C O M M E N T S -------------#
-
-    public function getComments($request, $authId)
+    #-------------- U s e d        in  **comments** api -------------------------------#
+    public function getCommentsJUN28($request, $authId)
     {
         try {
 
-            $groupId = Post::select('group_id')->find($request->post_id);
+            $groupId                        =   Post::select('group_id')->find($request->post_id);
 
             if ($groupId) {
 
-                $group = Group::withCount('groupMember')->find($groupId->group_id);
+                $group                      =   Group::withCount('groupMember')->find($groupId->group_id);
             }
 
-            $limit = $request->input('limit', 10);
+            $limit                          =   $request->input('limit', 10);
 
-            $comments = Comment::with([
-                'commentUser' => function ($query) use ($authId) {
-                    $query->select('id', 'name', 'user_name', 'profile');
-                },
-                'commentUser.user_medical_certificate'=>function($q){
+            $comments                       =   Comment::with([
 
-                    $q->select('id','medicial_degree_type','user_id');
+                            'commentUser' => function ($query) use ($authId) {
 
-                },
-                'commentUser.user_medical_certificate.medical_certificate'=>function($q){
+                                $query->select('id', 'name', 'user_name', 'profile');
+                            },
 
-                    $q->select('id','name');
-                },
+                            'commentUser.user_medical_certificate' => function ($q) {
 
-                'replies.commentUser' => function ($query) use ($authId) {
+                                $q->select('id', 'medicial_degree_type', 'user_id');
+                            },
 
-                    $query->select('id', 'name', 'user_name', 'profile');
-                },
+                            'commentUser.user_medical_certificate.medical_certificate' => function ($q) {
 
-                'replies.commentUser.user_medical_certificate'=>function($q){
+                                $q->select('id', 'name');
+                            },
 
-                    $q->select('id','medicial_degree_type','user_id');
+                            'replies.commentUser' => function ($query) use ($authId) {
 
-                },
-                'replies.commentUser.user_medical_certificate.medical_certificate'=>function($q){
+                                $query->select('id', 'name', 'user_name', 'profile');
+                            },
 
-                    $q->select('id','name');
-                },
-                
-                'replies.replied_to' => function ($query) use ($authId) {
+                            'replies.commentUser.user_medical_certificate' => function ($q) {
 
-                    $query->select('id', 'name', 'user_name', 'profile');
-                },
+                                $q->select('id', 'medicial_degree_type', 'user_id');
+                            },
 
-                'replies.replied_to.user_medical_certificate'=>function($q){
+                            'replies.commentUser.user_medical_certificate.medical_certificate' => function ($q) {
 
-                $q->select('id','medicial_degree_type','user_id');
+                                $q->select('id', 'name');
+                            },
 
-                },
-                'replies.replied_to.user_medical_certificate.medical_certificate'=>function($q){
+                            'replies.replied_to' => function ($query) use ($authId) {
 
-                    $q->select('id','name');
-                },
-            ])
-            ->withCount(['totalLikes', 'total_comment'])
+                                $query->select('id', 'name', 'user_name', 'profile');
+                            },
 
-            ->where('post_id', $request->post_id)
+                            'replies.replied_to.user_medical_certificate' => function ($q) {
 
-            ->whereNull('parent_id')
+                                $q->select('id', 'medicial_degree_type', 'user_id');
+                            },
+                            'replies.replied_to.user_medical_certificate.medical_certificate' => function ($q) {
 
-            ->whereDoesntHave('commentUser.blockedUsers', function ($query) use ($authId) {
+                                $q->select('id', 'name');
+                            },
+                            ])
+                            ->withCount(['totalLikes', 'total_comment'])
 
-                $query->where('blocked_user_id', $authId);
-            })
-            ->whereDoesntHave('commentUser.blockedBy', function ($query) use ($authId) {
-                $query->where('user_id', $authId);
-            })
-            ->whereDoesntHave('replies.commentUser.blockedUsers', function ($query) use ($authId) {
-                $query->where('blocked_user_id', $authId);
-            })
-            ->whereDoesntHave('replies.commentUser.blockedBy', function ($query) use ($authId) {
-                $query->where('user_id', $authId);
-            })
-            ->whereDoesntHave('replies.replied_to.blockedUsers', function ($query) use ($authId) {
-                $query->where('blocked_user_id', $authId);
-            })
-            ->whereDoesntHave('replies.replied_to.blockedBy', function ($query) use ($authId) {
-                $query->where('user_id', $authId);
-            })
-            ->orderByDesc('id')
-            ->paginate($limit);
+                            ->where('post_id', $request->post_id)
+
+                            ->whereNull('parent_id')
+
+                            ->whereDoesntHave('commentUser.blockedUsers', function ($query) use ($authId) {
+
+                                $query->where('blocked_user_id', $authId);
+                            })
+
+                            ->whereDoesntHave('commentUser.blockedBy', function ($query) use ($authId) {
+
+                                $query->where('user_id', $authId);
+
+                            })
+
+                            ->whereDoesntHave('replies.commentUser.blockedUsers', function ($query) use ($authId) {
+
+                                $query->where('blocked_user_id', $authId);
+                            })
+
+                            ->whereDoesntHave('replies.commentUser.blockedBy', function ($query) use ($authId) {
+
+                                $query->where('user_id', $authId);
+                            })
+
+                            ->whereDoesntHave('replies.replied_to.blockedUsers', function ($query) use ($authId) {
+
+                                $query->where('blocked_user_id', $authId);
+                            })
+
+                            ->whereDoesntHave('replies.replied_to.blockedBy', function ($query) use ($authId) {
+
+                                $query->where('user_id', $authId);
+
+                            })
+
+                            ->orderByDesc('id')
+                            ->paginate($limit);
 
             $comments->getCollection()->transform(function ($comment) use ($authId) {
 
-                $isExist = $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
-                $comment->is_liked = $isExist['is_liked'];
-                $comment->reaction = $isExist['reaction'];
+                $isExist                    = $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
+
+                $comment->is_liked          = $isExist['is_liked'];
+                
+                $comment->reaction          = $isExist['reaction'];
+
                 $comment->total_likes_count = $isExist['total_likes_count'];
+
 
                 if (isset($comment->commentUser) && !empty($comment->commentUser->profile)) {
 
-                    $comment->commentUser->profile         = $this->addBaseInImage($comment->commentUser->profile);
+                    $comment->commentUser->profile  = $this->addBaseInImage($comment->commentUser->profile);
                 }
+
+
                 if (isset($comment->replies[0]) && ($comment->replies[0])) {
 
                     $comment->replies->each(function ($replies) use ($authId) {
 
                         $isExist                    = $this->IsCommentLiked($replies->post_id, $replies->id, $authId);
+
                         $replies->is_liked          = $isExist['is_liked'];
+
                         $replies->reaction          = $isExist['reaction'];
+
                         $replies->total_likes_count = $isExist['total_likes_count'];
+
 
                         if (isset($replies->commentUser) && !empty($replies->commentUser)) {
 
@@ -656,6 +696,7 @@ class AddCommunityPost extends BaseController
                                 $replies->commentUser->profile      = $this->addBaseInImage($replies->commentUser->profile);
                             }
                         }
+
                         if (isset($replies->replied_to) && !empty($replies->replied_to)) {
 
                             if (isset($replies->replied_to->profile) && !empty($replies->replied_to->profile)) {
@@ -665,32 +706,37 @@ class AddCommunityPost extends BaseController
                         }
 
                         $replies->postedAt                          =    time_elapsed_string($replies->created_at);
-
                     });
                 }
                 $comment->postedAt                                  =    time_elapsed_string($comment->created_at);
                 return $comment;
             });
 
-            $post                                               =       Post::withCount(['comment'])->with(['post_user'=>function ($q) {
-                $q->select('id', 'name', 'user_name', 'profile');
-            },
-            'post_user.user_medical_certificate'=>function($q){
+            $post                        =       Post::withCount(['comment'])->with([
 
-                $q->select('id','medicial_degree_type','user_id');
+                                                'post_user' => function ($q) {
 
-            },
-            'post_user.user_medical_certificate.medical_certificate'=>function($q){
+                                                    $q->select('id', 'name', 'user_name', 'profile');
+                                                },
 
-                $q->select('id','name');
-            },'group'=>function($query){
+                                                'post_user.user_medical_certificate' => function ($q) {
 
-                $query->select('id','name','description','cover_photo','member_count','post_count','created_by');
-            }
-        
-            ])->find($request->post_id);
+                                                    $q->select('id', 'medicial_degree_type', 'user_id');
+                                                },
 
-            
+                                                'post_user.user_medical_certificate.medical_certificate' => function ($q) {
+
+                                                    $q->select('id', 'name');
+
+                                                }, 'group' => function ($query) {
+
+                                                    $query->select('id', 'name', 'description', 'cover_photo', 'member_count', 
+                                                    'post_count', 'created_by');
+                                                }
+
+                                            ])->find($request->post_id);
+
+
 
             if (isset($post) && !empty($post)) {
 
@@ -715,17 +761,27 @@ class AddCommunityPost extends BaseController
                 }
 
                 $post->is_joined            =       $this->checkCommunityJoind($post->group_id);
+
                 $isExist                    =       $this->IsPostLiked($post->id, $authId);
+
+
                 $post->is_liked             =       $isExist['is_liked'];
+
                 $post->reaction             =       $isExist['reaction'];
+
                 $post->total_likes_count    =       $isExist['total_likes_count'];
+
             }
-            $data = $comments->items();
-            $recordsPerPage = $comments->perPage();
-            $currentPage = $comments->currentPage();
-            $lastPage = $comments->lastPage();
-            $totalRecords = $comments->total();
-            $recordsLeft = ($totalRecords - ($recordsPerPage * $currentPage) < 0 ? 0 : $totalRecords - ($recordsPerPage * $currentPage));
+
+
+
+
+            $data                           =       $comments->items();
+            $recordsPerPage                 =       $comments->perPage();
+            $currentPage                    =       $comments->currentPage();
+            $lastPage                       =       $comments->lastPage();
+            $totalRecords                   =       $comments->total();
+            $recordsLeft                    =       ($totalRecords - ($recordsPerPage * $currentPage) < 0 ? 0 : $totalRecords - ($recordsPerPage * $currentPage));
             // Merge data items with pagination information
             // Extract pagination metadata
             $paginationInfo = [
@@ -740,11 +796,15 @@ class AddCommunityPost extends BaseController
 
 
             return response()->json(['status' => 200, 'message' => "comments", 'data' => $responseData, 'post' => $post]);
+
         } catch (Exception $e) {
+
             Log::error('Error caught: "getComments" ' . $e->getMessage());
+
             return $this->sendError($e->getMessage(), [], 500);
         }
     }
+    #------  G E T      A L L       C O M M U N I T Y       C O M M E N T S -------------#
 
 
 
@@ -955,42 +1015,39 @@ class AddCommunityPost extends BaseController
 
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
-                'commentUser.user_medical_certificate'=>function($q){
+                'commentUser.user_medical_certificate' => function ($q) {
 
-                    $q->select('id','medicial_degree_type','user_id');
-
+                    $q->select('id', 'medicial_degree_type', 'user_id');
                 },
-                'commentUser.user_medical_certificate.medical_certificate'=>function($q){
+                'commentUser.user_medical_certificate.medical_certificate' => function ($q) {
 
-                    $q->select('id','name');
+                    $q->select('id', 'name');
                 },
                 'replies.commentUser' => function ($query) {
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
 
-                'replies.commentUser.user_medical_certificate'=>function($q){
+                'replies.commentUser.user_medical_certificate' => function ($q) {
 
-                    $q->select('id','medicial_degree_type','user_id');
-
+                    $q->select('id', 'medicial_degree_type', 'user_id');
                 },
-                'replies.commentUser.user_medical_certificate.medical_certificate'=>function($q){
+                'replies.commentUser.user_medical_certificate.medical_certificate' => function ($q) {
 
-                    $q->select('id','name');
+                    $q->select('id', 'name');
                 },
-                
+
 
                 'replies.replied_to' => function ($query) {
                     $query->select('id', 'name', 'user_name', 'profile');
                 },
-                'replies.replied_to.user_medical_certificate'=>function($q){
+                'replies.replied_to.user_medical_certificate' => function ($q) {
 
-                    $q->select('id','medicial_degree_type','user_id');
-    
-                    },
-                    'replies.replied_to.user_medical_certificate.medical_certificate'=>function($q){
-    
-                        $q->select('id','name');
-                    },
+                    $q->select('id', 'medicial_degree_type', 'user_id');
+                },
+                'replies.replied_to.user_medical_certificate.medical_certificate' => function ($q) {
+
+                    $q->select('id', 'name');
+                },
             ])
                 ->withCount(['total_comment'])
 
@@ -1011,7 +1068,7 @@ class AddCommunityPost extends BaseController
                                 ->whereColumn('blocked_users.user_id', 'comments.user_id');
                         });
                 })->first();
-                
+
             if (isset($comment) && !empty($comment)) {
                 if ($comment->commentUser && $comment->commentUser->profile) {
                     $comment->commentUser->profile = $this->addBaseInImage($comment->commentUser->profile);
@@ -1054,79 +1111,79 @@ class AddCommunityPost extends BaseController
     #-------------- G E T       P O S T   / C O M M E N T       L I K E S   C O U N T -----------------#
 
 
-        public function postSummaryInstruction($content){
+    public function postSummaryInstruction($content)
+    {
 
-            // $systemInstruction = 'Generate PHP code to display "Hello World"';
-            
-            $guidelines = [
-                [
-                    "text" => "System: You are now a specialized AI assistant for Doqta, focused on creating clear, concise, and culturally sensitive summaries of health forum posts for the Black community. Follow these guidelines to ensure your summaries are informative and accessible:"
-                ],
-                [
-                    "text" => "Capture the Essence: Identify and highlight the main health topic or concern. Distill key points and questions from the user."
-                ],
-                [
-                    "text" => "Simplify Language: Use plain, everyday language that's easily understood by a broad audience. Replace medical jargon with simpler terms when possible, without losing accuracy.If a medical term is crucial, provide a brief, clear explanation in parentheses"
-                ],
-                [
-                    "text" => "Maintain Brevity: Keep summaries concise, ideally no more than 3-4 sentences.Focus on the most relevant and impactful information from the original post"
-                ],
-                [
-                    "text" => "Preserve Cultural Context: Be mindful of and retain any culturally specific references or concerns, if present. Use culturally appropriate language and examples when clarifying points"
-                ],
-                [
-                    "text" => "Highlight Key Elements: Clearly state the health condition, symptoms, or situation being discussed.Note any specific questions or requests for advice made by the original poster.Mention any unique experiences or perspectives shared that might be valuable to others."
-                ],
-                [
-                    "text" => "Maintain Neutrality: Present information objectively, without adding personal opinions or medical advice.If the original post contains potentially harmful or inaccurate information, flag it neutrally (e.g., 'Note: This post contains health claims that may require professional verification')"
-                  
-                ],
-                [
-                    "text" => "Omit any personally identifiable information from the summary.Use general terms instead of specific names or locations (e.g., 'the poster's doctor' instead of 'Dr. Smith')"
-                ],
-                [
-                    "text" => "Capture Emotional Context: Briefly convey the emotional tone of the post (e.g.,'The user expresses concern about... or The poster is seeking support for...'). This helps other users understand the poster's state of mind and respond appropriately"
-                ],
-                [
-                    "text" => "Structure for Clarity: Use a consistent format for all summaries to aid quick comprehension.Consider a structure like: [Main Topic] - [Key Points/Questions] - [User's Situation/Experience]"
-                ],
-                [
-                    "text" => "Highlight Actionable Elements: If the post includes any calls to action or requests for specific types of support, make these clear in the summary"
-                ],
-                [
-                    "text" => "Focus only on health-related aspects of the post, even if other topics are mentioned.If a post is not primarily health-related, state this clearly in the summary."
-                ],
-                [
-                    "text" => "Employ language that is respectful and inclusive of diverse experiences within the Black community.Avoid assumptions or generalizations based on race or ethnicity."
-                ],
-                [
-                    "text" => "Flag Urgent Concerns: If a post indicates a potentially urgent health situation, include a note at the beginning of the summary (e.g., 'Urgent: This post describes symptoms that may require immediate medical attention')."
-                ],
-                [
-                    "text" => "Encourage Engagement: End the summary with a brief statement that encourages other users to read the full post if they can relate or have insights to share."
-                ],
-                [
-                    "text" => "Maintain Health Focus: Ensure all summaries pertain strictly to medical and health-related topics.If a post contains non-health-related content, focus the summary only on the health aspects",
-                ],
-                ["text" => "Sample Summary Structure:[Health Topic]: User shares experience with [specific condition/symptom]. Key points: [1-2 main ideas]. Seeking: [advice/support/information] on [specific aspect]. Note: [Any important flags or cultural context]."
+        // $systemInstruction = 'Generate PHP code to display "Hello World"';
 
-                ],
-                ["text"=>"Your goal is to create summaries that allow users to quickly understand the content of health forum posts, decide if they're relevant to their own experiences, and determine whether they want to read the full post or engage with the discussion. Always prioritize clarity, relevance, and cultural sensitivity in your summaries"]
-            ];
-            
+        $guidelines = [
+            [
+                "text" => "System: You are now a specialized AI assistant for Doqta, focused on creating clear, concise, and culturally sensitive summaries of health forum posts for the Black community. Follow these guidelines to ensure your summaries are informative and accessible:"
+            ],
+            [
+                "text" => "Capture the Essence: Identify and highlight the main health topic or concern. Distill key points and questions from the user."
+            ],
+            [
+                "text" => "Simplify Language: Use plain, everyday language that's easily understood by a broad audience. Replace medical jargon with simpler terms when possible, without losing accuracy.If a medical term is crucial, provide a brief, clear explanation in parentheses"
+            ],
+            [
+                "text" => "Maintain Brevity: Keep summaries concise, ideally no more than 3-4 sentences.Focus on the most relevant and impactful information from the original post"
+            ],
+            [
+                "text" => "Preserve Cultural Context: Be mindful of and retain any culturally specific references or concerns, if present. Use culturally appropriate language and examples when clarifying points"
+            ],
+            [
+                "text" => "Highlight Key Elements: Clearly state the health condition, symptoms, or situation being discussed.Note any specific questions or requests for advice made by the original poster.Mention any unique experiences or perspectives shared that might be valuable to others."
+            ],
+            [
+                "text" => "Maintain Neutrality: Present information objectively, without adding personal opinions or medical advice.If the original post contains potentially harmful or inaccurate information, flag it neutrally (e.g., 'Note: This post contains health claims that may require professional verification')"
 
-            $prompt_template = (
+            ],
+            [
+                "text" => "Omit any personally identifiable information from the summary.Use general terms instead of specific names or locations (e.g., 'the poster's doctor' instead of 'Dr. Smith')"
+            ],
+            [
+                "text" => "Capture Emotional Context: Briefly convey the emotional tone of the post (e.g.,'The user expresses concern about... or The poster is seeking support for...'). This helps other users understand the poster's state of mind and respond appropriately"
+            ],
+            [
+                "text" => "Structure for Clarity: Use a consistent format for all summaries to aid quick comprehension.Consider a structure like: [Main Topic] - [Key Points/Questions] - [User's Situation/Experience]"
+            ],
+            [
+                "text" => "Highlight Actionable Elements: If the post includes any calls to action or requests for specific types of support, make these clear in the summary"
+            ],
+            [
+                "text" => "Focus only on health-related aspects of the post, even if other topics are mentioned.If a post is not primarily health-related, state this clearly in the summary."
+            ],
+            [
+                "text" => "Employ language that is respectful and inclusive of diverse experiences within the Black community.Avoid assumptions or generalizations based on race or ethnicity."
+            ],
+            [
+                "text" => "Flag Urgent Concerns: If a post indicates a potentially urgent health situation, include a note at the beginning of the summary (e.g., 'Urgent: This post describes symptoms that may require immediate medical attention')."
+            ],
+            [
+                "text" => "Encourage Engagement: End the summary with a brief statement that encourages other users to read the full post if they can relate or have insights to share."
+            ],
+            [
+                "text" => "Maintain Health Focus: Ensure all summaries pertain strictly to medical and health-related topics.If a post contains non-health-related content, focus the summary only on the health aspects",
+            ],
+            [
+                "text" => "Sample Summary Structure:[Health Topic]: User shares experience with [specific condition/symptom]. Key points: [1-2 main ideas]. Seeking: [advice/support/information] on [specific aspect]. Note: [Any important flags or cultural context]."
 
-                "{system_instruction} content: {question}."
-            );
-            // Compile the prompt using the provided parameters
-            $compiled_prompt = str_replace(
-                ['{system_instruction}', '{question}'],
-                [json_encode($guidelines), $content,],
-                $prompt_template
-            );
-            return $compiled_prompt; 
-        }
+            ],
+            ["text" => "Your goal is to create summaries that allow users to quickly understand the content of health forum posts, decide if they're relevant to their own experiences, and determine whether they want to read the full post or engage with the discussion. Always prioritize clarity, relevance, and cultural sensitivity in your summaries"]
+        ];
 
 
+        $prompt_template = (
+
+            "{system_instruction} content: {question}."
+        );
+        // Compile the prompt using the provided parameters
+        $compiled_prompt = str_replace(
+            ['{system_instruction}', '{question}'],
+            [json_encode($guidelines), $content,],
+            $prompt_template
+        );
+        return $compiled_prompt;
+    }
 }
