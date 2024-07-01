@@ -349,6 +349,8 @@ class AiChat extends BaseController
                 }
             });
 
+           // return $this->sendResponse($groupedNotifications, trans('message.chat_logs'), 200);
+            
             $responseData = $groupedNotifications->map(function ($notificationsGroup,$date) use($myId) {
 
                 return [

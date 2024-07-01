@@ -146,7 +146,7 @@ return [
     "location_updated" => "location_updated",
     "community_name_exist" => "The community name is already in use",
 
-    
+    "comments"=>"Comments"
 
 
 

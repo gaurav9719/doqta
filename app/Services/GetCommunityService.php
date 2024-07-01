@@ -42,6 +42,7 @@ class GetCommunityService extends BaseController
     public function homeScreen($request, $authId)
     {
         try {
+            
             $limit          =       10;
 
             if (isset($request->limit) && !empty($request->limit)) {
@@ -485,9 +486,7 @@ class GetCommunityService extends BaseController
                         });
                 }
             ])
-
-
-                ->withCount(['groupMember'])
+            ->withCount(['groupMember'])
 
                 #-------- commented on jun 28 ---------------_#
 
@@ -584,6 +583,7 @@ class GetCommunityService extends BaseController
 
 
             $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
+
             return $this->communityLoop($communities, $authId);
         } catch (Exception $e) {
             // Handle exceptions
@@ -648,7 +648,7 @@ class GetCommunityService extends BaseController
 
                 if (isset($community->cover_photo) && !empty($community->cover_photo)) {
 
-                    $community->cover_photo = $this->addBaseInImage($community->cover_photo);
+                    $community->cover_photo = addBaseUrl($community->cover_photo);
                 }
             }
             //check i am the member of the community or not

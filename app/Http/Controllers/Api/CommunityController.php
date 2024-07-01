@@ -173,7 +173,7 @@ class CommunityController extends BaseController
             if ($isExist) {
                 //updated
                 $addCommunity = [];
-                filter_text($request->name);
+               // filter_text($request->name);
 
                 $isExist = Group::where(['name' => $request->name, 'is_active' => 1])->where('id', '<>', '')->exists();
 
@@ -226,6 +226,7 @@ class CommunityController extends BaseController
     {
         //
         DB::beginTransaction();
+
         try {
 
             $authId             =       Auth::id();
@@ -263,6 +264,7 @@ class CommunityController extends BaseController
                     $Uploaded                    = upload_file($cover_photo, 'cover_photo');
 
                     $coverImage                  = Group::select('cover_photo')->where(['id' => $request->id])->first();
+
                     if (isset($coverImage->cover_photo) && !empty($coverImage->cover_photo)) {
 
                         if (Storage::disk('public')->exists($coverImage->cover_photo)) {
@@ -271,6 +273,7 @@ class CommunityController extends BaseController
 
                         }
                     }
+                    
                     $addCommunity['cover_photo']  = $Uploaded;
                 }
 

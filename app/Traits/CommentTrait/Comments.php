@@ -7,9 +7,11 @@ use App\Models\Post;
 use App\Models\Group;
 use App\Models\Comment;
 use Illuminate\Support\Facades\Log;
+use App\Traits\IsCommunityJoined;
 
 trait Comments
 {
+    use IsCommunityJoined;
     public function getComments($request, $authId)
     {
         try {
@@ -39,7 +41,7 @@ trait Comments
 
             $responseData   =   $this->prepareResponseData($comments, $post);
 
-            return response()->json(['status' => 200, 'message' => "comments", 'data' => $responseData, 'post' => $post]);
+            return response()->json(['status' => 200, 'message' => trans('message.comments'), 'data' => $responseData, 'post' => $post]);
             
         } catch (Exception $e) {
             
@@ -151,39 +153,43 @@ trait Comments
 
     private function transformComment($comment, $authId)
     {
-        $isExist                =       $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
 
-        $comment->is_liked      =       $isExist['is_liked'];
+        //check post have enough comments to show summary
+        $comment->is_show_summary   =       $this->isSHowSummary($comment->id);
 
-        $comment->reaction      =       $isExist['reaction'];
+        $isExist                    =       $this->IsCommentLiked($comment->post_id, $comment->id, $authId);
 
-        $comment->total_likes_count = $isExist['total_likes_count'];
+        $comment->is_liked          =       $isExist['is_liked'];
+
+        $comment->reaction          =       $isExist['reaction'];
+
+        $comment->total_likes_count =       $isExist['total_likes_count'];
 
         if (isset($comment->commentUser) && !empty($comment->commentUser->profile)) {
 
-            $comment->commentUser->profile = $this->addBaseInImage($comment->commentUser->profile);
+            $comment->commentUser->profile = addBaseUrl($comment->commentUser->profile);
         }
 
         if (isset($comment->replies[0]) && ($comment->replies[0])) {
 
             $comment->replies->each(function ($replies) use ($authId) {
 
-                $isExist                =   $this->IsCommentLiked($replies->post_id, $replies->id, $authId);
+                $isExist                    =   $this->IsCommentLiked($replies->post_id, $replies->id, $authId);
 
-                $replies->is_liked      =   $isExist['is_liked'];
+                $replies->is_liked          =   $isExist['is_liked'];
 
-                $replies->reaction      =   $isExist['reaction'];
+                $replies->reaction          =   $isExist['reaction'];
 
-                $replies->total_likes_count = $isExist['total_likes_count'];
+                $replies->total_likes_count =   $isExist['total_likes_count'];
 
                 if (isset($replies->commentUser) && !empty($replies->commentUser->profile)) {
 
-                    $replies->commentUser->profile = $this->addBaseInImage($replies->commentUser->profile);
+                    $replies->commentUser->profile = addBaseUrl($replies->commentUser->profile);
                 }
 
                 if (isset($replies->replied_to) && !empty($replies->replied_to->profile)) {
 
-                    $replies->replied_to->profile = $this->addBaseInImage($replies->replied_to->profile);
+                    $replies->replied_to->profile = addBaseUrl($replies->replied_to->profile);
                 }
 
                 $replies->postedAt  = time_elapsed_string($replies->created_at);
@@ -226,18 +232,18 @@ trait Comments
 
             if (isset($post->media_url) && !empty($post->media_url)) {
 
-                $post->media_url = $this->addBaseInImage($post->media_url);
+                $post->media_url = addBaseUrl($post->media_url);
 
             }
 
             if (isset($post->thumbnail) && !empty($post->thumbnail)) {
 
-                $post->thumbnail = $this->addBaseInImage($post->thumbnail);
+                $post->thumbnail = addBaseUrl($post->thumbnail);
             }
 
             if (!empty($post->post_user)) {
 
-                $post->post_user->profile = (isset($post->post_user->profile)) ? $this->addBaseInImage($post->post_user->profile) : null;
+                $post->post_user->profile = (isset($post->post_user->profile)) ? addBaseUrl($post->post_user->profile) : null;
             }
 
             if ($post->group &&  $post->group->cover_photo) {
@@ -245,7 +251,7 @@ trait Comments
                 $post->group->cover_photo = addBaseUrl($post->group->cover_photo);
             }
 
-            $post->is_joined                = $this->checkCommunityJoined($post->group_id);
+            $post->is_joined                = $this->checkCommunityJoind($post->group_id);
 
             $isExist                        = $this->IsPostLiked($post->id, $authId);
 
@@ -276,5 +282,14 @@ trait Comments
         ];
 
         return array_merge(['data' => $data], $paginationInfo);
+    }
+    
+    private function isSHowSummary($comment_id){
+
+        return Comment::where('parent_id', $comment_id)
+                  ->where('is_comment_flag', 1)
+                  ->count() > 2 ? 1 : 0;
+       
+
     }
 }

@@ -1111,8 +1111,8 @@ class CommunityPost extends BaseController
                         return response()->json(['status' => 422, 'message' => "Invalid user."], 422);
                     }
                 }
-                // return $this->shareInChat($request, $myId, $reciever);
-                return $this->shareInChatNew($request, $myId, $reciever);
+                return $this->shareInChat($request, $myId, $reciever);
+                //return $this->shareInChatNew($request, $myId, $reciever);
             }
         } catch (Exception $e) {
 
@@ -1306,8 +1306,8 @@ class CommunityPost extends BaseController
     {
         try {
 
-            $a = $this->commentThreadSummary(540, 568);
-            dd($a);
+            // $a = $this->commentThreadSummary(540, 568);
+            // dd($a);
             if ($request->content && !empty($request->content)) {
                 $curl = curl_init();
                 curl_setopt_array($curl, [
@@ -1378,12 +1378,13 @@ class CommunityPost extends BaseController
                 $err = curl_error($curl);
                 curl_close($curl);
 
-                dd($response);
+                // dd($response);
 
                 if (!$err) {
                     $response_data = json_decode($response, true);
                     if (isset($response_data['choices'][0]['message']['content'])) {
                         $score = $response_data['choices'][0]['message']['content'];
+                        return $this->sendResponse($score, trans('message.saved_posts'), 200);
 
                         if (is_numeric($score)) {
                             Log::info('is_numeric' . $score);

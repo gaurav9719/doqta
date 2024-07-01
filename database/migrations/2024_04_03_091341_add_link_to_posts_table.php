@@ -47,11 +47,7 @@ return new class extends Migration
             $table->dropColumn('share_count');
             $table->dropColumn('is_high_confidence');
             $table->dropColumn('is_active');
-            
-
-
-
-
+        
         });
     }
 };
