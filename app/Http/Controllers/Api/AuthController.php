@@ -55,7 +55,7 @@ class AuthController extends BaseController
             return $this->signUpService->signUpUser($request);
 
         } catch (Exception $e) {
-
+            Log::error('Error caught: "signUpUser" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }

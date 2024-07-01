@@ -14,17 +14,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\GetUserService;
 use App\Models\UserRole;
 use App\Http\Controllers\Api\BaseController;
-use App\Http\Controllers\Api\PointSystem;
-use App\Models\PointHistory;
-use App\Models\Referral;
 use Carbon\Carbon;
-use App\Models\PointSystem as PointSystemModel;
 use Illuminate\Support\Facades\Log;
-use App\Models\UserPortfolio;
-use App\Models\Recruiter;
-use App\Models\MyTeam;
 use Illuminate\Support\Str;
-use App\Services\RosterAiTrigger;
 use App\Services\VerifyEmail;
 use App\Traits\CommonTrait;
 /**
@@ -34,12 +26,11 @@ class RegisterUserService extends BaseController
 {
     use CommonTrait;
     protected $getUser;
-    protected $user, $authId,$notification,$rosterAi,$verify_email;
+    protected $user, $authId,$notification,$verify_email;
 
-    public function __construct(GetUserService $user,RosterAiTrigger $rosterAi ,VerifyEmail $verify_email)
+    public function __construct(GetUserService $user ,VerifyEmail $verify_email)
     {
         $this->getUser      =  $user;
-        $this->rosterAi     = $rosterAi;
         $this->verify_email = $verify_email;
     }  
 
@@ -78,15 +69,14 @@ class RegisterUserService extends BaseController
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
 
             $this->verify_email->sendVerificationEmail($userID);
-
-
-            // dispatch(new SendVerificationEmailJob($userID));
+            //dispatch(new SendVerificationEmailJob($userID));
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
-            
             return $this->sendResponse($userData, trans("message.register"), 200);
+
         } catch (Exception $e) { 
+
             DB::rollback();
             Log::error('Error caught: "signUpUser" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
@@ -98,7 +88,7 @@ class RegisterUserService extends BaseController
 
         try {
 
-            $checkStatus = User::where(['email' => $request->email])->orWhere(['user_name'=>$request->email])->first();
+            $checkStatus            = User::where(['email' => $request->email])->orWhere(['user_name'=>$request->email])->first();
 
             if (isset($checkStatus) && !empty($checkStatus)) {
                 // Check the user's status
@@ -117,16 +107,17 @@ class RegisterUserService extends BaseController
                     
                     if (auth()->attempt(['email' => $checkStatus->email, 'password' => $request->password])) {
                         // Authentication successful
-                        $userId = Auth::id();
-                        $user = User::find($userId);
-                        $user->device_type = $request->device_type;
-                        $user->device_token = $request->device_token;
-                        $user->login_type = 0;
+                        $userId             =       Auth::id();
+                        $user               =       User::find($userId);
+                        $user->device_type  =       $request->device_type;
+                        $user->device_token =       $request->device_token;
+                        $user->login_type   =       0;
                         $user->save();
 
                         // D E V I C E      T O K E N 
 
                         UserDevice::where(["device_token" => $request->device_token])->delete();
+
                         $UserDevice                 =   new UserDevice();
                         $UserDevice->user_id        =   $userId;
                         $UserDevice->device_type    =   $request->device_type;
@@ -135,6 +126,7 @@ class RegisterUserService extends BaseController
                         // Commit the transaction
                         DB::commit();
                         $loginUser   =   $this->getUser->getAuthUser($userId);
+
                         return response()->json(['status' => 200, 'message' => (trans('message.login')), 'data' => $loginUser]);
                         
                     } else {

@@ -146,11 +146,7 @@ return [
     "location_updated" => "location_updated",
     "community_name_exist" => "The community name is already in use",
 
-    "comments"=>"Comments"
-
-
-
-
+    "comments"=>"Comments",
     "email_changed_successfully" => "Email changed successfully",
     "search_community" => "Search community",
     "shared_media" => "Shared media",
