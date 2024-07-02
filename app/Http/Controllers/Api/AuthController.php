@@ -55,7 +55,9 @@ class AuthController extends BaseController
             return $this->signUpService->signUpUser($request);
 
         } catch (Exception $e) {
+
             Log::error('Error caught: "signUpUser" ' . $e->getMessage());
+
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
@@ -71,6 +73,8 @@ class AuthController extends BaseController
             return $this->signUpService->signIn($request);
             
         } catch (Exception $e) {
+
+            Log::error('Error caught: "signIn" ' . $e->getMessage());
 
             return $this->sendError($e->getMessage(), [], 400);
         }
@@ -88,6 +92,7 @@ class AuthController extends BaseController
             }
 
             $accessToken = Auth::user()->token();
+
             DB::table('oauth_refresh_tokens')
                 ->where('access_token_id', $accessToken->id)
                 ->update([
@@ -96,6 +101,7 @@ class AuthController extends BaseController
             $accessToken->revoke();
             return $this->sendResponsewithoutData(trans('message.logout'), 200);
         } catch (Exception $e) {
+
             Log::error('Error caught: "logout" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
@@ -107,28 +113,20 @@ class AuthController extends BaseController
         return colorFullQr(1);
     }
 
-    public function matchQr(Request $request){
-
-        $rq     =       "https://rosterapp/match?u=eyJpdiI6IkEvSVlyZXRzMmQ3QUJvMVhVc1kyOXc9PSIsInZhbHVlIjoibGxhNzk5eUNyZTg1aFdDVE9sQzN5Zz09IiwibWFjIjoiZDYzNzdjOTUxNmQxNDA1YTBjY2FiNzUyZGM1M2NhMTQzZmI2OWFhMDNmNmQzZGY5MzAwYmJkOWZiNGNiYTY2YyIsInRhZyI6IiJ9";
-        $urlParts = parse_url($rq);
-        parse_str($urlParts['query'], $queryParams);
-        if(isset($queryParams['u']) && !empty($queryParams['u'])){
-            $decryptedIdWithExtra = Crypt::decrypt($queryParams['u']);
-            $originalId = substr($decryptedIdWithExtra, 4);
-            dd($originalId);
-        }else{
-            dd("invalid");
-        }
-    }
-
-
+  
+    #------------- V E R I F Y      E M A I L ------------#
     public function verifyEmail(verifyEmail $request){
 
         $request['user_id']     =   Auth::id();
+
         $isAleardyVerified      =   User::find(Auth::id());
+
         if(isset($isAleardyVerified) && $isAleardyVerified->is_email_verified==1){
+
             return $this->sendResponsewithoutData(trans('message.already_verified_email'), 403);
+
         }else{
+
             return $this->verifyEmail->sendResendCode($request);
         }
     }

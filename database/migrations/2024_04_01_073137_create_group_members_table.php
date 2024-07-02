@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable();
             $table->foreign('group_id')->references('id')->on('groups')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->enum('role', ['admin', 'moderator', 'member'])->default('member');
+            $table->enum('role', ['owner','admin', 'moderator', 'member'])->default('member');
             $table->boolean('is_active')->default(1)->comment('0:not active,1:active');
             $table->timestamps();
         });

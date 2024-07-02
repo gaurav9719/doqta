@@ -26,12 +26,13 @@ use App\Services\NotificationService;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
 use App\Traits\CalculateScore;
+
 /**
  * Class likesService.
  */
 class likesService extends BaseController
 {
-    use IsCommunityJoined, postCommentLikeCount,CalculateScore;
+    use IsCommunityJoined, postCommentLikeCount, CalculateScore;
 
     protected $addCommunityPost, $notification, $getCommunityPost;
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification)
@@ -45,14 +46,13 @@ class likesService extends BaseController
     {
         DB::beginTransaction();
         try {
-            
+
             $post               =   PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
 
             if ($request->action == 0) {    // remove liked
 
                 if (empty($post)) {
                     return $this->sendError(trans('message.something_went_wrong'), [], 400);
-
                 } else {
 
                     $post->delete();
@@ -70,11 +70,11 @@ class likesService extends BaseController
             } else {
                 // liked/update
                 if (empty($post)) {       // insert post like
-                   
+
                     $postLike                       =   PostLike::create(['post_id' => $request->post_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
                     $post_reaction_count            =   post_reaction_count(1, $request->reaction, $request->post_id);
                     // $increment = increment('posts', ['id' => $request->post_id], 'like_count', 1); //decrement post
-                    $group_post                     =    Post::select('group_id', 'user_id','title')->where(['id' => $request->post_id])->first();
+                    $group_post                     =    Post::select('group_id', 'user_id', 'title')->where(['id' => $request->post_id])->first();
                     $title                          =    $group_post->title;
                     $addActivityLog                 =    new ActivityLog();
                     $addActivityLog->user_id        =    $authId;
@@ -108,11 +108,10 @@ class likesService extends BaseController
                         "like_id"       =>  $postLike->id
                     ];
 
-                    if($authId!=$group_post->user_id){  //it will send if post is not posted by me
+                    if ($authId != $group_post->user_id) {  //it will send if post is not posted by me
 
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                     }
-
                 } else {
                     // update like
                     $oldreact           =   $post->reaction;
@@ -125,7 +124,7 @@ class likesService extends BaseController
                     //     post_reaction_count(0, $oldreact, $request->post_id);
                     //     post_reaction_count(1, $request->reaction, $request->post_id);
                     // }
-                    
+
                     #---- no need to store this ----__#
                 }
                 $data                   =   $this->postLikeCount($request->post_id);
@@ -150,15 +149,14 @@ class likesService extends BaseController
         try {
 
             DB::beginTransaction();
-            
+
             $post   =       PostLike::where(['post_id' => $request->post_id, 'user_id' => $authId])->first();
-    
+
             if ($request->action == 0) { // remove liked
 
                 if (empty($post)) {
 
                     return $this->sendError(trans('message.something_went_wrong'), [], 400);
-
                 } else {
 
                     $post->delete();
@@ -169,12 +167,14 @@ class likesService extends BaseController
                 // liked/update
                 if (empty($post)) {
                     // Insert new like
-                    $postLike = PostLike::create([
+                    $postLike   = PostLike::create([
+
                         'post_id' => $request->post_id,
                         'user_id' => $authId,
                         'reaction' => $request->reaction
+
                     ]);
-    
+
                     // Update activity log and send notification
                     $this->updateLikeActivityAndNotification($authId, $request->post_id, $postLike);
                 } else {
@@ -183,7 +183,7 @@ class likesService extends BaseController
                     $post->save();
                 }
             }
-    
+
             // Get updated like count
             $data = $this->postLikeCount($request->post_id);
             DB::commit();
@@ -195,67 +195,74 @@ class likesService extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-    
+
     // Helper functions to update activity log and send notification
     private function updateLikeActivityAndNotification($authId, $postId, $postLike)
     {
-        $groupPost          = Post::select('group_id', 'user_id', 'title')->find($postId);
-        $title              = $groupPost->title;
-    
+        $groupPost                      =   Post::select('group_id', 'user_id', 'title')->find($postId);
+        $title                          =   $groupPost->title;
         // Add activity log
-        $addActivityLog = new ActivityLog();
-        $addActivityLog->user_id = $authId;
-        $addActivityLog->post_id = $postId;
-        $addActivityLog->community_id = $groupPost->group_id;
-        $addActivityLog->action = 1; // like
-        $addActivityLog->action_details = "liked community post " . $title;
+        $sender                         =   Auth::user();
+        $addActivityLog                 =   new ActivityLog();
+        $addActivityLog->user_id        =   $authId;
+        $addActivityLog->post_id        =   $postId;
+        $addActivityLog->community_id   =   $groupPost->group_id;
+        $addActivityLog->action         =   1; // like
+        $addActivityLog->action_details =   "**{$sender->user_name}** reacted with " . likeTypes($postLike->reaction) . " on post: **{$title}**";
         $addActivityLog->save();
-    
         // Send notification
-        $sender     = Auth::user();
-        $receiver   = User::find($groupPost->user_id);
-        $group      = Group::find($groupPost->group_id);
+        $receiver                       =   User::find($groupPost->user_id);
+        $group                          =   Group::find($groupPost->group_id);
         // $message = $sender->user_name . " liked your post: " . $title;
-        $message    = "liked your post: " . $title;
+        // $message                        =   "liked your post: " . $title;
+        $message                        =   "**{$sender->user_name}** reacted with " . likeTypes($postLike->reaction) . " to your post: **{$title}**";
+        $data                           =  [
 
-        $data = [
             "message" => $message,
             "post_id" => $postId,
             "community_id" => $group->id,
             "like_id" => $postLike->id
         ];
-    
+
         if ($authId != $groupPost->user_id) { // Send notification if post is not posted by the liker
+
             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
         }
     }
-    
     private function cleanupLikeActivityAndNotification($authId, $postId)
     {
         ActivityLog::where(['user_id' => $authId, 'post_id' => $postId, 'action' => 1])->delete();
         Notification::where(['sender_id' => $authId, 'post_id' => $postId, 'notification_type' => trans('notification_message.post_liked_message_type')])->delete();
     }
-    
+
 
     #------------ P O S T       L I K E     --------------#
 
 
     #------------ C O M M E N T        L I K E     --------------#
-
     public function commentLike($request, $authId)
     {
         DB::beginTransaction();
+
         try {
-            $post               =   CommentLike::where(['post_id' => $request->post_id, 'comment_id' => $request->comment_id, 'user_id' => $authId])->first();
+            $post                   =       CommentLike::where(['post_id' => $request->post_id, 'comment_id' => $request->comment_id, 'user_id' => $authId])->first();
+
+            $sender                 =       User::find($authId);
+
+            $post1                  =       Post::find($request->post_id);
+
+            $type                   =       trans('notification_message.like_comment_post_type');
 
             if ($request->action == 0) {    // remove liked
+
                 if (empty($post)) {
+
                     return $this->sendError(trans('message.something_went_wrong'), [], 400);
                 } else {
+
                     $post->delete();
                     #remove notification
-                    
-                    Notification::where(['sender_id' => $authId,'notification_type' => trans('notification_message.like_comment_post_type'), 'comment_id'=>$request->comment_id ])->delete();
+                    Notification::where(['sender_id' => $authId, 'notification_type' => trans('notification_message.like_comment_post_type'), 'comment_id' => $request->comment_id])->delete();
 
                     $data                   =   $this->commentLikeCount($request->comment_id);
                     return $this->sendResponse($data, trans('message.updated_successfully'), 200);
@@ -265,66 +272,64 @@ class likesService extends BaseController
                 if (empty($post)) {       // insert comment like
 
                     $like         =         CommentLike::create(['post_id' => $request->post_id, 'comment_id' => $request->comment_id, 'user_id' => $authId, 'reaction' => $request->reaction]);
-                    $comment_user  =       Comment::select('user_id','post_id')->where(['id' => $request->comment_id])->first();
-                    $sender        =       User::find($authId);
+
+                    $comment_user  =       Comment::select('user_id', 'post_id')->where(['id' => $request->comment_id])->first();
+
                     $receiver      =       User::find($comment_user->user_id);
-                    $post1         =       Post::find($comment_user->post_id);
+
                     $group         =       Group::find($post1->group_id);
                     // $message       =       $sender->name . " liked your comment in: " . $group->name;
-                    $message       =       "liked your comment in: " . $group->name;
-
+                    $message       =       "**{$sender->user_name}** found your comment " . likeTypes($request->reaction) . " on {$post1->title}";
                     #-------  T R A C K       A C T V I T Y -----------#
-                    $addActivityLog              =    new ActivityLog();
-                    $addActivityLog->user_id     =    $authId;
-                    $addActivityLog->post_id     =    $request->post_id;
-
-                    if (isset($request->comment_id) && !empty($request->comment_id)) {
-
-                        $addActivityLog->comment_id =    $request->comment_id;
-                    }
-                    $addActivityLog->action         =    1;    //like
-                    $addActivityLog->action_details =  "liked comment in " . $group->name;
-                    $addActivityLog->save();
-
-                    #-------  T R A C K       A C T V I T Y -----------#
-                    $type                           =    trans('notification_message.like_comment_post_type');
+                    
                     $addActivityLog                 =    new ActivityLog();
                     $addActivityLog->user_id        =    $authId;
                     $addActivityLog->post_id        =    $request->post_id;
                     $addActivityLog->comment_id     =    $request->comment_id;
                     $addActivityLog->action         =    $type;    //like
-                    $addActivityLog->action_details =  "Liked the comment in " . $group->name;
+                    $addActivityLog->action_details =    "**{$sender->user_name}** found comment " . likeTypes($request->reaction) . " on {$post1->title}";
                     $addActivityLog->save();
 
-                    #-------  T R A C K       A C T V I T Y -----------#
-                   #send notification
-                   $data          =   [
-                    "message"               =>  $message,
-                    "post_id"               =>  $request->post_id,
-                    "community_id"          =>  $post1->group_id,
-                    "comment_id"            =>  $request->comment_id,
-                    "comment_like_id"       =>  $like->id];
-                    if($sender->id != $receiver->id){
+                    #send notification
+                    $data                            =   [
+                        "message"               =>  $message,
+                        "post_id"               =>  $request->post_id,
+                        "community_id"          =>  $post1->group_id,
+                        "comment_id"            =>  $request->comment_id,
+                        "comment_like_id"       =>  $like->id
+                    ];
+                    if ($sender->id != $receiver->id) {
 
-                        $this->notification->sendNotificationNew($sender,$receiver,$type,$data);
+                        $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                     }
                     #send notification
-    
+
                 } else {
                     // update like
-                    $oldreact                  =      $post->reaction;
-                    $post->reaction            =      $request->reaction;
+                    $oldreact                       =      $post->reaction;
+
+                    $post->reaction                 =      $request->reaction;
+
+                    $message                        =      "**{$sender->user_name}** found your comment " . likeTypes($request->reaction) . " on {$post1->title}";
+
                     $post->save();
+
+                    Notification::where(['sender_id' => $authId, 'type' => $type, 'post_id' => $request->post_id, 'comment_id' => $request->comment_id])->update(['message' => $message]);
                 }
-                // return $this->addCommunityPost->getCommentById($request,$authId,trans('message.comment_liked'));
-                $data                   =   $this->commentLikeCount($request->comment_id);
+
+                $data                               =       $this->commentLikeCount($request->comment_id);
+
                 return $this->sendResponse($data, trans('message.comment_liked'), 200);
             }
         } catch (Exception $e) {
+
             DB::rollBack();
+
             Log::error('Error caught: "comment_like" ' . $e->getLine());
+
             return $this->sendError($e->getMessage(), [], 400);
         } finally {
+
             DB::commit();
         }
     }
@@ -344,13 +349,13 @@ class likesService extends BaseController
             $userId = $authId;
             $reaction = $request->reaction;
             $commentId = $request->comment_id;
-    
+
             // Determine type based on like_type
             $type = ($likeType == 3) ? 1 : 2;
-    
+
             // Retrieve existing like
             $post = SummaryLike::where(['post_id' => $postId, 'user_id' => $userId, 'type' => $type])->first();
-    
+
             if ($action == 0) { // Remove like
                 if (empty($post)) {
                     return $this->sendError(trans('message.something_went_wrong'), [], 400);
@@ -366,11 +371,11 @@ class likesService extends BaseController
                         'reaction' => $reaction,
                         'type' => $type
                     ];
-    
+
                     if ($likeType != 3) {
                         $data['comment_id'] = $commentId;
                     }
-    
+
                     $like = SummaryLike::create($data);
                     $likeId = $like->id;
                 } else { // Update existing like
@@ -378,7 +383,7 @@ class likesService extends BaseController
                     $post->save();
                     $likeId = $post->id;
                 }
-    
+
                 $threadSummary = SummaryLike::find($likeId);
                 return $this->sendResponse($threadSummary, trans('message.updated_successfully'), 200);
             }
@@ -390,7 +395,7 @@ class likesService extends BaseController
             DB::commit();
         }
     }
-    
+
     #---------------- L I K E       P O S T     S U M M A R Y   -------------------#
 
 

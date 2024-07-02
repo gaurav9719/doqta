@@ -136,7 +136,6 @@ if (!function_exists('IsPostAvailable')) {
             $query->whereDoesntHave('post_user.blockedBy', function ($query) use ($authId) {
 
                 $query->where('user_id', $authId);
-                
             })
                 ->whereDoesntHave('post_user.blockedUsers', function ($query) use ($authId) {
                     $query->where('blocked_user_id', $authId);
@@ -155,36 +154,31 @@ if (!function_exists('IsPostAvailable')) {
 
 if (!function_exists('IsUserBlocked')) {
 
-    function IsUserBlocked($user_id, $authId,$type="")
+    function IsUserBlocked($user_id, $authId, $type = "")
     {
 
-        
-        $is_blocked=  User::where(function ($query) use ($authId) {
+
+        $is_blocked =  User::where(function ($query) use ($authId) {
 
             $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
                 $query->where('user_id', $authId);
-
             })
                 ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
                     $query->where('blocked_user_id', $authId);
-
                 });
         });
 
-        if(empty($type)){
+        if (empty($type)) {
 
             $is_blocked     = $is_blocked->where(['id' => $user_id, 'is_active' => 1])->first();
-
-        }else{
+        } else {
 
             $is_blocked     =   $is_blocked->where(['id' => $user_id, 'is_active' => 1])->exists();
         }
-       
-        return $is_blocked;
-        
 
+        return $is_blocked;
     }
 }
 
@@ -254,9 +248,8 @@ if (!function_exists('getPost')) {
         return $postData->whereHas('post_user', function ($query) {
 
             $query->where('is_active', 1);
-
         })->whereHas('group')
-        
+
             // commented on july 28
             // ->whereHas('group', function ($query) use ($authId) {
 
@@ -264,14 +257,14 @@ if (!function_exists('getPost')) {
             //     $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
             //         $query->where('user_id', $authId);
-                    
+
             //     })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
 
             //         $query->where('blocked_user_id', $authId);
             //     });
             // })
 
-          // commented on july 28
+            // commented on july 28
 
             ->whereDoesntHave('reportPosts', function ($query) use ($authId) {
 
@@ -372,7 +365,6 @@ if (!function_exists('GroupData')) {
         if (empty($group)) {
 
             return 400;
-              
         }
         //check group created user not block me or neither blocked by me 
 
@@ -388,7 +380,6 @@ if (!function_exists('GroupData')) {
 
                 $group->is_joined       =       1; // not join the group
                 $group->role            =       $isGroupMember->role;
-
             } else {
 
                 $request                =       GroupMemberRequest::where(['group_id' => $group->id, 'is_active' => 1, 'user_id' => $authId])->first();
@@ -416,9 +407,10 @@ if (!function_exists('GroupData')) {
 
 
 
-if(!function_exists('reactiveChat')){
+if (!function_exists('reactiveChat')) {
 
-    function reactiveChat($message,$myId,$reciever){
+    function reactiveChat($message, $myId, $reciever)
+    {
 
         if (($message->is_user1_trash == $myId) || ($message->is_user2_trash == $myId)) {
 
@@ -452,7 +444,7 @@ if(!function_exists('reactiveChat')){
 }
 
 
-if(!function_exists('supportUserS')){
+if (!function_exists('supportUserS')) {
 
 
     // function supportUserS($request, $authId, $limit, $type = "")
@@ -467,13 +459,13 @@ if(!function_exists('supportUserS')){
     //         ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
     //             $query->where('blocked_user_id', $authId);
-                
+
     //         })
 
     //         ->whereDoesntHave('supporter', function ($query) use ($authId) {
 
     //                 $query->where('follower_user_id', $authId);
-                
+
     //         })->where('id', '<>', $authId);
 
     //         if (isset($request->search) && !empty($request->search)) {
@@ -542,9 +534,9 @@ if(!function_exists('supportUserS')){
 
     //             }, 'user_single_group.group']);
     //         }
-            
+
     //         $user->groupBy('id');
-        
+
     //         if (isset($type) && !empty($type)) {
 
     //             $supportUser  =   $user->get()->take($limit);
@@ -586,11 +578,11 @@ if(!function_exists('supportUserS')){
     //                 'message' => trans('message.dicover_people'),
     //                 'data'    => $supportUser,
     //                 'notification'=>$notification_count,
-                    
+
     //             ];
     //             return response()->json($response, $response['code']);
 
-               
+
     //         }
     //     } catch (Exception $e) {
 
@@ -602,7 +594,7 @@ if(!function_exists('supportUserS')){
     // }
 
 
-    function supportUserS($request, $authId, $limit, $type = "",$category="")
+    function supportUserS($request, $authId, $limit, $type = "", $category = "")
     {
         try {
             // Initial query to get active users not blocked by or blocking the auth user
@@ -611,21 +603,21 @@ if(!function_exists('supportUserS')){
                 ->where('is_active', 1)
                 ->whereNotNull('user_name')
                 ->whereNotIn('role', [2, 3])
-                ->whereDoesntHave('blockedBy', fn($query) => $query->where('user_id', $authId))
-                ->whereDoesntHave('blockedUsers', fn($query) => $query->where('blocked_user_id', $authId))
-                ->whereDoesntHave('supporter', fn($query) => $query->where('follower_user_id', $authId))
+                ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
+                ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
+                ->whereDoesntHave('supporter', fn ($query) => $query->where('follower_user_id', $authId))
                 ->where('id', '<>', $authId);
-                // Handle search term if provided
-                if(isset($category) && !empty($category)){
-                      // Filter based on user participant
-                    $userQuery->whereHas('userParticipant', function ($query) {
-                        $query->whereIn('participant_id', [2]);
-                    });
-                }
+            // Handle search term if provided
+            if (isset($category) && !empty($category)) {
+                // Filter based on user participant
+                $userQuery->whereHas('userParticipant', function ($query) {
+                    $query->whereIn('participant_id', [2]);
+                });
+            }
             if (!empty($request->search)) {
 
                 $searchTerm = $request->search;
-                $userQuery->where(function($query) use ($searchTerm) {
+                $userQuery->where(function ($query) use ($searchTerm) {
                     $query->where('user_name', 'like', "%$searchTerm%")
                         ->where('is_active', 1)
                         ->whereNotNull('user_name');
@@ -636,22 +628,22 @@ if(!function_exists('supportUserS')){
 
                     ->where('is_active', 1)
 
-                    ->whereHas('groupOwner', function($query) use ($authId) {
+                    ->whereHas('groupOwner', function ($query) use ($authId) {
                         $query->where('is_active', 1)
-                            ->whereDoesntHave('blockedBy', fn($q) => $q->where('user_id', $authId))
-                            ->whereDoesntHave('blockedUsers', fn($q) => $q->where('blocked_user_id', $authId));
+                            ->whereDoesntHave('blockedBy', fn ($q) => $q->where('user_id', $authId))
+                            ->whereDoesntHave('blockedUsers', fn ($q) => $q->where('blocked_user_id', $authId));
                     })
                     ->pluck('id');
 
                 // Add users belonging to the groups matching the search term
                 if (!empty($groupIds)) {
 
-                    $userQuery->orWhereHas('user_group', function($query) use ($groupIds) {
+                    $userQuery->orWhereHas('user_group', function ($query) use ($groupIds) {
 
                         $query->whereIn('group_id', $groupIds)
 
-                            ->whereHas('user', function($query) {
-                                
+                            ->whereHas('user', function ($query) {
+
                                 $query->whereNotNull('user_name'); // Ensure user_name is not null
                             });
                     });
@@ -659,35 +651,35 @@ if(!function_exists('supportUserS')){
             }
 
             // Load related groups and users
-            $userQuery->with([
-                'user_single_group' => function($query) use ($authId, $groupIds) {
-                    $query->whereHas('groupUser', function($query) use ($authId, $groupIds) {
+            $userQuery->with(
+                [
+                    'user_single_group' => function ($query) use ($authId, $groupIds) {
+                        $query->whereHas('groupUser', function ($query) use ($authId, $groupIds) {
 
-                        $query->where('is_active', 1)
+                            $query->where('is_active', 1)
 
-                            ->when(isset($groupIds[0]) && !empty($groupIds), fn($q) => $q->whereIn('group_id', $groupIds))
-                            ->whereDoesntHave('blockedBy', fn($q) => $q->where('user_id', $authId))
-                            ->whereDoesntHave('blockedUsers', fn($q) => $q->where('blocked_user_id', $authId));
-                    })
-                    ->select('id', 'group_id', 'user_id');
-                },
-                'user_single_group.group' => function($query) {
+                                ->when(isset($groupIds[0]) && !empty($groupIds), fn ($q) => $q->whereIn('group_id', $groupIds))
+                                ->whereDoesntHave('blockedBy', fn ($q) => $q->where('user_id', $authId))
+                                ->whereDoesntHave('blockedUsers', fn ($q) => $q->where('blocked_user_id', $authId));
+                        })
+                            ->select('id', 'group_id', 'user_id');
+                    },
+                    'user_single_group.group' => function ($query) {
 
-                    $query->select('id', 'name');
-                },
+                        $query->select('id', 'name');
+                    },
 
-                'user_medical_certificate'=>function($q){
+                    'user_medical_certificate' => function ($q) {
 
-                    $q->select('id','medicial_degree_type','user_id');
+                        $q->select('id', 'medicial_degree_type', 'user_id');
+                    },
+                    'user_medical_certificate.medical_certificate' => function ($q) {
 
-                },
-                'user_medical_certificate.medical_certificate'=>function($q){
+                        $q->select('id', 'name');
+                    }
+                ]
 
-                    $q->select('id','name');
-                }
-            ]
-    
-        );
+            );
             $userQuery->groupBy('id');
 
             // Retrieve users with pagination or as a collection based on type
@@ -695,7 +687,7 @@ if(!function_exists('supportUserS')){
 
 
             // Enhance user data with additional info
-            $supportUsers->each(function($user) use ($authId) {
+            $supportUsers->each(function ($user) use ($authId) {
 
                 if (isset($user->groupUser->profile)) {
 
@@ -710,7 +702,7 @@ if(!function_exists('supportUserS')){
 
                     $user->profile                  = addBaseUrl($user->profile);
                 }
-                $user->is_supporting = UserFollower::where([ 'user_id' => $user->id, 'follower_user_id' => $authId,'status' => 2])->exists() ? 1 : 0;
+                $user->is_supporting = UserFollower::where(['user_id' => $user->id, 'follower_user_id' => $authId, 'status' => 2])->exists() ? 1 : 0;
 
                 // $user->user_medical_certificate     =   (isset($user->user_medical_certificate) && !empty($user->user_medical_certificate))?$user->user_medical_certificate->pluck('medical_certificate'):[];
             });
@@ -718,7 +710,6 @@ if(!function_exists('supportUserS')){
             if ($type) {
 
                 return $supportUsers;
-
             } else {
 
                 return response()->json([
@@ -736,7 +727,8 @@ if(!function_exists('supportUserS')){
 }
 
 
-function checkLastMessage($message_id, $myId){
+function checkLastMessage($message_id, $myId)
+{
 
     try {
 
@@ -751,20 +743,19 @@ function checkLastMessage($message_id, $myId){
                 $query->select('id', 'name', 'profile');
             }
         ])
-        ->where('id', $message_id)
-        ->where(function ($query) use($myId){
-            $query->where(function ($query) use($myId) {
+            ->where('id', $message_id)
+            ->where(function ($query) use ($myId) {
+                $query->where(function ($query) use ($myId) {
 
                     $query->whereNull('is_user1_trash')
-                            ->orWhere('is_user1_trash', '!=', $myId);
-            })
-            ->where(function ($query) use($myId) {
+                        ->orWhere('is_user1_trash', '!=', $myId);
+                })
+                    ->where(function ($query) use ($myId) {
 
-                $query->whereNull('is_user2_trash')
-                ->orWhere('is_user2_trash', '!=', $myId);
-            });
-
-        })->first();
+                        $query->whereNull('is_user2_trash')
+                            ->orWhere('is_user2_trash', '!=', $myId);
+                    });
+            })->first();
 
         if (isset($result) && !empty($result)) {
 
@@ -813,12 +804,10 @@ function checkLastMessage($message_id, $myId){
             }
         }
         return $result;
-
-    } catch (Exception $e) {     
+    } catch (Exception $e) {
         Log::error('Error caught: "destory" ' . $e->getMessage());
         // return $this->sendError($e->getMessage(), [], 400);
-    }  
-    
+    }
 }
 
 
@@ -826,9 +815,10 @@ function checkLastMessage($message_id, $myId){
 #-------------------------- C H A T         H I S T O R Y --------------_____________#
 // 
 
-if(!function_exists('userQuota')){
+if (!function_exists('userQuota')) {
 
-    function userQuota($userId){
+    function userQuota($userId)
+    {
 
         $date           =   date('Y-m-d');
         $quota          =   UserQuota::firstOrCreate(
@@ -845,7 +835,6 @@ if(!function_exists('userQuota')){
             ]
         );
         return $quota;
-
     }
 }
 
@@ -854,9 +843,9 @@ if(!function_exists('userQuota')){
 
 #-----------------  G E T       C H A T         I N S I D E   D A T A 
 
-if(!function_exists('processProfile')){
+if (!function_exists('processProfile')) {
 
-     function processProfile($profile)
+    function processProfile($profile)
     {
         if (isset($profile) && !empty($profile)) {
             if (isset($profile->profile) && !empty($profile->profile)) {
@@ -866,7 +855,7 @@ if(!function_exists('processProfile')){
     }
 }
 
-if(!function_exists('processMedia')){
+if (!function_exists('processMedia')) {
 
     function processMedia(&$result)
     {
@@ -879,7 +868,7 @@ if(!function_exists('processMedia')){
     }
 }
 
-if(!function_exists('processReplyTo')){
+if (!function_exists('processReplyTo')) {
 
     function processReplyTo($replyTo)
     {
@@ -891,7 +880,7 @@ if(!function_exists('processReplyTo')){
     }
 }
 
-if(!function_exists('processPost')){
+if (!function_exists('processPost')) {
 
     function processPost($post)
     {
@@ -910,11 +899,27 @@ if(!function_exists('processPost')){
     }
 }
 
-if(!function_exists('addTimestampsAndBlockStatus')){
+if (!function_exists('addTimestampsAndBlockStatus')) {
     function addTimestampsAndBlockStatus(&$result, $userId)
     {
         $result->time_ago = time_elapsed_string($result->created_at);
         $result->is_blocked = isBlockedUser($userId, $result->sender_id);
         $result->blocked_by = isBlockedUser($result->sender_id, $userId);
+    }
+}
+
+
+if (!function_exists('likeTypes')) {
+    function likeTypes($like)
+    {
+        // Define an associative array to map the like values to their respective reactions
+        $reactions = [
+            1 => 'Support',
+            2 => 'Helpful',
+            3 => 'Unhelpful',
+        ];
+
+        // Return the corresponding reaction or default to 'Support'
+        return $reactions[$like] ?? 'Support';
     }
 }

@@ -312,7 +312,7 @@ class Notifications extends BaseController
 
         try {
             
-            $validator                 =      Validator::make($request->all(), ['notification_id' => 'required|integer|exists:notifications,id']);
+            $validator                 =      Validator::make($request->all(), ['notification_id' => 'nullable|integer|exists:notifications,id']);
 
             if ($validator->fails()) {
     
@@ -321,17 +321,27 @@ class Notifications extends BaseController
             } else {
             
                 $authId                 =   Auth::id();
+
+                $notificationId         =   $request->input('notification_id',null);
     
-                $exists                 =   Notification::where(['id'=>$request->notification_id,'receiver_id'=>$authId,'status'=>1])->first();
-                
-                if(isset($exists) && !empty($exists)){
-    
-                    $exists->is_read    =   1;
-                    $exists->save();
+                if(empty($notificationId)){         // read all notifications
+
+                    $readNotifications   =   Notification::where(['receiver_id'=>$authId,'status'=>1,'is_read'=>0])->update(['is_read'=>1]);
+
 
                 }else{
 
-                    return response()->json(['message' => trans('message.Invalid_notification')], 409);
+                    $exists                 =   Notification::where(['id'=>$request->notification_id,'receiver_id'=>$authId,'status'=>1])->first();
+                    
+                    if(isset($exists) && !empty($exists)){
+        
+                        $exists->is_read    =   1;
+                        $exists->save();
+    
+                    }else{
+    
+                        return response()->json(['message' => trans('message.Invalid_notification')], 409);
+                    }
                 }
                 DB::commit();
                 $notification_count          =   notification_count();

@@ -147,6 +147,11 @@ return [
     "community_name_exist" => "The community name is already in use",
 
     "comments"=>"Comments",
+    "no_permission"=>"You have no permission for this",
+    "cannot_delete_community"=>"You cannot delete community",
+
+
+
     "email_changed_successfully" => "Email changed successfully",
     "search_community" => "Search community",
     "shared_media" => "Shared media",

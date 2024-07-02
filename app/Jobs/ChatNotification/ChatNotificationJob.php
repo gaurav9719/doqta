@@ -25,7 +25,7 @@ class ChatNotificationJob implements ShouldQueue
     public function __construct($sender, $conversationId, $notification_data)
     {
         //
-        $this->sender                    =   $sender;
+        $this->sender                           =   $sender;
         $this->conversationId                  =   $conversationId;
         $this->notification_data              =   $notification_data;
     }

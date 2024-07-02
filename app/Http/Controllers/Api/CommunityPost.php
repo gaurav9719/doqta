@@ -39,10 +39,10 @@ use App\Http\Controllers\Api\BaseController;
 use Illuminate\Validation\ValidationException;
 use App\Traits\SummarizePost;
 use App\Traits\CommentTrait\Comments;
-
+use App\Jobs\CommentNotificaton\CommentNotificationJob;
 class CommunityPost extends BaseController
 {
-    use CommonTrait, IsCommunityJoined, postCommentLikeCount, SummarizePost,Comments;
+    use CommonTrait, IsCommunityJoined, postCommentLikeCount, SummarizePost, Comments;
     /**
      * Display a listing of the resource.
      */
@@ -473,14 +473,14 @@ class CommunityPost extends BaseController
 
                     $data               =   [
 
-                                                "message" => $message,
+                        "message" => $message,
 
-                                                "post_id" => $rePost->id,
+                        "post_id" => $rePost->id,
 
-                                                "community_id" => $isExist->group_id,
-                                                
-                                                'parent_id' => $request->post_id
-                                            ];
+                        "community_id" => $isExist->group_id,
+
+                        'parent_id' => $request->post_id
+                    ];
 
                     $postUser           =   Post::select('user_id')->where('id', $rePost->parent_id)->first();
 
@@ -496,7 +496,6 @@ class CommunityPost extends BaseController
                     $repostId           =   $rePost->id;
 
                     $action             =   1;
-
                 } else {
 
                     return $this->sendError(trans("message.not_community_member"), [], 403);
@@ -504,7 +503,6 @@ class CommunityPost extends BaseController
             }
 
             return $this->getPostNew($repostId, $authId, $action == 0 ? trans('message.repost_removed_successfully') : trans('message.reposted'));
-
         } catch (Exception $e) {
 
             DB::rollBack();
@@ -526,17 +524,20 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation                 =       Validator::make($request->all(), [
-                                                    'post_id' => 'required|integer|exists:posts,id',
+            $validation                 =       Validator::make(
+                $request->all(),
+                [
+                    'post_id' => 'required|integer|exists:posts,id',
 
-                                                    'type' => 'required|integer|between:0,2'
+                    'type' => 'required|integer|between:0,2'
 
-                                                    ], 
-                                                    [
-                                                        'post_id.*' => 'Invalid post',
-                                                        
-                                                        'type.*' => 'Invalid type'
-                                                    ]);
+                ],
+                [
+                    'post_id.*' => 'Invalid post',
+
+                    'type.*' => 'Invalid type'
+                ]
+            );
 
             if ($validation->fails()) {
 
@@ -570,7 +571,6 @@ class CommunityPost extends BaseController
                     if ($isHide) {
 
                         $message = trans('message.hidden_post_cannot_saved');
-
                     } else {
 
                         $message = trans('message.saved_post_successfully');
@@ -587,7 +587,6 @@ class CommunityPost extends BaseController
                         $message = trans('message.unhide_post_successfully');
 
                         $isHide->delete();
-
                     } else {
 
                         $message = trans('message.no_post_found');
@@ -603,14 +602,12 @@ class CommunityPost extends BaseController
             DB::commit();
 
             return $this->sendResponse(intVal($type), $message, 200);
-
         } catch (ValidationException $e) {
 
 
             DB::rollBack();
 
             return $this->sendResponsewithoutData($e->errors()['first'], 422);
-
         } catch (Exception $e) {
 
             DB::rollBack();
@@ -635,15 +632,18 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation                         =           Validator::make($request->all(), [
+            $validation                         =           Validator::make(
+                $request->all(),
+                [
 
-                                                                'post_id' => 'required|integer|exists:posts,id',
-                                                            ], 
-                                                            
-                                                            [
-                                                                'post_id.*' => 'Invalid post',
+                    'post_id' => 'required|integer|exists:posts,id',
+                ],
 
-                                                            ]);
+                [
+                    'post_id.*' => 'Invalid post',
+
+                ]
+            );
 
             if ($validation->fails()) {
 
@@ -676,7 +676,6 @@ class CommunityPost extends BaseController
             DB::commit();
 
             return $this->sendResponsewithoutData(trans('message.report_to_post_successfully'), 200);
-
         } catch (ValidationException $e) {
 
 
@@ -685,7 +684,6 @@ class CommunityPost extends BaseController
             Log::error('Error caught: "reportPost" ' . $e->getMessage());
 
             return $this->sendError($e->getMessage(), [], 400);
-
         } catch (Exception $e) {
 
             DB::rollBack();
@@ -693,7 +691,6 @@ class CommunityPost extends BaseController
             Log::error('Error caught: "reportPost" ' . $e->getMessage());
 
             return $this->sendError($e->getMessage(), [], 400);
-
         }
     }
     #--------------------********   R E P O R T     P O S T   ********------------------------#
@@ -707,29 +704,32 @@ class CommunityPost extends BaseController
 
         try {
 
-            $validation                             =       Validator::make($request->all(), [
+            $validation                             =       Validator::make(
+                $request->all(),
+                [
 
-                                                                'post_id' => 'required|integer|exists:posts,id',
+                    'post_id' => 'required|integer|exists:posts,id',
 
-                                                                'parent_comment_id' => 'nullable|exists:comments,id',
+                    'parent_comment_id' => 'nullable|exists:comments,id',
 
-                                                                'comment' => "required",
+                    'comment' => "required",
 
-                                                                'comment_type' => "nullable|between:1,4",
+                    'comment_type' => "nullable|between:1,4",
 
-                                                                'mention_user_id' => 'nullable|integer|exists:users,id'
+                    'mention_user_id' => 'nullable|integer|exists:users,id'
 
-                                                            ], 
-                                                            [
-                                                                'post_id.integer' => 'Invalid post',
+                ],
+                [
+                    'post_id.integer' => 'Invalid post',
 
-                                                                'parent_id.*' => "Invalid comment id",
+                    'parent_id.*' => "Invalid comment id",
 
-                                                                'comment_type.between' => "Invalid comment type",
+                    'comment_type.between' => "Invalid comment type",
 
-                                                                'mention_user_id.integer' => "Invalid mention id",
+                    'mention_user_id.integer' => "Invalid mention id",
 
-                                                            ]);
+                ]
+            );
             if ($validation->fails()) {
 
                 return $this->sendResponsewithoutData($validation->errors()->first(), 422);
@@ -764,28 +764,39 @@ class CommunityPost extends BaseController
 
                 $addComment->parent_id  = $request->parent_comment_id;
                 #notification data preparation
-                $parentComment          = Comment::find($request->parent_comment_id);
-                $sender                 = Auth::user();
-                $receiver               = User::find($parentComment->user_id);
-                $message                = $sender->name . " replied to your comment in : " . $group->name;
-                $activityLogMessage     = "Replied the comment in " . $group->name;
-                $type                   = trans('notification_message.comment_reply_type');
+                $parentComment          =   Comment::find($request->parent_comment_id);
 
+                $sender                 =   Auth::user();
+
+                $receiver               =   User::find($parentComment->user_id);
+
+                $message                =   "**{$sender->name}** replied to your comment on post: ** {$post->title}**";
+
+                // $activityLogMessage     =   "Replied the comment in " . $group->name;
+                $activityLogMessage     =   "**{$sender->name}** replied to the comment on post: ** {$post->title}**";
+
+                $type                   =   trans('notification_message.comment_reply_type');
+                
             } else {
 
                 #notification data preparation
-                $sender                 = Auth::user();
-                $receiver               = User::find($post->user_id);
-                $title                  = $post->title;
-                $message                = $sender->name . " " . trans('notification_message.comment_on_post') . " " . $title;
-                $activityLogMessage     = "Comment on post: " . $title;
-                $type = trans('notification_message.comment_on_post_type');
+                $sender                 =   Auth::user();
 
+                $receiver               =   User::find($post->user_id);
+
+                $title                  =   $post->title;
+
+                $message                =   "**{$sender->name}** commented on your post: ** {$post->title}**";
+
+                $activityLogMessage     =   "**{$sender->name}** commented on post: ** {$post->title}**";
+
+                $type                   =   trans('notification_message.comment_on_post_type');
             }
             if (isset($request->comment_type) && !empty($request->comment_type)) {
 
                 $addComment->comment_type       =   $request->comment_type;
             }
+
             if (isset($request->mention_user_id) && !empty($request->mention_user_id)) {
 
                 $addComment->mention_user_id    =   $request->mention_user_id;
@@ -796,7 +807,7 @@ class CommunityPost extends BaseController
             $addComment->is_comment_flag        =   strlen($request->comment) > 75 ? 1 : 0; // Determine is_comment_flag based on comment length
             $addComment->save();
 
-            $commentId                          = $addComment->id;
+            $commentId                          =   $addComment->id;
 
             #--------------  RECORD USER QUOTA PER DAY-------------#
             if (isset($commentId) && !empty($commentId)) {
@@ -804,7 +815,7 @@ class CommunityPost extends BaseController
                 $quotaUpdated               = UserQuota::updateQuota($authId, 'post_comment');
             }
             #--------------  RECORD USER QUOTA PER DAY-------------#
-            $request['comment_id']      = $commentId;
+            $request['comment_id']      =    $commentId;
             #----------- R E C O R D        A C T I V I T Y -------------#
             $activityType               =   $type;
 
@@ -827,11 +838,15 @@ class CommunityPost extends BaseController
             $addActivityLog->save();
             #send notification
 
-            $data = [
+            $data                       = [
                 "message" => $message,
+
                 "post_id" => $post->id,
+
                 "community_id" => $post->group_id,
+
                 "comment_id" => $commentId,
+
                 "parent_id" => isset($request->parent_comment_id) ? $request->parent_comment_id : null
             ];
 
@@ -841,6 +856,11 @@ class CommunityPost extends BaseController
             }
 
             DB::commit();
+
+            //  send notification to all user who ever comment on post
+
+            dispatch(new CommentNotificationJob($sender, $data,$type));
+
             #-------- generate comment thread summary----------#
             dispatch(new CommentThreadSummary($request->post_id, $commentId));
             #-----------        R E C O R D        A C T I V I T Y  -------------#
@@ -864,14 +884,17 @@ class CommunityPost extends BaseController
     {
         try {
 
-            $validation             =       Validator::make($request->all(), [
+            $validation             =       Validator::make(
+                $request->all(),
+                [
 
-                                                'post_id' => 'required|integer|exists:posts,id'
-                                            ], 
-                                            
-                                            [
-                                                'post_id.integer' => 'Invalid post'
-                                            ]);
+                    'post_id' => 'required|integer|exists:posts,id'
+                ],
+
+                [
+                    'post_id.integer' => 'Invalid post'
+                ]
+            );
 
             if ($validation->fails()) {
 
@@ -903,49 +926,46 @@ class CommunityPost extends BaseController
 
             $savedPosts     =       SavedPost::with([
 
-                                            'post.post_user:id,name,profile',
+                'post.post_user:id,name,profile',
 
-                                            'post.group:id,name,description,cover_photo,post_count,created_by'
-                                        ])
-                                            ->whereHas('post', function ($query) use ($authId) {
+                'post.group:id,name,description,cover_photo,post_count,created_by'
+            ])
+                ->whereHas('post', function ($query) use ($authId) {
 
-                                                $query->whereHas('post_user', function ($query) use ($authId) {
+                    $query->whereHas('post_user', function ($query) use ($authId) {
 
-                                                    $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                        $query->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                                                        $query->where('user_id', $authId);
+                            $query->where('user_id', $authId);
+                        })
+                            ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
 
-                                                    })
-                                                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                $query->where('blocked_user_id', $authId);
+                            });
+                    })->whereHas('group', function ($query) use ($authId) {
 
-                                                            $query->where('blocked_user_id', $authId);
-                                                        });
+                        $query->where('is_active', 1);
+                    });
 
-                                                    })->whereHas('group', function ($query) use ($authId) {
+                    #--------- c o m m e n t   on       jun 28 --------------#
 
-                                                        $query->where('is_active',1);
+                    // ->whereHas('group', function ($query) use ($authId) {
 
-                                                    });
+                    //     $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
-                                                    #--------- c o m m e n t   on       jun 28 --------------#
+                    //         $query->where('user_id', $authId);
 
-                                                    // ->whereHas('group', function ($query) use ($authId) {
+                    //     })
 
-                                                    //     $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+                    //     ->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
 
-                                                    //         $query->where('user_id', $authId);
+                    //         $query->where('blocked_user_id', $authId);
 
-                                                    //     })
+                    //     });
+                    // });
 
-                                                    //     ->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
-
-                                                    //         $query->where('blocked_user_id', $authId);
-                                                            
-                                                    //     });
-                                                    // });
-
-                                                    #--------- c o m m e n t   on       jun 28 --------------#
-                                            })
+                    #--------- c o m m e n t   on       jun 28 --------------#
+                })
                 ->whereNotExists(function ($query) use ($authId) {
 
                     $query->select(DB::raw(1))
@@ -955,7 +975,6 @@ class CommunityPost extends BaseController
                         ->whereColumn('hidden_posts.post_id', '=', 'saved_posts.post_id')
 
                         ->where('hidden_posts.user_id', '=', $authId);
-
                 })
                 ->addSelect([
 
@@ -997,13 +1016,11 @@ class CommunityPost extends BaseController
                 });
             }
             return $this->sendResponse($savedPosts, trans('message.saved_posts'), 200);
-
         } catch (Exception $e) {
 
             Log::error('Error caught: "addComment" ' . $e->getMessage());
 
             return $this->sendError($e->getMessage(), [], 400);
-
         }
     }
     #---------- G E T       S A V E D    P O S T  ------------------------------------#
@@ -1014,8 +1031,8 @@ class CommunityPost extends BaseController
     {
         $validate               =           Validator::make($request->all(), [
 
-                                                    'comment_id' => 'required|exists:comments,id',
-                                                ]);
+            'comment_id' => 'required|exists:comments,id',
+        ]);
         if ($validate->fails()) {
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
@@ -1052,7 +1069,6 @@ class CommunityPost extends BaseController
             }
 
             return $this->sendResponsewithoutData(trans('message.comment_deleted'), 200);
-
         } else {
 
             return $this->sendResponsewithoutData(trans('message.comment_not_found'), 400);
@@ -1067,22 +1083,22 @@ class CommunityPost extends BaseController
     {
         try {
 
-            $validate                           =       Validator::make($request->all(), 
-                                                        [
+            $validate                           =       Validator::make(
+                $request->all(),
+                [
 
-                                                            'type' => 'required|integer|between:1,2',
-                                                            'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
-                                                            'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
-                                                            'receiver_id' => 'required|exists:users,id',
-                                                        ], 
+                    'type' => 'required|integer|between:1,2',
+                    'post_id' => ['required_if:type,1', 'integer', 'exists:posts,id'],
+                    'user_id' => ['required_if:type,2', 'integer', 'exists:users,id'],
+                    'receiver_id' => 'required|exists:users,id',
+                ],
 
-                                                        ['post_id.required_if' => "post id requierd", 'user_id.required_if' => "user id requierd"]);
+                ['post_id.required_if' => "post id requierd", 'user_id.required_if' => "user id requierd"]
+            );
 
             if ($validate->fails()) {
 
                 return $this->sendResponsewithoutData($validate->errors()->first(), 422);
-
-
             } else {
 
                 $myId                       =   Auth::id();
@@ -1103,7 +1119,7 @@ class CommunityPost extends BaseController
                     // }
                     // return $this->sharePostInChat($request, $myId, $reciever);
                 } else {                     // share user profile
-                    
+
                     $userData               =       IsUserBlocked($request->user_id, $myId);
 
                     if (empty($userData)) {

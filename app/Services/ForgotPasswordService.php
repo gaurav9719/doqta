@@ -44,8 +44,11 @@ class ForgotPasswordService extends BaseController
     {
         $this->middleware('auth');
         $this->middleware(function ($request, $next) {
+
             $this->authId = Auth::id();
+
             return $next($request);
+
         });
         $this->notification = $notification;
     }
@@ -57,23 +60,29 @@ class ForgotPasswordService extends BaseController
         DB::beginTransaction();
 
         try {
-            $otp = rand(111111, 999999);
-            $random = Str::random(40);
-            $otp_expiry_time = Carbon::now()->addMinutes(10);
-            $emailVerify = ['otp' => $otp, 'name' => $checkEmail->name];
-            $SendOtp = PasswordResetToken::updateOrCreate(
-                ['email' => $request->email], // Primary key column
-                [
-                    'token' => $random,
-                    'otp' => $otp,
-                    'otp_expiry_time' => $otp_expiry_time,
-                    'created_at' => Carbon::now(),
-                ]
-            );
 
+            $otp                =   rand(111111, 999999);
+
+            $random             =   Str::random(40);
+
+            $otp_expiry_time    =   Carbon::now()->addMinutes(10);
+            
+            $emailVerify        =   ['otp' => $otp, 'name' => $checkEmail->name];
+
+            $SendOtp            =   PasswordResetToken::updateOrCreate(
+                                    ['email' => $request->email], // Primary key column
+
+                                    [
+                                        'token' => $random,
+                                        'otp' => $otp,
+                                        'otp_expiry_time' => $otp_expiry_time,
+                                        'created_at' => Carbon::now(),
+                                    ]
+            );
             DB::commit();
             // Send an email with the OTP
             Mail::to($request->email)->send(new ForgotPasswordEmail($emailVerify));
+
             return $this->sendResponsewithoutData(trans('message.otp_sent_on_your_email'), 200);
         } catch (Exception $e) {
             // Rollback the transaction in case of an exception

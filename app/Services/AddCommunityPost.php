@@ -50,19 +50,19 @@ class AddCommunityPost extends BaseController
 
         try {
 
-            $is_health_provider =   UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
+            $is_health_provider         =   UserParticipantCategory::where('user_id', $authId)->where('participant_id', 3)->exists() ? 1 : 0;
 
-            $post               =   new Post();
+            $post                       =   new Post();
 
-            $post->user_id      =   $authId;
+            $post->user_id              =   $authId;
 
-            $post->title        =   $request->title;
+            $post->title                =   $request->title;
 
-            $post->content      =   $request->content;
+            $post->content              =   $request->content;
 
-            $post->is_health_provider = $is_health_provider; // add true is user is health provider
+            $post->is_health_provider   =   $is_health_provider; // add true is user is health provider
 
-            $post->media_type   = $request->media_type;
+            $post->media_type           =   $request->media_type;
 
             if ($request->hasFile('media')) {
 
@@ -115,7 +115,6 @@ class AddCommunityPost extends BaseController
             }
             #--------------  RECORD USER QUOTA PER DAY-------------#\
             DB::commit();
-
             try {
 
                 if (strlen($post->content) > 75) {
@@ -140,12 +139,19 @@ class AddCommunityPost extends BaseController
             increment('groups', ['id' => $request->community_id], 'post_count', 1);          // add increment to group post
             #-------  A C T I V I T Y -----------#
             $group                      =    Group::find($request->community_id);
+
             $activity                   =    new ActivityLog();
+
             $activity->user_id          =    $authId;
+
             $activity->post_id          =    $post->id;
+
             $activity->community_id     =    $group->id;
-            $activity->action_details   =    "Posted in  " . $group->name;
+
+            $activity->action_details   =    "**{$user->user_name}** posted new post in  **{$post->title}**";
+
             $activity->action           =    trans('notification_message.posted_in_community');    //Posted in community
+
             $activity->save();
             #-------  A C T I V I T Y -----------#
             $this->feedPostNotification($request->community_id, $postId, Auth::user());

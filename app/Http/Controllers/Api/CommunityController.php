@@ -109,7 +109,7 @@ class CommunityController extends BaseController
 
                 $groupMember->user_id       = $authId;
 
-                $groupMember->role          = 'admin';
+                $groupMember->role          = 'owner';
 
                 if ($groupMember->save()) {
 
@@ -173,7 +173,7 @@ class CommunityController extends BaseController
             if ($isExist) {
                 //updated
                 $addCommunity = [];
-               // filter_text($request->name);
+                // filter_text($request->name);
 
                 $isExist = Group::where(['name' => $request->name, 'is_active' => 1])->where('id', '<>', '')->exists();
 
@@ -273,7 +273,7 @@ class CommunityController extends BaseController
 
                         }
                     }
-                    
+
                     $addCommunity['cover_photo']  = $Uploaded;
                 }
 
@@ -324,9 +324,10 @@ class CommunityController extends BaseController
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
 
-                $isExist            =           Group::where(['id' => $id, 'created_by' => $authId])->first();
+                $isExist                        =               Group::where(['id' => $id])->first();
 
                 if (isset($isExist) && !empty($isExist)) {  //deleted action
 
@@ -335,18 +336,40 @@ class CommunityController extends BaseController
                         return $this->sendResponsewithoutData(trans('message.community_already_deleted'), 422);
                     }
 
-                    $isExist        =       Group::where(['id' => $id, 'created_by' => $authId])->update(['is_active' => 0]);
+                    $groupOwner                 =           GroupMember::where(['group_id'=>$id,'role'=>'owner','user_id'=>$authId])->first();
 
-                    Post::where(['group_id' => $id])->update(['is_active' => 0]);
+                    if(isset($groupOwner) && !empty($groupOwner)){
 
-                    #delete notification & activity
-                    Notification::where('community_id', $id)->delete();
+                        //check in community have other user post or not
 
-                    ActivityLog::where('community_id', $id)->delete();
+                        $isPostExist            =           Post::where(['group_id'=>$id])->where('user_id','<>',$authId)->first();
+                        
+                        if(isset($isPostExist) && !empty($isPostExist)){
 
-                    DB::commit();
+                            return $this->sendError(trans('message.cannot_delete_community'), [], 423);
 
-                    return $this->sendResponsewithoutData(trans('message.community_deleted'), 200);
+                        }
+
+                        $isExist->is_active     =   0;
+
+                        $isExist->save();
+
+                        Post::where(['group_id' => $id])->update(['is_active' => 0]);
+
+                        #delete notification & activity
+                        Notification::where('community_id', $id)->delete();
+
+                        ActivityLog::where('community_id', $id)->delete();
+
+                        DB::commit();
+
+                        return $this->sendResponsewithoutData(trans('message.community_deleted'), 200);
+
+                    }else{
+
+                        return $this->sendError(trans('message.cannot_delete_community'), [], 423);
+
+                    }
                 } else {      //invalid
 
                     return $this->sendError(trans('message.something_went_wrong'), [], 403);
@@ -536,10 +559,15 @@ class CommunityController extends BaseController
             $validator      =       Validator::make($request->all(), [
 
                 'community_id' => 'required|integer|exists:groups,id',
+
                 'member_id' => 'required|exists:users,id',
+
                 'role' => [
+
                     'required',
-                    Rule::in(['admin', 'moderator', 'member']),
+
+                    Rule::in(['owner', 'admin', 'moderator', 'member']),
+
                 ]
             ]);
 
@@ -547,6 +575,7 @@ class CommunityController extends BaseController
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
             } else {
+
                 //check group member is exist or not
                 $group      =       Group::where('id', $request->community_id)->first();
                 // cannot change admin role
@@ -555,7 +584,7 @@ class CommunityController extends BaseController
                     return $this->sendResponsewithoutData(trans('message.Permission_denied'), 403);
                 }
 
-                $checkMember =      GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
+                $checkMember                =      GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                 if (!$checkMember) {
 
@@ -571,19 +600,33 @@ class CommunityController extends BaseController
 
                     if (isset($checkAuthority) && !empty($checkAuthority)) {
 
-                        if ($checkAuthority->role == "admin") {
+                        if ($checkAuthority->role == "admin" || $checkAuthority->role == "owner") {
 
+                            if ($request->role == "owner" && $checkAuthority->role == "admin") {
+
+                                return $this->sendResponsewithoutData(trans('message.not_permission'), 409);
+                            }
                             $checkMember->role = $request->role;
 
                             $checkMember->save();
 
-                            DB::commit();
+                            if ($request->role == "owner" && $checkAuthority->role == "owner") {
 
-                            $updatedAuthority       =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
+                                $checkAuthority->role       =   "member";
+
+                                $checkAuthority->save();
+                            }
+
+                            DB::commit();
+                            $updatedAuthority               =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                             return $this->sendResponse($updatedAuthority, trans("message.community_role_updated"), 200);
+                        } else {
+
+                            return $this->sendResponsewithoutData(trans('message.not_permission'), 409);
                         }
                     } else {
+
                         return $this->sendResponsewithoutData(trans('messagge.access_denied'), 403);
                     }
                 }
@@ -600,41 +643,45 @@ class CommunityController extends BaseController
     #-------------- A S S I G N        R O L E         T O         C O M M U N I T Y      M E M B E R -------------#
     public function removeMember(Request $request)
     {
-
         DB::beginTransaction();
-
         try {
+
             $authId             =           Auth::id();
 
             $validator          =           Validator::make($request->all(), ['community_id' => 'required|integer|exists:groups,id', 'member_id' => 'required|exists:users,id']);
 
+
             if ($validator->fails()) {
                 // Handle validation failure
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
+
                 //check group member is exist or not
                 $checkMember    =           GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                 if (!$checkMember) {
 
                     return $this->sendResponsewithoutData(trans('message.no_member_found_community'), 409);
+
                 } else {
 
                     if ($authId == $request->member_id) {
 
                         return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
-                    }
 
+                    }
                     $checkAuthority         =       GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId, 'is_active' => 1])->first();
 
                     if (isset($checkAuthority) && !empty($checkAuthority)) {
 
-                        if ($checkAuthority->role == "admin") {
+                        if ($checkAuthority->role == "admin" || $checkAuthority->role == "owner") {
 
                             $checkMember->delete();
                             // increment by member 1
                             //updated on April 22
                             decrement('groups', ['id' => $request->community_id], 'member_count', 1);
+
                             DB::commit();
 
                             $updatedAuthority = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
@@ -648,9 +695,11 @@ class CommunityController extends BaseController
                 }
             }
         } catch (Exception $e) {
+
             DB::rollback();
             Log::error('Error caught: "assign-role-in-community" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
+
         }
     }
 
@@ -665,40 +714,51 @@ class CommunityController extends BaseController
 
             $validator          = Validator::make($request->all(), [
 
-                                        'community_id' => 'required|integer|exists:groups,id',
-                                        'role' => 'nullable|integer|between:1,3'
-                                    ], [
-                                        'community_id.integer' => "Invalid community id",
-                                        'role.integer' => "Invalid type"
-                                    ]);
+                'community_id' => 'required|integer|exists:groups,id',
+                'role' => 'nullable|integer|between:1,3'
+            ], [
+                'community_id.integer' => "Invalid community id",
+                'role.integer' => "Invalid type"
+            ]);
 
             if ($validator->fails()) {
-               
+
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
-
+                
             } else {
-
                 // Check group member is exist or not
-                $limit = 10;
+                $limit                  = 10;
 
                 if ($request->has('limit') && !empty($request->limit)) {
 
                     $limit              =   $request->limit;
                 }
 
-                $groupMember            =   GroupMember::with(['groupUser' => function ($query) use($authId) {
+                $groupMember            =   GroupMember::with(['groupUser' => function ($query) use ($authId) {
 
-                                                $query->select('id', 'name', 'user_name', 'profile')
+                    $query->select('id', 'name', 'user_name', 'profile', 'is_active')
 
-                                                ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                        ->with([
+                            'user_medical_certificate' => function ($q) {
 
-                                                    $query->where('user_id', $authId);
-                                                })
-                                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
-                                                        
-                                                        $query->where('blocked_user_id', $authId);
-                                                    });
-                                            }]);
+                                $q->select('id', 'medicial_degree_type', 'user_id');
+                            },
+                            'user_medical_certificate.medical_certificate' => function ($q) {
+
+                                $q->select('id', 'name');
+                            }
+                        ])
+
+                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                            $query->where('user_id', $authId);
+                        })
+                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                            $query->where('blocked_user_id', $authId);
+                        });
+                }]);
+
                 $role                   =   "id";
 
                 if ($request->has('role') && !empty($request->role)) {
@@ -708,9 +768,16 @@ class CommunityController extends BaseController
 
                 $groupMember            =   $groupMember->where(['group_id' => $request->community_id, 'is_active' => 1])->whereNotNull('user_id')
 
-                                            ->orderByRaw(($request->role) ? 'FIELD(role,"' . $role . '") DESC' : $role . " desc")
-
-                                            ->simplePaginate($limit);
+                    //->orderByRaw(($request->role) ? 'FIELD(role,"' . $role . '") DESC' : $role . " desc")
+                    ->orderByRaw('
+                                                CASE 
+                                                WHEN role = "owner" THEN 0
+                                                WHEN role = "admin" THEN 1
+                                                WHEN role = "moderator" THEN 2
+                                                ELSE 3
+                                            END
+                                        ')
+                    ->simplePaginate($limit);
 
                 if ($groupMember) {
 

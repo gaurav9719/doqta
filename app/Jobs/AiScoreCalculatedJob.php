@@ -29,6 +29,9 @@ class AiScoreCalculatedJob implements ShouldQueue
     public function handle(): void
     {
         
-        $this->CalculateConfidenceScore($this->postId);
+        // $this->CalculateConfidenceScore($this->postId);
+        $this->Path2ConfidenceScore($this->postId);
+
+        
     }
 }

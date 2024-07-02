@@ -148,22 +148,34 @@ class LikeController extends BaseController
         $reaction['support']        =   PostLike::where(['post_id'=>$id,'reaction'=>1])->count();   //support
         $reaction['helpful']        =   PostLike::where(['post_id'=>$id,'reaction'=>2])->count();   //helpful
         $reaction['unhelpful']      =   PostLike::where(['post_id'=>$id,'reaction'=>3])->count();   //unhelpful
-        $limit          =   $request->input('limit',10);
+        $limit                      =   $request->input('limit',10);
 
-        $totalLike      =   PostLike::where('post_id',$id)->with('user',function($user) use($authId){
+        $totalLike                  =   PostLike::select('id','user_id','post_id','reaction','created_at')->where('post_id',$id)->with(['user'=>function($user) use($authId){
 
-                                    $user->select('id','name','user_name','profile')
+                                            $user->select('id','name','user_name','profile')
 
-                                    ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                                            ->with(['user_medical_certificate'=>function($q){
 
-                                        $query->where('user_id', $authId);
-                                    })
-                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
-                
-                                        $query->where('blocked_user_id', $authId);
-                                    });
+                                                $q->select('id', 'medicial_degree_type', 'user_id');
 
-                            })->when($request->type, function($filter) use($request){
+                                                },'user_medical_certificate.medical_certificate'=>function ($q) {
+
+                                                    $q->select('id', 'name');
+                                                }
+                                            ])
+                                       
+
+                                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+
+                                            $query->where('user_id', $authId);
+                                        })
+                                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                    
+                                            $query->where('blocked_user_id', $authId);
+                                        });
+                                    }]);
+
+                                $totalLike=$totalLike->when($request->type, function($filter) use($request){
 
                                 $filter->where('reaction',$request->type);
 

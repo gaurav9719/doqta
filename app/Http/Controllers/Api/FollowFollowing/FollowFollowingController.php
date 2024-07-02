@@ -36,79 +36,91 @@ class FollowFollowingController extends BaseController
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        try {
+    // public function index(Request $request)
+    // {
+    //     try {
 
-            $validation = Validator::make($request->all(), [
-                'type' => 'required|integer|between:1,3'
-            ], ['type.integer' => "Invalid type"]);
+    //         $validation     =       Validator::make($request->all(), [
+    //                                     'type' => 'required|integer|between:1,3'
+    //                                     ], 
+    //                                     ['type.integer' => "Invalid type"]);
     
-            if ($validation->fails()) {
-                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
-            }
+    //         if ($validation->fails()) {
+
+    //             return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+    //         }
     
-            $limit = $request->limit ?? 20;
-            $myId = Auth::id();
-            $type = $request->type;
-            $search = $request->search ?? null;
+    //         $limit          =       $request->limit ?? 20;
+    //         $myId           =       Auth::id();
+    //         $type           =       $request->type;
+    //         $search         =       $request->search ?? null;
     
-            // Common query structure
+    //         // Common query structure
             
-            $query = UserFollower::leftJoin('users as U', function ($join) use ($myId) {
-                $join->on(function ($query) use ($myId) {
-                    $query->where('user_followers.user_id', '=', $myId)
-                          ->where('user_followers.follower_user_id', '=', DB::raw('U.id'));
-                })->orWhere(function ($query) use ($myId) {
-                    $query->where('user_followers.user_id', '=', DB::raw('U.id'))
-                          ->where('user_followers.follower_user_id', '=', $myId);
-                });
-            });
-            if ($search) {
+    //         $query          =       UserFollower::leftJoin('users as U', function ($join) use ($myId) {
 
-                $query->where('U.name', 'LIKE', '%' . $search . '%');
-            }
-    
-            if ($type == 1) { // All
-                $query->where(function ($query) use ($myId) {
-                    $query->where('user_followers.user_id', '=', $myId)
+    //             $join->on(function ($query) use ($myId) {
 
-                          ->orWhere('user_followers.follower_user_id', '=', $myId);
-                });
-                $message = trans('message.supporters_supportings');
+    //                 $query->where('user_followers.user_id', '=', $myId)
+
+    //                       ->where('user_followers.follower_user_id', '=', DB::raw('U.id'));
+
+    //             })->orWhere(function ($query) use ($myId) {
+
+    //                 $query->where('user_followers.user_id', '=', DB::raw('U.id'))
+
+    //                       ->where('user_followers.follower_user_id', '=', $myId);
+    //             });
+    //         });
+    //         if ($search) {
+
+    //             $query->where('U.name', 'LIKE', '%' . $search . '%');
+    //         }
     
-            } elseif ($type == 2) { // Followings
-                $query->where('user_followers.follower_user_id', '=', $myId);
-                $message = trans('message.supportings');
+    //         if ($type == 1) { // All
+
+    //             $query->where(function ($query) use ($myId) {
+    //                 $query->where('user_followers.user_id', '=', $myId)
+
+    //                       ->orWhere('user_followers.follower_user_id', '=', $myId);
+    //             });
+    //             $message = trans('message.supporters_supportings');
     
-            } elseif ($type == 3) { // Followers
-                $query->where('user_followers.user_id', '=', $myId);
-                $message = trans('message.supporters');
-            }
-            $threads = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
-                            ->groupBy('U.id')
-                            ->where('U.is_active',1)
-                             ->orderBy('U.id', 'ASC')
-                             ->simplePaginate($limit);
+    //         } elseif ($type == 2) { // Followings
+
+    //             $query->where('user_followers.follower_user_id', '=', $myId);
+    //             $message = trans('message.supportings');
+    
+    //         } elseif ($type == 3) { // Followers
+
+    //             $query->where('user_followers.user_id', '=', $myId);
+
+    //             $message = trans('message.supporters');
+    //         }
+    //         $threads        = $query->select('user_followers.*', 'U.name', 'U.user_name','U.profile', 'U.id as other_user_id','U.is_active')
+    //                         ->groupBy('U.id')
+    //                         ->where('U.is_active',1)
+    //                          ->orderBy('U.id', 'ASC')
+    //                          ->simplePaginate($limit);
                           
-            if(isset($threads[0]) && !empty($threads[0])){
+    //         if(isset($threads[0]) && !empty($threads[0])){
 
-                $threads->each(function($query) use($myId){
+    //             $threads->each(function($query) use($myId){
 
-                    $query['is_supporting']               =   (UserFollower::where(['user_id'=>$query->other_user_id , 'follower_user_id'=>$myId])->exists())?1:0;
+    //                 $query['is_supporting']               =   (UserFollower::where(['user_id'=>$query->other_user_id , 'follower_user_id'=>$myId])->exists())?1:0;
 
-                    if(isset($query['profile']) && !empty($query['profile'])){
+    //                 if(isset($query['profile']) && !empty($query['profile'])){
 
-                        $query['profile']           =   $this->addBaseInImage($query['profile']);
-                    }
-                });
-            }
-            return $this->sendResponse($threads, $message, 200);
-        } catch (Exception $e) {
-            Log::error('Error caught: "get chat history" ' . $e->getMessage());
-            return $this->sendError($e->getMessage(), [], 400);
-        }
-    }
+    //                     $query['profile']           =   $this->addBaseInImage($query['profile']);
+    //                 }
+    //             });
+    //         }
+    //         return $this->sendResponse($threads, $message, 200);
+    //     } catch (Exception $e) {
+    //         Log::error('Error caught: "get chat history" ' . $e->getMessage());
+    //         return $this->sendError($e->getMessage(), [], 400);
+    //     }
+    // }
     
     /**
      * Show the form for creating a new resource.
@@ -202,19 +214,139 @@ class FollowFollowingController extends BaseController
     //     }
     // }
 
+#------------------------   Get  Follow/Following --------------------------------#
+    public function index(Request $request)
+    {
+        try {
+
+            $validation             =       Validator::make($request->all(), [
+                                                'type' => 'required|integer|between:1,3'
+                                                ], 
+                                                ['type.integer' => "Invalid type"]);
+                                        
+            if ($validation->fails()) {
+
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
+            }
+    
+            $limit                  =           $request->limit ?? 20;
+            $myId                   =           Auth::id();
+            $type                   =           $request->type;
+            $search                 =           $request->search ?? null;
+            // Common query structure
+            $query                  =           UserFollower::with(['other_user'=>function($query){
+
+                $query->select('id','name','user_name','profile','is_active');
+
+            },
+                'other_user.user_medical_certificate' => function ($q) {
+
+                    $q->select('id', 'medicial_degree_type', 'user_id');
+                },
+                'other_user.user_medical_certificate.medical_certificate' => function ($q) {
+
+                    $q->select('id', 'name');
+                }])
+
+                    ->leftJoin('users as U', function ($join) use ($myId) {
+
+                        $join->on(function ($query) use ($myId) {
+                            
+                            $query->where('user_followers.user_id', '=', $myId)
+
+                                ->where('user_followers.follower_user_id', '=', DB::raw('U.id'));
+
+                        })->orWhere(function ($query) use ($myId) {
+
+                            $query->where('user_followers.user_id', '=', DB::raw('U.id'))
+
+                                ->where('user_followers.follower_user_id', '=', $myId);
+                        });
+                    });
+    
+            if ($search) {
+
+                $query->where('U.name', 'LIKE', '%' . $search . '%');
+            }
+    
+            if ($type == 1) { // All
+
+                $query->where(function ($query) use ($myId) {
+
+                    $query->where('user_followers.user_id', '=', $myId)
+
+                          ->orWhere('user_followers.follower_user_id', '=', $myId);
+
+                });
+                $message = trans('message.supporters_supportings');
+                
+            } elseif ($type == 2) { // Followings
+
+                $query->where('user_followers.follower_user_id', '=', $myId);
+
+                $message = trans('message.supportings');
+
+            } elseif ($type == 3) { // Followers
+
+                $query->where('user_followers.user_id', '=', $myId);
+
+                $message = trans('message.supporters');
+
+            }
+            $threads = $query->select('user_followers.*', 'U.id as other_user_id','U.name', 'U.user_name','U.profile','U.is_active')
+                             ->groupBy('U.id')
+                             ->where('U.is_active', 1)
+                             ->orderBy('U.id', 'ASC')
+                             ->simplePaginate($limit);
+    
+            if (isset($threads[0]) && !empty($threads[0])) {
+
+                $threads->each(function ($query) use ($myId) {
+
+                    $query['is_supporting'] = (UserFollower::where(['user_id' => $query->other_user_id, 'follower_user_id' => $myId])->exists()) ? 1 : 0;
+    
+                    if (isset($query->other_user->profile) && !empty($query->other_user->profile)) {
+
+                        $query->other_user->profile         =   addBaseUrl($query->other_user->profile);
+                    }
+
+                    if (isset($query->profile) && !empty($query->profile)) {
+
+                        $query->profile                     =   addBaseUrl($query->profile);
+                    }
+
+                });
+            }
+    
+            return $this->sendResponse($threads, $message, 200);
+            
+        } catch (Exception $e) {
+
+            Log::error('Error caught: "get chat history" ' . $e->getMessage());
+
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------------------   Get  Follow/Following --------------------------------#
+
 
     //  N E W       F U N C T I O N 
     public function store(Request $request) // add support
     {
         DB::beginTransaction();
+
         try {
+
             $authId         =   Auth::id();
 
             $validation     =   Validator::make($request->all(), [
-                'user_id' => 'required|integer|exists:users,id',
-                'type' => 'required|integer|between:1,2'
 
-            ], ['user_id.integer' => "Invalid user"]);
+                                    'user_id' => 'required|integer|exists:users,id',
+
+                                    'type' => 'required|integer|between:1,2'
+                                ], 
+
+                                ['user_id.integer' => "Invalid user"]);
 
             if ($validation->fails()) {
 
@@ -222,9 +354,9 @@ class FollowFollowingController extends BaseController
 
             } else {
 
-                $userId     =   $request->user_id;
+                $userId     =               $request->user_id;
                 //check is blocked or not
-                $isBlocked = BlockedUser::where(function ($query) use ($authId, $userId) {
+                $isBlocked =                BlockedUser::where(function ($query) use ($authId, $userId) {
                     // Check if the exact combination exists
                     $query->where(['user_id' => $authId, 'blocked_user_id' => $userId])
                     
@@ -253,7 +385,9 @@ class FollowFollowingController extends BaseController
                         if ($following->status == 1) {
 
                             UserFollower::where(['follower_user_id' => $authId, 'user_id' => $request->user_id])->delete();
+
                             $responseMessage             =  "Support request removed successfully";
+
                             $action                      =   0;
                             #remove notification
                             Notification::where(['receiver_id' => $request->user_id, 'sender_id' => $authId, 'notification_type' => 8])->delete();
@@ -261,10 +395,13 @@ class FollowFollowingController extends BaseController
                         } elseif ($following->status == 2) {  //unfollow user
 
                             UserFollower::where(['follower_user_id' => $authId, 'user_id' => $request->user_id])->delete();
+
                             decrement('users', ['id' => $request->user_id], 'followers_count', 1);
+
                             decrement('users', ['id' => $authId], 'followings_count', 1);
 
                             $responseMessage                   =   "Unfollowed successfully";
+
                             $action                            =   0;
 
                             #remove notification
@@ -279,21 +416,27 @@ class FollowFollowingController extends BaseController
 
                         //check user account is public or private
                         $userData                           =   User::find($request->user_id);
+
                         $addFollowing                       =   new UserFollower();
+
                         $addFollowing->user_id              =   $request->user_id;
+
                         $addFollowing->follower_user_id     =   $authId;
+
 
                         if ($userData['is_public'] == 0) {
 
                             $addFollowing->status           =   1;
                             $responseMessage                =   trans('message.send_support_request');
                             $type                           =   trans('notification_message.support_request_sent_type');
-                            $message                        =   trans('notification_message.support_request_sent');
+                            $message                        =    "**{Auth::user()->user_name}** ". trans('notification_message.support_request_sent');
+
                         } else {
 
                             $addFollowing->status           =   2;
+
                             $responseMessage                =   trans('message.supporting_you');
-                            $message                        =   trans('notification_message.supporting_you_message');
+                            $message                        =   "**{Auth::user()->user_name}** ".trans('.supporting_you_message');
                             $type                           =   trans('notification_message.supporting_you_message_type');
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
@@ -312,9 +455,12 @@ class FollowFollowingController extends BaseController
 
                              #-------  A C T I V I T Y -----------#
                              $activity                   =    new ActivityLog();
+
                              $activity->user_id          =    $authId;
+
                              $activity->support_user_id  =    $request->user_id;
-                             $activity->action_details   =    "Started suppoting " . $receiver->user_name;
+
+                             $activity->action_details   =    "**{Auth::user()->user_name}** started supporting  **{$receiver->user_name}**";
                              $activity->action           =    1;    //Started supporting
                              $activity->save();
                              #-------  A C T I V I T Y -----------#
@@ -323,14 +469,14 @@ class FollowFollowingController extends BaseController
                         #--------------  RECORD USER QUOTA PER DAY-------------#
                         if (isset($commentId) && !empty($commentId)) {
 
-                            $quotaUpdated               = UserQuota::updateQuota($authId, 'community_join_request');
+                            $quotaUpdated               =   UserQuota::updateQuota($authId, 'community_join_request');
                         }
                         #--------------  RECORD USER QUOTA PER DAY-------------#
                         $action                          =   1;
                         #send notification
                         $sender        =   Auth::user();
                         // $mesage        =   $sender->user_name ." ".$message;
-                        $mesage        =   $sender->user_name ." ".$message;
+                        $mesage        =   $message;
                         $data          =   ["message" => $mesage];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
 

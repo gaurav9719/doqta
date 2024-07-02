@@ -285,12 +285,16 @@ trait CalculateScore
 
 
 
-    public function Path1ConfidenceScore($postId)
+    public function Path2ConfidenceScore($postId)
     {
         try {
             #'post_category'= 1 //seeking advice
             #'post_category'= 2 //giving advice
             #'post_category'= 3 //sharing media
+
+            // 'reaction' => 1= support_count;
+            // 'reaction' => 2= helpful_count;
+            // 'reaction' => 3= unhelpful_count;
 
             $post                   =       Post::where(['id'=>$postId,'post_category'=>2])->first();
 
@@ -300,9 +304,9 @@ trait CalculateScore
 
                 if($reaction >=15){
 
-                    $Userlike       =      PostLike::where('post_id', $post->id)->whereIn('reaction', [1, 2])->count();
+                    $Userlike       =      PostLike::where('post_id', $post->id)->whereIn('reaction', [1, 2])->count(); //
 
-                    if ($reaction > 0) {
+                    if ($Userlike > 0) {
         
                         $uPercent   =       ($Userlike / $reaction) * 100;
 

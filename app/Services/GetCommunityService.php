@@ -42,7 +42,7 @@ class GetCommunityService extends BaseController
     public function homeScreen($request, $authId)
     {
         try {
-            
+
             $limit          =       10;
 
             if (isset($request->limit) && !empty($request->limit)) {
@@ -194,17 +194,17 @@ class GetCommunityService extends BaseController
 
                 //->whereHas('group', function ($query) use ($authId) {
 
-                    // $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
+                // $query->whereDoesntHave('groupOwner.blockedBy', function ($query) use ($authId) {
 
-                    //     $query->where('user_id', $authId);
+                //     $query->where('user_id', $authId);
 
-                    // })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
+                // })->whereDoesntHave('groupOwner.blockedUsers', function ($query) use ($authId) {
 
-                    //     $query->where('blocked_user_id', $authId);
-                    // });
+                //     $query->where('blocked_user_id', $authId);
+                // });
 
                 //})
-                 #-------------- comment on jun 28 ----------------------#
+                #-------------- comment on jun 28 ----------------------#
 
 
 
@@ -486,7 +486,7 @@ class GetCommunityService extends BaseController
                         });
                 }
             ])
-            ->withCount(['groupMember'])
+                ->withCount(['groupMember'])
 
                 #-------- commented on jun 28 ---------------_#
 
@@ -693,7 +693,6 @@ class GetCommunityService extends BaseController
         if ($request->type == 1) {
 
             return $this->joinCommunity($request, $authId, $group);
-
         } else {
 
             return $this->removeCommunity($request, $authId, $group);
@@ -710,7 +709,7 @@ class GetCommunityService extends BaseController
 
         try {
 
-            $alreadyMember         =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
+            $alreadyMember         =        GroupMember::where(['group_id' => $request->community_id, 'user_id' => $authId])->exists();
 
             if ($alreadyMember) {
 
@@ -734,7 +733,7 @@ class GetCommunityService extends BaseController
                 $addGroupMember->group_id   =   $request->community_id;
 
                 $addGroupMember->user_id    =   $authId;
-                
+
                 $addGroupMember->role       =   "member";
 
                 if ($addGroupMember->save()) {
@@ -750,28 +749,54 @@ class GetCommunityService extends BaseController
                     incrementMemberWithAuth($request->community_id, 1);
 
                     $group         =   Group::find($request->community_id);
+
                     $sender        =   Auth::user();
-                    $receiver      =   User::find($group->created_by);
-                    $mesage        =   $sender->name . " " . trans('notification_message.joined_community') . " " . $group->name;
-                    $data          =   [
-                        "message"               => $mesage,
-                        "community_member_id"   => $addGroupMember->id,
-                        "community_id"          => $group->id
-                    ];
-                    $type           =       trans('notification_message.joined_community_type');
-                    $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+
+                    //   $receiver      =   User::find($group->created_by);
+
+                    $receiver      =   GroupMember::with('group_user')->whereHas('groupUser', function ($query) {
+
+                        $query->where('is_active');
+
+                    })->where(['group_id' => $request->community_id, 'role' => "owner"])->first();
+
+                    if ($receiver) {
+                        // Retrieve only the group_user data
+                        $receiver = $receiver->group_user;
+
+                        // Use $groupUser for further processing
+
+                        $mesage        =   "**{$sender->name}** " . trans('notification_message.joined_community') . " **{$group->name}** community";
+
+                        $data          =   [
+                            "message"               => $mesage,
+                            "community_member_id"   => $addGroupMember->id,
+                            "community_id"          => $group->id
+                        ];
+                        $type           =       trans('notification_message.joined_community_type');
+
+                        $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+                    }
 
                     #-------  A C T I V I T Y -----------#
                     $activity                       =    new ActivityLog();
+
                     $activity->user_id              =    $authId;
+
                     $activity->community_id         =    $group->id;
+
                     $activity->community_member_id  =    $addGroupMember->id;
-                    $activity->action_details       =    "Joined the community: " . $group->name;
+
+                    $activity->action_details       =    "**{$sender->name}** Joined the **{$group->name}** community";
+
                     $activity->action               =    $type;    //Joined the community
+
                     $activity->save();
                     #-------  A C T I V I T Y -----------#
                     DB::commit();
+                    
                     $result                         =   $this->communityMemberCount($request->community_id, $authId);
+
                     return $this->sendResponse($result, trans('message.community_joined_successfully'), 200);
                 }
             } else {                              ##--------- PRVATE COMMUNITIES ------------#
@@ -784,21 +809,31 @@ class GetCommunityService extends BaseController
                 } else {
 
                     $groupRequest           =   new GroupMemberRequest();
+
                     $groupRequest->user_id  =   $authId;
+
                     $groupRequest->group_id =   $request->community_id;
+
                     $groupRequest->save();
                     #--------------  RECORD USER QUOTA PER DAY-------------#
                     if (isset($commentId) && !empty($commentId)) {
 
-                        $quotaUpdated               = UserQuota::updateQuota($authId, 'community_join_request');
+                        $quotaUpdated      =    UserQuota::updateQuota($authId, 'community_join_request');
+
                     }
                     #--------------  RECORD USER QUOTA PER DAY-------------#
                     $group                  =   Group::find($request->community_id);
+
                     $reciever               =   User::select('id', 'device_token', 'device_type')->where("id", $group->user_id)->first();
+
                     $sender                 =   User::select('id', 'device_token', 'device_type')->where("id", $authId)->first();
+
                     $notification_type      =   trans('notification_message.new_memeber_group_request_type');
+
                     $notification_message   =   trans('notification_message.new_memeber_group_request_type_message');
+
                     $this->notification->sendNotification($reciever, $sender, $notification_message, $notification_type);
+
                     DB::commit();
                     $result                 =   $this->communityMemberCount($request->community_id, $authId);
                     return $this->sendResponse($result, trans('message.request_send_successfuly'), 200);
