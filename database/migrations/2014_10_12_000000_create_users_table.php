@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('user_name')->nullable()->index();
             // $table->string('email')->nullable()->unique()->index();
-            $table->string('email')->nullable()->unique()->index('users_email_unique');
+            $table->string('email')->nullable()->index('users_email_unique');
 
             $table->string('password')->nullable();
             $table->date('dob')->nullable();
