@@ -165,6 +165,7 @@ class likesService extends BaseController
                 }
             } else {
                 // liked/update
+
                 if (empty($post)) {
                     // Insert new like
                     $postLike   = PostLike::create([
@@ -177,6 +178,7 @@ class likesService extends BaseController
 
                     // Update activity log and send notification
                     $this->updateLikeActivityAndNotification($authId, $request->post_id, $postLike);
+
                 } else {
                     // Update existing like
                     $post->reaction = $request->reaction;
@@ -185,12 +187,20 @@ class likesService extends BaseController
             }
 
             // Get updated like count
-            $data = $this->postLikeCount($request->post_id);
+
+            $data               =       $this->postLikeCount($request->post_id);
+
             DB::commit();
+
             dispatch(new AiScoreCalculatedJob($request->post_id));
+
             return $this->sendResponse($data, trans('message.updated_successfully'), 200);
+
         } catch (Exception $e) {
+
+            
             DB::rollBack();
+
             Log::error('Error caught: "postLike" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
