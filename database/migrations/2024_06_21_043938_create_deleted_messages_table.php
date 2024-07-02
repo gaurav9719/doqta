@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('deleted_messages', function (Blueprint $table) {
             
             $table->id();
-            $table->unsignedBigInteger('message_id')->nullable();
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('message_id')->nullable()->index();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('message_id')->references('id')->on('participant_messages')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('message_id')->references('id')->on('conversation_messages')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
             
         });
