@@ -68,8 +68,8 @@ class RegisterUserService extends BaseController
             $this->createByDefaultJournal($userID);         #------- create default journal ------____#
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
 
-            //$this->verify_email->sendVerificationEmail($userID);
-            dispatch(new SendVerificationEmailJob($userID));
+            $this->verify_email->sendVerificationEmail($userID);
+            //dispatch(new SendVerificationEmailJob($userID));
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
             DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);

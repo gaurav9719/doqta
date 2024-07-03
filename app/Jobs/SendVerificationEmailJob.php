@@ -42,8 +42,8 @@ class SendVerificationEmailJob implements ShouldQueue
 
     }
 
-public function backoff(): array
-{
-    return [1, 5, 10];
-}
+    public function backoff(): array
+    {
+        return [1, 5, 10];
+    }
 }
