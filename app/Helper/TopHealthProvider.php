@@ -222,6 +222,7 @@ function topHealthProviderOLd($request, $authId, $limit, $type = "")
 function topHealthProvider($request, $authId, $limit, $type = "")
 {
     try {
+
         $defaultLimit           =       $type ? 3 : 10;
 
         $limit                  =       !empty($request->limit) && isset($request->limit) ? $request->limit : $defaultLimit;
@@ -236,21 +237,16 @@ function topHealthProvider($request, $authId, $limit, $type = "")
 
             if(isset($topLikeUser) && !empty($topLikeUser)){
 
-                $user1          =       $topLikeUser['id'];
+                $user1                      =   $topLikeUser['id'];
+                $allTopHealthProviders[]    =   $topLikeUser;
             }
-            $allTopHealthProviders[] =  $topLikeUser;
+            
+            $topConfidenceCommentUser       =   getTopHighConfidenceComment($request, $authId,$user1);
 
-            // $allTopHealthProviders[] = getTopHighConfidenceComment($request, $authId,$user1);
-            // return $allTopHealthProviders;
-
-           $topHighConfidencePost= getTopHighConfidencePost($request, $authId,$user1);
-
-           if(isset($topHighConfidencePost) && !empty($topHighConfidencePost)){
-
-                 $allTopHealthProviders[] =$topHighConfidencePost; 
-           }
-
-            return $allTopHealthProviders;
+            if(isset($topConfidenceCommentUser) && !empty($topConfidenceCommentUser)){
+                
+                $allTopHealthProviders[]    = $topConfidenceCommentUser;
+            }
 
 
         } else {
