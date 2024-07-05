@@ -198,34 +198,34 @@ if (!function_exists('sendPushNotification')) {
 if (!function_exists('sendPushNotificationNew')) {
     function sendPushNotificationNew($sender, $userData, $notification)
     {
-          dispatch(new NotificationJob($sender, $userData, $notification));
+        //dispatch(new NotificationJob($sender, $userData, $notification));
 
-        // $userDevices     =   UserDevice::where(['user_id' => $userData['id']])->get();
+        $userDevices     =   UserDevice::where(['user_id' => $userData['id']])->get();
 
-        // if (isset($userDevices) && !empty($userDevices[0])) {
+        if (isset($userDevices) && !empty($userDevices[0])) {
 
-        //     foreach ($userDevices as $userDevice) {
+            foreach ($userDevices as $userDevice) {
 
-        //         if (isset($userDevice['device_token']) && !empty($userDevice['device_token'])) {
+                if (isset($userDevice['device_token']) && !empty($userDevice['device_token'])) {
 
-        //             if ($userDevice['device_type'] == 1) {        // call ios function
+                    if ($userDevice['device_type'] == 1) {        // call ios function
 
-        //                 IosPush($userData['device_token'], $notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
-        //             } elseif ($userDevice['device_type'] == 2) {     // call andriod function
+                        IosPush($userData['device_token'], $notification['message'], $notification['notification_type'], $notification, $mood_icon = '');
+                    } elseif ($userDevice['device_type'] == 2) {     // call andriod function
 
-        //                 //  androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
+                        //  androidPushNotification($userData['device_token'] ,$notification['message'], $notification['notification_type'], $notification);
 
-        //             }
-        //         }
-        //     }
-        // }
+                    }
+                }
+            }
+        }
     }
 }
 
 if (!function_exists('ChatNotification')) {
     function ChatNotification($sender_id,$notification_data)
     {
-          dispatch(new NotificationJob($sender_id,$notification));
+          //dispatch(new NotificationJob($sender_id,$notification_data));
 
         // $userDevices     =   UserDevice::where(['user_id' => $userData['id']])->get();
 

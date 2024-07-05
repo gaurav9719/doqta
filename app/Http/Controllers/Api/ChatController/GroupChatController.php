@@ -1671,6 +1671,7 @@ class GroupChatController extends BaseController
             $data                               =               ["message" => $message, 'notification_type' => trans('notification_message.send_message_type')];
 
             dispatch(new ChatNotificationJob($myId, $conversation->id, $data));
+            
             Log::info($send->id);
             DB::commit();
 

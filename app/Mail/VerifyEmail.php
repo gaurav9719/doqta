@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\Mailables\Address;
+use Illuminate\Support\Facades\Log;
 
 class VerifyEmail extends Mailable
 {
@@ -22,6 +23,7 @@ class VerifyEmail extends Mailable
     {
         //
         $this->data = $data;
+        Log::info("email data".$this->data);
     }
 
     /**
