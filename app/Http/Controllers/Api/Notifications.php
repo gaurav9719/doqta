@@ -280,9 +280,7 @@ class Notifications extends BaseController
         // dd($groupedNotifications);
 
         // Get count of unread notifications
-        $unreadNotificationCount = Notification::where('receiver_id', $userID)
-            ->where('is_read', 0)
-            ->count();
+       
 
         // Return response
         return response()->json([
@@ -299,7 +297,7 @@ class Notifications extends BaseController
                 'prev_page_url' => $notifications->previousPageUrl(),
                 'to' => $notifications->lastItem(),
             ],
-            'unread_notification_count' => $unreadNotificationCount,
+            'unread_notification_count' => notification_count(),
         ]);
     } catch (Exception $e) {
         Log::error('Error caught: "notifications" ' . $e->getMessage());

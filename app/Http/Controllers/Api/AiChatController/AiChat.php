@@ -1026,55 +1026,84 @@ class AiChat extends BaseController
 
 
         $validate = Validator::make($request->all(), [
+
             'start_date' => 'required|date_format:Y-m-d',
             'end_date'   => 'required|date_format:Y-m-d|after_or_equal:start_date',
         ]);
 
         if ($validate->fails()) {
+
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
 
-        $myId = Auth::id();
-        $inbox_ids = AiThread::where(function ($query) use ($myId) {
-            $query->where('sender_id', $myId)
-                ->orWhere('receiver_id', $myId);
-        })
-            ->pluck('id')
-            ->toArray();
+        $myId               =       Auth::id();
+
+        $inbox_ids          =       AiThread::where(function ($query) use ($myId) {
+
+                                        $query->where('sender_id', $myId)
+                                        ->orWhere('receiver_id', $myId);
+
+                                    })->pluck('id')->toArray();
+
+        
 
         if (count($inbox_ids) > 0) {
 
             #check report available for request time
-            $start_time     = Carbon::parse($request->start_date)->startOfDay();
-            $end_time       = Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
-            $request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
+            $start_time     =       Carbon::parse($request->start_date)->startOfDay();
+
+            $end_time       =       Carbon::parse($request->end_date)->isToday() || Carbon::parse($request->end_date)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date)->endOfDay();
+
+            $request_ids    =       AiMessage::whereIn('inbox_id', $inbox_ids)
+
                 ->where(function ($query) use ($myId) {
+
                     $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);
+
                 })
                 ->where('is_active', 1)
+
                 ->whereBetween('created_at', [$start_time, $end_time])
+
                 ->pluck('id')->toArray();
 
 
             $ids_count  = count($request_ids);
+
             $start_id   = reset($request_ids);
+
             $end_id     = end($request_ids);
+
             $reports        = JournalReport::where('user_id', $myId)->where('report_type', 2)->get();
+
             if ($ids_count > 0) {
+
                 if (count($reports) > 0) {
 
                     foreach ($reports as $report) {
+
                         $reportIds = AiMessage::whereIn('inbox_id', $inbox_ids)
+
                             ->where(function ($query) use ($myId) {
+
                                 $query->where('is_user1_trash', '!=', $myId)
+
                                     ->orWhere('is_user2_trash', '!=', $myId);
                             })
+
                             ->where('is_active', 1)
+
                             ->whereBetween('created_at', [$report->start_date, $report->end_date])
+
                             ->pluck('id')->toArray();
+
                         if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
+
                             if (count($request_ids) == $report->ids_count  && $start_id == $report->start_id && $end_id == $report->end_id) {
+
                                 $response = json_decode($report->report);
+
                                 return $this->sendResponse($response, "Insights & Suggestions generated successfully", 200);
                             }
                         }
@@ -1083,10 +1112,14 @@ class AiChat extends BaseController
                 #end check report section
 
                 $messages = AiMessage::with(['sender' => function ($query) {
+
                     $query->select('id', 'name', 'user_name', 'profile');
+
                 }])->where(function ($query) use ($myId) {
+
                     $query->where('is_user1_trash', '!=', $myId)
                         ->orWhere('is_user2_trash', '!=', $myId);
+
                 })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
 
 
@@ -1095,18 +1128,21 @@ class AiChat extends BaseController
 
                 foreach ($messages as $message) {
 
-                    $date = Carbon::parse($message->created_at)->format('Y-m-d H:i A');
-                    $details = "Date:" . $date;
-                    $details .= ", Sender: " . $message->sender->name;
-                    $details .= ", Message: " . $message->message;
+                    $date               =   Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                    $details            =   "Date:" . $date;
+                    $details            .=  ", Sender: " . $message->sender->name;
+                    $details            .=  ", Message: " . $message->message;
                     if (isset($message->media) && !empty($message->media)) {
-                        $media  =   $this->addBaseInImage($message->media);
-                        $details .= ", Media link: " . $media;
+
+                        $media          =   $this->addBaseInImage($message->media);
+
+                        $details        .=  ", Media link: " . $media;
                     }
                     array_push($chatData, ['text' => $details]);
                 }
                 // return $chatData;
                 array_push(
+
                     $chatData,
                     array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and top sugestions"),
                     array("text" => "provide result in json format"),
@@ -1115,9 +1151,10 @@ class AiChat extends BaseController
                     array("text" => "if Media link: available, analyze the image and give response accordingly"),
                     array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
                 );
-                $analyzer   = new JournalAnalyzerController();
 
-                $insight    = $this->generateReportAIChatTrait($chatData);
+                $analyzer   =   new JournalAnalyzerController();
+
+                $insight    =   $this->generateReportAIChatTrait($chatData);
 
                 if (isset($insight['status']) && $insight['status'] == 200) {
 
@@ -1136,6 +1173,7 @@ class AiChat extends BaseController
                     $newReport->report_type     = 2;
                     $newReport->save();
                     return response()->json($insight, 200);
+
                 } else {
 
                     return response()->json($insight, 201);
@@ -1144,7 +1182,9 @@ class AiChat extends BaseController
 
                 return $this->sendResponse(null, 'No message found', 200);
             }
+
         } else {
+
             return $this->sendResponse(null, 'No message found', 200);
         }
     }
