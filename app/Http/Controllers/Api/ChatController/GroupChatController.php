@@ -1735,7 +1735,9 @@ class GroupChatController extends BaseController
                     Participant::create([
 
                         'conversation_id' => $addCoversation->id,
+
                         'user_id' => $userId,
+                        
                         'status' => 'active',
                     ]);
                 }

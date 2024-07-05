@@ -64,20 +64,24 @@ class AiChat extends BaseController
                 })->where('inbox_id', $inboxId)->orderByDesc('id')->simplePaginate($limit);
 
                 if ($messages[0]) {
-                    $messages->each(function ($result) {
+
+                    $messages->each(function ($result) use($myId) {
 
                         if (isset($result->sender) && !empty($result->sender)) {
 
                             if (isset($result->sender->profile) && !empty($result->sender->profile)) {
 
-                                $result->sender->profile        =   $this->addBaseInImage($result->sender->profile);
+                                $result->sender->profile        =   addBaseUrl($result->sender->profile);
                             }
                         }
                         if (isset($result->media) && !empty($result->media)) {
 
-                            $result->media                      =   $this->addBaseInImage($result->media);
+                            $result->media                      =   addBaseUrl($result->media);
                         }
                         $result->time_ago                       =   time_elapsed_string($result->created);
+
+                        $result->is_pinned_message=(PinnedMessage::where(['message_id'=>$result->id,'user_id'=>$myId])->exists())?1:0;
+
                     });
                 }
                 $messages->setCollection($messages->getCollection()->reverse()->values());

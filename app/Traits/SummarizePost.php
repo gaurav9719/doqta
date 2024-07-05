@@ -153,6 +153,7 @@ trait SummarizePost
     public function generateCommentThreadSummary($post_id,$comment_id)
     {
         $data          =   [];
+
         $comment       =    Comment::where('id', $comment_id)->where('is_active', 1)->first();
 
         if (isset($comment) && !empty($comment)) {
@@ -193,6 +194,7 @@ trait SummarizePost
         if(isset($data) && !empty($data)){
 
             $response           = $this->summarizeCommentByAi($data);
+            
             if(isset($response) && !empty($response)){
 
                 Comment::where('id',$comment->parent_id)->update(['thread_summary'=>$response]);

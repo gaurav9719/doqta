@@ -529,6 +529,7 @@ class GetCommunityService extends BaseController
         if ($request->filled('search')) {
 
             return $this->getCommunityBySearch($request, $authId);
+
         } else {
 
             return $this->getJoinedCommunity($request, $authId);
@@ -580,11 +581,10 @@ class GetCommunityService extends BaseController
 
                 })->pluck('group_id');
 
-
-
-            $communities     = Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
+            $communities     =          Group::whereIn('id', $communitiesQuery)->orderByDesc('id')->simplePaginate($limit);
 
             return $this->communityLoop($communities, $authId);
+            
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "getJoinedCommunity" ' . $e->getMessage());

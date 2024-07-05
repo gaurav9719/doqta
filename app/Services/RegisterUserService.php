@@ -125,6 +125,7 @@ class RegisterUserService extends BaseController
                         $UserDevice->save();
                         // Commit the transaction
                         DB::commit();
+                        
                         $loginUser   =   $this->getUser->getAuthUser($userId);
 
                         return response()->json(['status' => 200, 'message' => (trans('message.login')), 'data' => $loginUser]);

@@ -27,7 +27,6 @@ class UserRegister extends FormRequest
     {
         return [
             // "^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
-            
             'email' => 'required|email|unique:users,email',
             'password' => [
                 'required',

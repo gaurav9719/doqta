@@ -34,7 +34,6 @@ use App\Services\NotificationService;
 use App\Http\Requests\EditCommunityPost;
 use Illuminate\Support\Facades\Validator;
 use App\Jobs\DeleteJobs\PostRecalculation;
-
 use App\Http\Controllers\Api\BaseController;
 use Illuminate\Validation\ValidationException;
 use App\Traits\SummarizePost;

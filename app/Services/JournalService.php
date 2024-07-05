@@ -473,6 +473,7 @@ class JournalService extends BaseController
                 'feeling_types.feeling_type' => function ($q) {
 
                     $q->select('id', 'name');
+                    
                 }, 'feeling' => function ($q) {
 
                     $q->select('id', 'name');

@@ -37,4 +37,9 @@ class Notification extends Model
         return $this->belongsTo(User::class, 'receiver_id','id');
     }
 
+    public function invitation(){
+        
+        return $this->belongsTo(RoleInvitation::class,'invitation_id','id');
+    }
+
 }

@@ -34,8 +34,8 @@ class JournalAnalyzerControllerNew extends BaseController
     {
         $validate               = Validator::make($request->all(), [
 
-            'journal_ids'       => 'nullable|array|distinct',
-            'journal_ids.*'     => 'nullable|integer|exists:journals,id',
+            'journal_ids'       => 'nullable|array',
+            // 'journal_ids.*'     => 'distinct|exists:journals,id',
             'start_date'        => 'required|date_format:Y-m-d',
             'end_date'          => 'required|date_format:Y-m-d|after_or_equal:start_date',
             'type'              => 'required|integer|between:1,2',
@@ -49,6 +49,8 @@ class JournalAnalyzerControllerNew extends BaseController
         }
 
         $user_id                =   Auth::id();
+        // dd($user_id);
+       // dd($request->journal_ids);
 
         #Check if any journals belong to a different user
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
@@ -56,6 +58,7 @@ class JournalAnalyzerControllerNew extends BaseController
             $invalidJournals    =   Journal::whereIn('id', $request->journal_ids)
 
                 ->where('user_id', '<>', $user_id)
+
                 ->count();
 
             if ($invalidJournals > 0) {
@@ -124,6 +127,8 @@ class JournalAnalyzerControllerNew extends BaseController
             #check report available for request time
             $entries_id    = JournalEntry::where('journal_id', $journal->id)->where('is_active', 1)->whereBetween('created_at', [$start_time, $end_time])->pluck('id')->toArray();
 
+            ///dd($entries_id);
+
             if (count($entries_id) > 0) {
 
                 $journalData = array(['text' => "-------------------------------------------------------------------------"], ['text' => "Journal Name : $journal->title"], ['text' => "Disease: " . $journal->topic->name], ['text' => 'Journal Entries']);
@@ -131,6 +136,7 @@ class JournalAnalyzerControllerNew extends BaseController
                 $entries = JournalEntry::where('journal_id', $journal->id)->whereBetween('created_at', [$start_time, $end_time])->with(['feeling', 'feeling_types.feeling_type_details', 'symptom.journalSymtom'])->get();
 
                 foreach ($entries as $entry) {
+
                     #date
                     $date = Carbon::parse($entry->journal_on)->format('Y-m-d H:i A');
                     array_push($journalData, ['text' => "Date: $date"]);

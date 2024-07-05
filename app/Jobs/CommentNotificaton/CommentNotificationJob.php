@@ -103,56 +103,5 @@ class CommentNotificationJob implements ShouldQueue
 
             Log::error('Error: ' . $e->getMessage());
         }
-        
-        // try {
-
-        //     $groupId                    =   $this->notificatonData['community_id'];
-
-        //     $sender                     =   $this->sender;
-
-        //     $postId                     =   $this->notificatonData['post_id'];
-
-        //     $post                       =   Post::select('title')->where('id', $postId)->first();
-
-        //     $commentUsers               =   Comment::where('post_id',$postId)->groupBy('user_id')->pluck('user_id');
-           
-        //     $group                      =   Group::where(['id' => $groupId])->first();
-
-        //     $type                       =   trans('notification_message.posted_in_community');
-
-        //     if (isset($commentUsers) && !empty($commentUsers)) {
-
-        //         $data                           =  [];
-
-        //         foreach ($commentUsers as $member) {
-
-        //             $receiver                                   =       User::where(['id' => $member, 'is_active' => 1])->first();
-
-        //             if (isset($receiver) && !empty($receiver)) {
-
-        //                // $message                                =      "New post in **{$group->name}**:  {$post['title']}";
-        //                 $message                                =       "**{$sender->user_name}** commented on a post you also commented on: **{$post->title}"; 
-                       
-        //                 if (isset($message) && !empty($message)) {
-        //                     // Create a new notification
-        //                     $notification                       =   new Notification();
-        //                     $notification->receiver_id          =   $receiver['id'];
-        //                     $notification->sender_id            =   $sender->id;
-        //                     $notification->post_id              =   $postId;
-        //                     $notification->community_id         =   $groupId;
-        //                     $notification->notification_type    =   $this->notificationType;
-        //                     $notification->message              =   $message;
-        //                     $notification->save();
-        //                     $lastNotification                   =   $notification->id;
-        //                     $notification                       =   Notification::find($lastNotification);
-        //                     sendPushNotificationNew($sender, $receiver, $notification);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // } catch (Exception $e) {
-
-        //     Log::error('Error : ' . $e->getMessage());
-        // }
     }
 }

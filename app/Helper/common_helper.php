@@ -81,10 +81,10 @@ if (!function_exists('transformPostData')) {
         $homeScreenPost->reaction           =   $isExist['reaction'];
 
         $homeScreenPost->total_likes_count  =       $isExist['total_likes_count'];
-        $homeScreenPost->total_comment_count =       $isExist['total_comment_count'];
-        $isRepost                           =   Post::where(['parent_id' => $homeScreenPost->id, 'user_id' => $authId, 'is_active' => 1])->exists();
-        $homeScreenPost->is_reposted        =  ($isRepost) ? 1 : 0;
-        $homeScreenPost->post_category_name = post_category($homeScreenPost->post_category);
+        $homeScreenPost->total_comment_count =      $isExist['total_comment_count'];
+        $isRepost                           =       Post::where(['parent_id' => $homeScreenPost->id, 'user_id' => $authId, 'is_active' => 1])->exists();
+        $homeScreenPost->is_reposted        =   ($isRepost) ? 1 : 0;
+        $homeScreenPost->post_category_name =   post_category($homeScreenPost->post_category);
         $homeScreenPost->postedAt           =   time_elapsed_string($homeScreenPost->created_at);
         #------------ parent post data-----------------#
         return $homeScreenPost;

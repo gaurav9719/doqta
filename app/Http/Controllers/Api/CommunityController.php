@@ -23,6 +23,7 @@ use App\Services\NotificationService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
+use App\Models\RoleInvitation;
 
 class CommunityController extends BaseController
 {
@@ -553,42 +554,46 @@ class CommunityController extends BaseController
         DB::beginTransaction();
 
         try {
-
             $authId         =       Auth::id();
+
+            $sender         =       Auth::user();
 
             $validator      =       Validator::make($request->all(), [
 
-                'community_id' => 'required|integer|exists:groups,id',
+                                        'community_id' => 'required|integer|exists:groups,id',
 
-                'member_id' => 'required|exists:users,id',
+                                        'member_id' => 'required|exists:users,id',
 
-                'role' => [
+                                        'role' => [
 
-                    'required',
+                                            'required',
 
-                    Rule::in(['owner', 'admin', 'moderator', 'member']),
+                                            Rule::in(['owner', 'admin', 'moderator', 'member']),
 
-                ]
-            ]);
+                                        ]
+                                    ]);
 
             if ($validator->fails()) {
 
                 return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+
             } else {
-
                 //check group member is exist or not
-                $group      =       Group::where('id', $request->community_id)->first();
-                // cannot change admin role
-                if ($group->created_by == $request->community_id) {
+                $group                      =       Group::where('id', $request->community_id)->first();
 
-                    return $this->sendResponsewithoutData(trans('message.Permission_denied'), 403);
-                }
+
+                // cannot change admin role
+                // if ($group->created_by == $request->community_id) {
+
+                //     return $this->sendResponsewithoutData(trans('message.Permission_denied'), 403);
+                // }
 
                 $checkMember                =      GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                 if (!$checkMember) {
 
                     return $this->sendResponsewithoutData(trans('message.no_member_found_community'), 409);
+                    
                 } else {
 
                     if ($authId == $request->member_id) {
@@ -600,24 +605,56 @@ class CommunityController extends BaseController
 
                     if (isset($checkAuthority) && !empty($checkAuthority)) {
 
+                        if ($request->role == "owner" && $checkAuthority->role == "admin") {
+
+                            return $this->sendResponsewithoutData(trans('message.not_permission'), 409);
+
+                        }
+
+                        $receiver           =   User::find($request->member_id);
+
                         if ($checkAuthority->role == "admin" || $checkAuthority->role == "owner") {
 
-                            if ($request->role == "owner" && $checkAuthority->role == "admin") {
+                            // send request to member when pass role owner/moderator
+                            if($request->role == "owner" || $request->role == "moderator" || $request->role == "admin"){
 
-                                return $this->sendResponsewithoutData(trans('message.not_permission'), 409);
+
+                                $roleInvitation         =   RoleInvitation::updateOrCreate(['community_id'=>$request->community_id,'user_id'=>$request->member_id],['role'=>$request->role,"accepted"=>null,'inviter_id'=>$authId]);
+
+                                $message            =   "You've been invited to ".$request->role." **{$group->name}**";
+
+                                $type               =   trans('notification_message.role_invitation_type');
+
+                                if ($roleInvitation->wasRecentlyCreated) {
+                                    //send push notification
+                                    $data               =   [
+                                                                "message" => $message,
+                                                                "community_id" => $request->community_id,
+                                                                "invitation_id" => $roleInvitation->id,
+                                                            ];
+
+                                    $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+
+                                }else{
+
+                                    Notification::where(['receiver_id'=>$request->member_id,'community_id'=>$request->community_id,'notification_type'=>$type])->update(['sender_id'=>$authId,'message'=>$message]);
+                                }
+
+                            }else{
+
+                                $checkMember->role = $request->role;
+                                $checkMember->save();
+
                             }
-                            $checkMember->role = $request->role;
+                            // if ($request->role == "owner" && $checkAuthority->role == "owner") {
 
-                            $checkMember->save();
+                            //     $checkAuthority->role       =   "member";
 
-                            if ($request->role == "owner" && $checkAuthority->role == "owner") {
-
-                                $checkAuthority->role       =   "member";
-
-                                $checkAuthority->save();
-                            }
+                            //     $checkAuthority->save();
+                            // }
 
                             DB::commit();
+
                             $updatedAuthority               =   GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                             return $this->sendResponse($updatedAuthority, trans("message.community_role_updated"), 200);
@@ -634,16 +671,93 @@ class CommunityController extends BaseController
         } catch (Exception $e) {
 
             DB::rollback();
-
             Log::error('Error caught: "assign-role-in-community" ' . $e->getMessage());
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
     #-------------- A S S I G N        R O L E         T O         C O M M U N I T Y      M E M B E R -------------#
+
+    #------------- A C C E P T  / R E J E C T       R O L E     R E Q U E S T  --------------#
+    public function invitation(Request $request){
+
+        DB::beginTransaction();
+        try {
+
+            $validator      =       Validator::make($request->all(),['invitation_id'=>'required|integer|exists:role_invitations,id','action'=>'requierd|integer|between:0,1']);
+
+            if($validator->fails()){
+
+                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+            }
+            $authId         =       Auth::id();
+            $invitation     =       RoleInvitation::where(['id'=>$request->invitation_id,'user_id'=>$authId])->first();
+            if(isset($invitation) && !empty($invitation)){
+
+                $type               =   trans('notification_message.role_invitation_type');
+
+                if($invitation->accepted==1){
+    
+                    return $this->sendResponsewithoutData(trans('message.already_accepted'), 400);
+    
+                }elseif ($invitation->accepted==0) {
+                    
+                    return $this->sendResponsewithoutData(trans('message.already_rejected'), 400);
+
+                }else{  //pending accept/reject
+                    //check user is member of the group 
+                    $isExistInGroup                     =   GroupMember::where(['group_id'=>$invitation->community_id,'user_id'=>$authId])->first();
+
+                    if(isset($isExistInGroup) && !empty($isExistInGroup)){
+
+                        if($request->action==1){
+
+                            if($invitation->role=="owner"){
+
+                                $groupOwner                     =   GroupMember::where(['group_id'=>$invitation->community_id,'role'=>"owner"])->first();
+
+                                if(isset($groupOwner) && !empty($groupOwner)){
+
+                                    $groupOwner->role           =   $isExistInGroup->role;
+                                    $groupOwner->save();
+                                }
+                            }
+
+                            $isExistInGroup->role                =   $invitation->role;
+                            $isExistInGroup->save();
+                            // delete the notification 
+                        }
+                        $invitation->delete();
+                      //  Notification::where(['receiver_id'=>$authId,'community_id'=>$invitation->community_id,'notification_type'=>$type])->delete();
+
+                    }else{
+
+                        return $this->sendResponsewithoutData(trans('message.not_group_member'), 409);
+                    }
+                }
+            }else{  // invalid request
+
+                return $this->sendResponsewithoutData(trans('message.invalid_invitation'), 409);
+            }
+
+        } catch (Exception $e) {
+            
+            DB::rollback();
+
+            Log::error('Error caught: "accept/reject invitation"' . $e->getMessage());
+
+            return $this->sendError($e->getMessage(), [], 400);
+        }
+    }
+    #------------- A C C E P T  / R E J E C T       R O L E     R E Q U E S T  --------------#
+
+
+
+
+
     public function removeMember(Request $request)
     {
         DB::beginTransaction();
+
         try {
 
             $authId             =           Auth::id();
@@ -675,19 +789,23 @@ class CommunityController extends BaseController
 
                     if (isset($checkAuthority) && !empty($checkAuthority)) {
 
+                        if ($checkAuthority->role == "admin" && $checkMember->role=="owner") {
+
+                            return $this->sendResponsewithoutData(trans('message.something_went_wrong'), 403);
+    
+                        }
                         if ($checkAuthority->role == "admin" || $checkAuthority->role == "owner") {
 
                             $checkMember->delete();
                             // increment by member 1
                             //updated on April 22
                             decrement('groups', ['id' => $request->community_id], 'member_count', 1);
-
                             DB::commit();
-
-                            $updatedAuthority = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
+                            $updatedAuthority       = GroupMember::where(['group_id' => $request->community_id, 'user_id' => $request->member_id, 'is_active' => 1])->first();
 
                             return $this->sendResponse($updatedAuthority, trans("message.remove_member_from_community"), 200);
                         }
+                        
                     } else {
 
                         return $this->sendResponsewithoutData(trans('messagge.access_denied'), 403);
@@ -715,10 +833,12 @@ class CommunityController extends BaseController
             $validator          = Validator::make($request->all(), [
 
                 'community_id' => 'required|integer|exists:groups,id',
-                'role' => 'nullable|integer|between:1,3'
+                'role' => 'nullable|string|in:owner,admin,moderator,member','type'=>'required|integer|between:1,2'
             ], [
                 'community_id.integer' => "Invalid community id",
-                'role.integer' => "Invalid type"
+                'role.integer' => "Invalid role",
+                'type.integer' => "Invalid type",
+                'type.between' => "Invalid type",
             ]);
 
             if ($validator->fails()) {
@@ -727,57 +847,77 @@ class CommunityController extends BaseController
                 
             } else {
                 // Check group member is exist or not
-                $limit                  = 10;
+                $limit                  =   10;
 
                 if ($request->has('limit') && !empty($request->limit)) {
 
-                    $limit              =   $request->limit;
+                    $limit              =       $request->limit;
                 }
 
-                $groupMember            =   GroupMember::with(['groupUser' => function ($query) use ($authId) {
+                $groupMember            =       GroupMember::with(['groupUser' => function ($query) use ($authId) {
 
-                    $query->select('id', 'name', 'user_name', 'profile', 'is_active')
+                                                    $query->select('id', 'name', 'user_name', 'profile', 'is_active')
 
-                        ->with([
-                            'user_medical_certificate' => function ($q) {
+                                                    ->with([
 
-                                $q->select('id', 'medicial_degree_type', 'user_id');
-                            },
-                            'user_medical_certificate.medical_certificate' => function ($q) {
+                                                        'user_medical_certificate' => function ($q) {
 
-                                $q->select('id', 'name');
-                            }
-                        ])
+                                                            $q->select('id', 'medicial_degree_type', 'user_id');
+                                                        },
+                                                        'user_medical_certificate.medical_certificate' => function ($q) {
 
-                        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
+                                                            $q->select('id', 'name');
+                                                        }
+                                                    ])
 
-                            $query->where('user_id', $authId);
-                        })
-                        ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+                                                    ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
-                            $query->where('blocked_user_id', $authId);
-                        });
-                }]);
+                                                        $query->where('user_id', $authId);
+                                                    })
+                                                    ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
+
+                                                        $query->where('blocked_user_id', $authId);
+                                                    });
+                                                }])->where(['group_id' => $request->community_id, 'is_active' => 1])->whereNotNull('user_id');
 
                 $role                   =   "id";
 
-                if ($request->has('role') && !empty($request->role)) {
+                if($request->type==1){      // get the user role wise
 
-                    $role               =   $request->role == 1 ? "admin" : "moderator";
-                }
+                    $groupMember    =   $groupMember->where('role',$request->role);
 
-                $groupMember            =   $groupMember->where(['group_id' => $request->community_id, 'is_active' => 1])->whereNotNull('user_id')
 
-                    //->orderByRaw(($request->role) ? 'FIELD(role,"' . $role . '") DESC' : $role . " desc")
-                    ->orderByRaw('
-                                                CASE 
-                                                WHEN role = "owner" THEN 0
-                                                WHEN role = "admin" THEN 1
-                                                WHEN role = "moderator" THEN 2
-                                                ELSE 3
-                                            END
-                                        ')
-                    ->simplePaginate($limit);
+                }else{                      // get all user from group member
+
+                   
+
+                        if($request->role=="owner"){
+    
+                            $groupMember    =   $groupMember->where('role','<>',$request->role);
+    
+                        }elseif ($request->role=="admin") {
+                           
+                            $groupMember    =   $groupMember->whereNotIn('role',['owner','admin']);
+                        }
+
+                        elseif ($request->role=="moderator") {
+                           
+                            $groupMember    =   $groupMember->whereNotIn('role',['owner','moderator']);
+                        }
+
+                    else{
+
+                        $groupMember        =   $groupMember->orderByRaw('
+                                                                                CASE 
+                                                                                WHEN role = "owner" THEN 0
+                                                                                WHEN role = "admin" THEN 1
+                                                                                WHEN role = "moderator" THEN 2
+                                                                                ELSE 3
+                                                                            END');
+                    }
+                }               
+
+                $groupMember                =   $groupMember->simplePaginate($limit);
 
                 if ($groupMember) {
 
@@ -800,7 +940,9 @@ class CommunityController extends BaseController
 
     #-----------------  C O M M U N I T Y       U S E R     -------------------------------------#
 
+    #------------- GetUserRoleWise ------------------------#
 
+    
 
 
 

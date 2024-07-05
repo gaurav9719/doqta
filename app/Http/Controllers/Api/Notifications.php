@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
+use App\Models\Inbox;
+use App\Models\Participant;
 use Carbon\Carbon;
 use App\Traits\postCommentLikeCount;
 
@@ -219,7 +221,7 @@ class Notifications extends BaseController
         $notifications = Notification::where('receiver_id', $userID)->whereHas('sender')
             ->where('status', 1)
             ->orderBy('created_at', 'DESC')
-            ->with('sender:id,name,user_name,email,profile')  // Eager load sender details
+            ->with(['sender:id,name,user_name,email,profile','invitation:id,role,accepted'])  // Eager load sender details
             ->simplePaginate($perPage);
 
            
@@ -266,6 +268,8 @@ class Notifications extends BaseController
                         'comment_id' => $notification->comment_id,
                         'mention_id' => $notification->mention_id,
                         'parent_id' => $notification->parent_id,
+                        'invitation_id' => $notification->invitation_id,
+                        'invitation' => $notification->invitation,
                         'time_ago' => time_elapsed_string($notification->created_at),
                         'sender' => $notification->sender,  // Include sender details
                     ];
@@ -309,10 +313,9 @@ class Notifications extends BaseController
     public function readNotification(Request $request){
 
         DB::beginTransaction();
-
         try {
             
-            $validator                 =      Validator::make($request->all(), ['notification_id' => 'nullable|integer|exists:notifications,id']);
+            $validator                 =        Validator::make($request->all(), ['type'=>"required|integer|between:1,2","action"=>'required|integer|between:0,1','notification_id' => 'nullable|integer|exists:notifications,id','thread_id' => 'required_if:type,2|integer|exists:inboxes,id']);
 
             if ($validator->fails()) {
     
@@ -320,27 +323,75 @@ class Notifications extends BaseController
     
             } else {
             
-                $authId                 =   Auth::id();
+                $authId                     =       Auth::id();
 
-                $notificationId         =   $request->input('notification_id',null);
+                // dd($authId);
+
+                $action                     =       $request->action;    
+
+                if($request->type == 1){                //notifications
+
+                    $notificationId         =       $request->input('notification_id',null);
     
-                if(empty($notificationId)){         // read all notifications
+                    if(empty($notificationId)){         // read all notifications
 
-                    $readNotifications   =   Notification::where(['receiver_id'=>$authId,'status'=>1,'is_read'=>0])->update(['is_read'=>1]);
+                        $readNotifications   =      Notification::where(['receiver_id'=>$authId,'status'=>1,'is_read'=>0])->update(['is_read'=>1]);
 
-
-                }else{
-
-                    $exists                 =   Notification::where(['id'=>$request->notification_id,'receiver_id'=>$authId,'status'=>1])->first();
-                    
-                    if(isset($exists) && !empty($exists)){
-        
-                        $exists->is_read    =   1;
-                        $exists->save();
-    
                     }else{
-    
-                        return response()->json(['message' => trans('message.Invalid_notification')], 409);
+
+                        $exists              =      Notification::where(['id'=>$request->notification_id,'receiver_id'=>$authId,'status'=>1])->first();
+                        if(isset($exists) && !empty($exists)){
+            
+                            $exists->is_read    =   $action;
+                            $exists->save();
+        
+                        }else{
+        
+                            return response()->json(['message' => trans('message.Invalid_notification')], 409);
+                        }
+                    }
+                }else{  
+                                            //message
+                    $thread_id                  =   $request->input('thread_id',null);
+
+                    if(isset($thread_id) && !empty($thread_id)){
+
+                        $isExist                =       Inbox::where(['id'=>$thread_id])->where(function($query) use($authId){
+
+                                                            $query->where(['sender_id'=>$authId])
+
+                                                            ->orWhere(['receiver_id'=>$authId]);
+
+                                                        })->first();
+
+                        if(isset($isExist) && !empty($isExist)){
+
+                            if($isExist->sender_id==$authId){
+
+                                $isExist->user1_unread      =   $authId;
+
+                            }else{
+
+                                $isExist->user2_unread      =   $authId;
+                            }
+                            $isExist->save();
+                        }
+
+
+                        //  for group chat table new function
+                        // $isExist        =   Participant::where(['conversation_id'=>$thread_id,'user_id'])->first();
+
+                        // if(isset($isExist) && !empty($isExist)){
+
+                        //     $isExist->unread_thread     =   $action;
+
+                        //     $isExist->save();
+
+                        // } 
+                    }else{
+
+                        return response()->json(['message' => trans('message.Invalid_thread')], 409);
+
                     }
                 }
                 DB::commit();
@@ -348,7 +399,7 @@ class Notifications extends BaseController
                 return response()->json([
                     'status'                    => 200,
                     'message'                   => trans("message.read_notification"),
-                    'data'                      => 1,
+                    'data'                      => $action,
                     'notification'              => $notification_count,
                 ]);
             }

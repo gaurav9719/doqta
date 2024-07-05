@@ -29,6 +29,7 @@
         "reposted_post_type"=>"15",
         "posted_in_community"=>"10",
         "comment_reply_type"=>"14",
+        "role_invitation_type"=>"16",
 
 
 

@@ -4,7 +4,6 @@ use App\Models\User;
 use App\Models\UserFollower;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\Post;
 
 
 function topHealthProviderOLd($request, $authId, $limit, $type = "")
@@ -15,16 +14,13 @@ function topHealthProviderOLd($request, $authId, $limit, $type = "")
 
         if (isset($type) && !empty($type)) {
 
-            $limit                      =           3;
-
+            $limit = 3;
             if (!empty( $request->limit) && isset( $request->limit)) {
-
 
                 $limit = $request->limit;
             }
             //--------    top likes    ----------//
             $top_likes_post  = User::query()
-
                 ->where('users.is_active', 1)
                 ->whereNotNull('users.user_name')
                 ->whereHas('user_medical_certificate.medical_certificate')
@@ -222,126 +218,76 @@ function topHealthProviderOLd($request, $authId, $limit, $type = "")
 function topHealthProvider($request, $authId, $limit, $type = "")
 {
     try {
-        $defaultLimit           =       $type ? 3 : 10;
+        
+        $defaultLimit                       =   $limit ? 3 : 10;
 
-        $limit                  =       !empty($request->limit) && isset($request->limit) ? $request->limit : $defaultLimit;
+        $limit                              =   !empty($request->limit) && isset($request->limit) ? $request->limit : $defaultLimit;
 
-        $allTopHealthProviders  =       [];
+        $allTopHealthProviders = [];
 
         if (!empty($type)) {
 
-            $topLikeUser        =       getTopLikesPost($request, $authId);
+            $user1                          =   "";
+
+            $topLikeUser                    =   getTopLikesPost($request, $authId);
 
             if(isset($topLikeUser) && !empty($topLikeUser)){
 
-                $user1          =       $topLikeUser['id'];
+                $user1                      =   $topLikeUser['id'];
+                $allTopHealthProviders[]    =   $topLikeUser;
             }
-            $allTopHealthProviders[] =  $topLikeUser;
+            $topConfidenceCommentUser       =   getTopHighConfidenceComment($request, $authId,$user1);
 
-            // $allTopHealthProviders[] = getTopHighConfidenceComment($request, $authId,$user1);
-            // return $allTopHealthProviders;
-
-           $topHighConfidencePost= getTopHighConfidencePost($request, $authId,$user1);
-
-           if(isset($topHighConfidencePost) && !empty($topHighConfidencePost)){
-
-                 $allTopHealthProviders[] =$topHighConfidencePost; 
-           }
+            if(isset($topConfidenceCommentUser) && !empty($topConfidenceCommentUser)){
+                
+                $allTopHealthProviders[]    = $topConfidenceCommentUser;
+            }
 
             return $allTopHealthProviders;
-
 
         } else {
 
             $allTopHealthProviders = getAllTopHealthProviders($request, $authId, $limit);
         }
+
         $notificationCount = notification_count();
+
         return response()->json([
             'status' => 200,
             'message' => trans('message.top_health_provider'),
             'data' => $allTopHealthProviders,
             'notification' => $notificationCount
         ]);
+
     } catch (Exception $e) {
         Log::error('Error caught: "topHealthProvider" ' . $e->getMessage());
         return response()->json(['status' => 400, 'message' => $e->getMessage()]);
     }
 }
 
-function getTopHighConfidencePost($request, $authId,$user1){
-    $query = User::query()
-        ->where('users.is_active', 1)
-        ->where('users.id','<>' ,$authId);
-        if(isset($user1) && !empty($user1)){
-
-            $query->where('users.id','<>',$user1);
-        }
-        $query->whereNotNull('users.user_name')
-        
-        ->whereHas('user_medical_certificate.medical_certificate')
-        
-        ->whereHas('userParticipant',function($q) use ($authId){
-            $q->where([
-                'participant_id'=>3,
-              // 'is_verify'=>1
-                ]);
-         })
-         
-        ->with([
-            'user_medical_certificate' => function ($q) {
-
-                $q->select('id', 'medicial_degree_type', 'user_id');
-                },
-                'user_medical_certificate.medical_certificate' => function ($q) {
-
-                    $q->select('id', 'name');
-                },
-        ]) ->whereDoesntHave('blockedUsers', function ($query) use ($authId) {
-
-            $query->where('blocked_user_id', $authId);
-        })
-
-        ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
-
-            $query->where('user_id', $authId);
-        });
-        
-    addSearchFilter($query, $request->search);
-
-    $topHighConfidenceComment = $query->select('users.id', 'users.name', 'users.user_name', 'users.profile')
-        // ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM comments JOIN posts ON comments.post_id = posts.id WHERE posts.user_id = users.id) ,0)AS total_comments_count'))
-        ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM  posts  WHERE posts.user_id = users.id  AND is_high_confidence=1 ) ,0) AS total_posts_count'))
-        ->havingRaw('total_posts_count > 0 ')
-        ->orderByDesc('total_posts_count')
-        ->first();
-
-    return formatHealthProvider($topHighConfidenceComment, $authId, 'total_posts_count', 'high confidence post');
-}
-
-
 function getTopLikesPost($request, $authId)
 {
-   
     $query = User::query()
+
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId)
-
         ->whereNotNull('users.user_name')
-        ->whereHas('user_medical_certificate.medical_certificate')
-        ->whereHas('userParticipant',function($q) use ($authId){
-            $q->where([
-                'participant_id'=>3,
-              //  'is_verify'=>1
-                ]);
+        ->whereHas('userParticipant',function($q){  // added on jun 28
+
+            $q->where(['participant_id'=>3,'is_verify'=>1]);
         })
+
+        ->whereHas('user_medical_certificate.medical_certificate')
+
         ->with([
+            
             'user_medical_certificate' => function ($q) {
 
                 $q->select('id', 'medicial_degree_type', 'user_id');
                 },
                 'user_medical_certificate.medical_certificate' => function ($q) {
 
-                    $q->select('id', 'name');
+                    $q->select('id','name');
                 },
         ])
 
@@ -360,8 +306,13 @@ function getTopLikesPost($request, $authId)
     $topLikesPost = $query->select('users.id', 'users.name', 'users.user_name', 'users.profile')
 
         ->addSelect(DB::raw('(SELECT COUNT(*) FROM post_likes JOIN posts ON post_likes.post_id = posts.id WHERE posts.user_id = users.id) AS total_likes_count'))
+
         ->orderByDesc('total_likes_count')
+
+        ->orderByRaw('RAND()')
+
         ->havingRaw('total_likes_count > 0')
+
         ->first();
 
     return formatHealthProvider($topLikesPost, $authId, 'total_likes_count', 'likes');
@@ -379,14 +330,6 @@ function getTopHighConfidenceComment($request, $authId,$user1="")
         $query->whereNotNull('users.user_name')
         
         ->whereHas('user_medical_certificate.medical_certificate')
-        
-        ->whereHas('userParticipant',function($q) use ($authId){
-            $q->where([
-                'participant_id'=>3,
-              // 'is_verify'=>1
-                ]);
-         })
-         
         ->with([
             'user_medical_certificate' => function ($q) {
 
@@ -410,7 +353,10 @@ function getTopHighConfidenceComment($request, $authId,$user1="")
 
     $topHighConfidenceComment = $query->select('users.id', 'users.name', 'users.user_name', 'users.profile')
         ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM comments JOIN posts ON comments.post_id = posts.id WHERE posts.user_id = users.id) ,0)AS total_comments_count'))
-        ->orderByDesc('total_comments_count')->orderByRaw('RAND()')
+
+        ->orderByDesc('total_comments_count')
+        
+        ->orderByRaw('RAND()')
 
         ->first();
 
@@ -419,20 +365,12 @@ function getTopHighConfidenceComment($request, $authId,$user1="")
 
 function getAllTopHealthProviders($request, $authId, $limit)
 {
-    
-
     $query = User::query()
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId)
 
         ->whereNotNull('users.user_name')
         ->whereHas('user_medical_certificate.medical_certificate')
-         ->whereHas('userParticipant',function($q){
-            $q->where([
-                'participant_id'=>3,
-              //  'is_verify'=>1
-                ]);
-         })
         ->with([
             'user_medical_certificate' => function ($q) {
 
@@ -455,16 +393,16 @@ function getAllTopHealthProviders($request, $authId, $limit)
     addSearchFilter($query, $request->search);
 
     $allTopHealthProviders = $query->select('users.id', 'users.name', 'users.user_name','users.profile')
-        ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM post_likes JOIN posts ON post_likes.post_id = posts.id WHERE posts.user_id = users.id),0) AS total_likes_count'))
-       ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM  posts  WHERE posts.user_id = users.id  AND is_high_confidence=1 ) ,0)AS total_posts_count'))
-        ->orderByDesc('total_posts_count')
-        ->orderByDesc('total_likes_count')
-        ->havingRaw('total_likes_count > 0 OR total_posts_count > 0')
+        ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM post_likes JOIN posts ON post_likes.post_id = posts.id WHERE posts.user_id = users.id),0) AS total_likes'))
+        ->addSelect(DB::raw('COALESCE((SELECT COUNT(*) FROM comments JOIN posts ON comments.post_id = posts.id WHERE posts.user_id = users.id),0) AS total_comments'))
+        ->orderByDesc('total_likes')
+        ->orderByDesc('total_comments')
+        ->havingRaw('total_likes > 0 OR total_comments > 0')
         ->simplePaginate($limit);
 
         $allTopHealthProviders->getCollection()->transform(function ($user) use ($authId) {
 
-            return formatHealthProvider($user, $authId, 'total_likes_count', 'likes');
+            return formatHealthProvider($user, $authId, 'total_likes', 'likes');
         });
     
         return $allTopHealthProviders;
@@ -500,8 +438,9 @@ function formatHealthProvider($user, $authId, $countField, $countLabel)
         'profile' => isset($user->profile) && !empty($user->profile) ? addBaseUrl($user->profile) : null,
         'title' => !empty($user->$countField) ? ($user->$countField > 1000 ? "Over 1k {$countLabel}" : $user->$countField . " {$countLabel}") : null,
         'total_likes_count' => $countField === 'total_likes_count' ? $user->$countField : 0,
-        'total_posts_count' => $countField === 'total_posts_count' ? $user->$countField : 0,
+        'total_comments_count' => $countField === 'total_comments_count' ? $user->$countField : 0,
         'is_supporting' => UserFollower::where(['user_id' => $user->id, 'follower_user_id' => $authId, 'status' => 2])->exists() ? 1 : 0,
+        // 'medical_certificate' => $user->user_medical_certificate->isNotEmpty() ? $user->user_medical_certificate->pluck('medical_certificate') : [],
         'user_medical_certificate' => $user->user_medical_certificate->isNotEmpty() ? $user->user_medical_certificate : [],
     ];
 }

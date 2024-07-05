@@ -138,6 +138,7 @@ return [
     "pinned_message" => "Message pinned successfully",
     "unpinned_message" => "Message unpinned successfully",
     "Invalid_notification" => "Invalid notification",
+    "Invalid_thread" => "Invalid thread",
     "read_notification" => "Read notification successfully",
     "top_health_provider" => "Top health provider",
     "user_quota" => "User quota",
@@ -149,7 +150,9 @@ return [
     "comments"=>"Comments",
     "no_permission"=>"You have no permission for this",
     "cannot_delete_community"=>"You cannot delete community",
-
+    "invalid_invitation"=>"Invalid invitation",
+    "already_accepted"=>"Already accepted",
+    "already_rejected"=>"Already rejected",
 
 
     "email_changed_successfully" => "Email changed successfully",

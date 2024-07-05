@@ -93,7 +93,9 @@ class NotificationService
 
     public function sendNotificationNew($sender, $receiver, $type, $data)
     {
-
+        Log::info($data);
+        Log::info("type:".$type);
+    
         DB::beginTransaction();
         try {
             #1=Document verified
@@ -105,7 +107,7 @@ class NotificationService
             #16=Post share #-------- NEED POST ID----------#
             #17=Support new member
             #18=Message
-            if ($type == 1 || $type == 2 || $type == 3 || $type == 6 || $type == 7 || $type == 8 || $type == 16 || $type == 17 || $type == 18) {
+            if ($type == 1 || $type == 2 || $type == 3 || $type == 6 || $type == 7 || $type == 8 || $type == 17 || $type == 18) {
                 if (isset($data['message'])) {
                     // Create a new notification
                     $notification                       =   new Notification();
@@ -230,9 +232,29 @@ class NotificationService
                 } else {
                     // return ['status' => 400, 'message' => "failed type 13 notification"];
                 }
-            } else {
-                return ['status' => 400, 'message' => "Somthing went wrong"];
             }
+
+            elseif ($type == 16) {      // send invitation for group role
+
+                if(isset($data['invitation_id']) && !empty($data['invitation_id'])){
+
+                    $notification                       =   new Notification();
+                    $notification->receiver_id          =   $receiver['id'];
+                    $notification->sender_id            =   $sender['id'];
+                    $notification->community_id         =   $data['community_id'];
+                    $notification->notification_type    =   $type;
+                    $notification->message              =   $data['message'];
+                    $notification->invitation_id        =   $data['invitation_id'];
+
+                }
+            }
+
+            else {
+
+                return ['status' => 400, 'message' => "Somthing went wrong"];
+
+            }
+
             if ($notification->save()) {
 
                 $notification_data              =   Notification::find($notification->id);
@@ -256,15 +278,24 @@ class NotificationService
                 }
 
                 DB::commit();
+
                 return ['status' => 200, 'message' => "success"];
+
             } else {
+
                 DB::rollback();
+
                 Log::error('Error caught: "notifications FAILED" ');
+
                 return ['status' => 400, 'message' => "failed 1"];
+
             }
         } catch (Exception $e) {
+
             Log::error('Error caught: "notifications" ' . $e->getMessage());
+            
             DB::rollback();
+
             return ['status' => 400, 'message' => "failed"];
         }
     }

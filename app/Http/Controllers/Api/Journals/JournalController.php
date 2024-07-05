@@ -1033,7 +1033,7 @@ class JournalController extends BaseController
 
             $validate = Validator::make($request->all(), [
 
-                'journal_id' => 'nullable|integer|exists:journals,id',
+                'journal_id' => 'nullable|string',
                 'date' => ['required', 'date', 'date_format:Y-m-d'],
                 [
                     'date_field.required' => 'The date field is required.',
@@ -1047,8 +1047,23 @@ class JournalController extends BaseController
 
             } else {
 
-                $authId     =   Auth::id();
+                $authId                 =   Auth::id();
 
+                if (isset($request->journal_id) && !empty($request->journal_id)) {
+
+                    $journal_ids        =   explode(",",$request->journal_id);
+
+                    $invalidJournals    =   Journal::whereIn('id', $journal_ids)
+
+                    ->where('user_id', '<>', $authId)
+                    
+                    ->count();
+
+                    if ($invalidJournals > 0) {
+
+                        return $this->sendResponsewithoutData("Invailed journals", 422);
+                    }
+                }
                 return $this->journal->journalEntryByDate($authId,$request);
             }
               

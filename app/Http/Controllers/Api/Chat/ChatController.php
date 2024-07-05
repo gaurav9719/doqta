@@ -92,6 +92,21 @@ class ChatController extends BaseController
 
                 $threads->each(function ($result) use ($myId) {
 
+                    //check is_read     =  
+                    $is_read            =       1;
+                    
+                    if($result->sender_id==$myId){
+                       
+
+                        $is_read        =       $result->user1_unread;
+
+                    }else{
+
+                        $is_read        =       $result->user2_unread;
+
+                    }
+                    $result->is_read    =   $is_read;
+
                     $result['unread_message_count'] =   Message::where(['inbox_id' => $result->id])->where(function ($query) use ($myId) {
 
                         $query->where('is_user1_trash', '!=', $myId)->orWhere('is_user2_trash', '!=', $myId);

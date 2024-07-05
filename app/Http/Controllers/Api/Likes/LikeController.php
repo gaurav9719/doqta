@@ -68,10 +68,15 @@ class LikeController extends BaseController
         try {
            
             $validation = Validator::make($request->all(), [
+
                 'like_type' => 'required|integer|between:1,4',
+
                 'action' => 'required|integer|between:0,1', // 0: remove, 1 add 
+
                 'post_id' => 'required|integer|exists:posts,id',
+
                 'reaction' => $request->input('action') == 1 ?'required|integer|between:1,3':'nullable',
+                
                 'comment_id' => $request->input('like_type') == 2 ? 'required|integer|exists:comments,id' : 'nullable|integer|exists:comments,id',
             ], [
                 'reaction.integer' => 'Invalid reaction.',

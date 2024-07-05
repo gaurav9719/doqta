@@ -113,16 +113,18 @@ class DicoverService extends BaseController
     #------------ S U P P O R T         S H A R E D     I N T E R E S T  -----------------#
     public function supportShareInterest($request, $authId, $limit, $type = "")
     {
-
         #---------- S U P P O R T       S H A R E D     I N T E R E S T  --------------#
         try {
-            $groupIdsQuery  =   GroupMember::where(['user_id' => $authId, 'is_active' => 1]);
+
+            $groupIdsQuery   =   GroupMember::where(['user_id' => $authId, 'is_active' => 1]);
+            //$groupIdsQuery   =   GroupMember::where(['is_active' => 1]);
 
             if (!empty($request->search)) {
 
                 $groupIdsQuery->whereHas('communities', function ($query) use ($request) {
 
                     $query->where('name', 'like', "%$request->search%");
+
                 });
             }
 
@@ -161,18 +163,23 @@ class DicoverService extends BaseController
                         $query->where('blocked_user_id', $authId);
                     })
                     ->whereDoesntHave('user.blockedBy', function ($query) use ($authId) {
+
                         $query->where('user_id', $authId);
                     })
+
                     ->whereIn('group_id', $groupIds)
                 
                     ->where('is_active', 1) // Assuming 'is_active' field is boolean
+
                     ->where('user_id', '<>', $authId)
+
                     ->groupBy('user_id');
 
                 if (isset($type) && !empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
-                    $memberIds      =   $memberIds->get()->take($limit);
+                    $memberIds=$memberIds->inRandomOrder()->limit($limit)->get();
 
+                    // $memberIds      =   $memberIds->get()->take($limit); 
                 } else {
 
                     $memberIds      =   $memberIds->simplePaginate($limit);
@@ -203,8 +210,8 @@ class DicoverService extends BaseController
             } else {
 
                 if (isset($type) && !empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
-
                     return [];
+
                 } else {
 
                     return $this->sendResponse([], trans("message.shared_support_users"), 200);
@@ -282,7 +289,12 @@ class DicoverService extends BaseController
 
             if (!empty($type)) {  #------------- W H E N      R E T U R N      O N L Y     F E W        R E C O R D S -----------#  
 
-                $topCommunities      =   $topCommunities->limit($limit)->get();
+                $topCommunities->inRandomOrder();
+
+                $topCommunities      = $topCommunities->limit($limit)->get();
+
+
+                //$topCommunities      =   $topCommunities->limit($limit)->get();
             } else {
 
                 $topCommunities      =   $topCommunities->simplePaginate($limit);
@@ -355,7 +367,6 @@ class DicoverService extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
-
 
     public function topArticlesOLd($request, $authId, $limit, $type = "")
     {
@@ -630,14 +641,16 @@ class DicoverService extends BaseController
                 });
             }
 
-            $topArticles        =       $topArticles->orderByRaw('like_count + comment_count DESC');
+            $topArticles           =       $topArticles->orderByRaw('like_count + comment_count DESC');
             // $topArticles        =       $topArticles->orderByDesc('like_count');
             
-
             if (!empty($type)) {
 
-                $topArticles = $topArticles->limit($limit)->get();
+                $topArticles->inRandomOrder();
 
+                $topArticles      = $topArticles->limit($limit)->get();
+
+               // $topArticles = $topArticles->limit($limit)->get();
             } else {
 
                 $topArticles = $topArticles->simplePaginate($limit);
@@ -697,15 +710,16 @@ class DicoverService extends BaseController
                 });
             }
              // Limit the results to 5 and get the data
-             $topVideos = $discoverPost->orderByDesc('like_count');
-            //  $topVideos = $discoverPost->orderByDesc('like_count');
+            // $topVideos = $discoverPost->orderByDesc('like_count');
+            //$topVideos = $discoverPost->orderByDesc('id');
 
 
              $topVideos        =       $discoverPost->orderByRaw('like_count + comment_count DESC');
 
             if (!empty($type)) {
 
-                $topVideos = $topVideos->limit($limit)->get();
+                
+                $topVideos = $topVideos->orderByRaw('RAND()')->limit($limit)->get();
 
             } else {
 
@@ -821,12 +835,13 @@ class DicoverService extends BaseController
 
                 $limit          =       $request->limit;
             }
-            $search             =  "";
+            $search             =       "";
 
             if (isset($request->search) && !empty($request->search)) {
 
                 $search         =       $request->search;
             }
+
             $homeScreenPosts    =       Post::where('posts.is_active', 1)
 
                 ->whereNotExists(function ($query) use ($authId) {
@@ -905,7 +920,13 @@ class DicoverService extends BaseController
                     $q->select('id','name');
 
                 }])
-                ->orderBy('like_count', 'desc')
+
+                ->orderByRaw('id DESC')
+
+                // ->orderBy('id', 'desc')
+
+                // ->orderBy('total_count', 'desc')
+
                 ->simplePaginate($limit);
 
             $homeScreenPosts->each(function ($homeScreenPost) use ($authId) {
@@ -913,56 +934,61 @@ class DicoverService extends BaseController
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user->profile)) {
 
-                    $homeScreenPost->post_user->profile = $this->addBaseInImage($homeScreenPost->post_user->profile);
+                    $homeScreenPost->post_user->profile = addBaseUrl($homeScreenPost->post_user->profile);
                 }
 
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                    $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
+                    $homeScreenPost->media_url = addBaseUrl($homeScreenPost->media_url);
                 }
 
                 if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
 
-                    $homeScreenPost->thumbnail = $this->addBaseInImage($homeScreenPost->thumbnail);
+                    $homeScreenPost->thumbnail = addBaseUrl($homeScreenPost->thumbnail);
                 }
 
                 if (isset($homeScreenPost->parent_post) && !empty($homeScreenPost->parent_post)) {
 
                     if ($homeScreenPost->parent_post->post_user &&  $homeScreenPost->parent_post->post_user->profile) {
 
-                        $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
+                        $homeScreenPost->parent_post->post_user->profile = addBaseUrl($homeScreenPost->parent_post->post_user->profile);
                     }
 
 
                     if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
 
-                        $homeScreenPost->parent_post->media_url          =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
+                        $homeScreenPost->parent_post->media_url          =  addBaseUrl($homeScreenPost->parent_post->media_url);
                     }
 
                     if (isset($homeScreenPost->parent_post->thumbnail) && !empty($homeScreenPost->parent_post->thumbnail)) {
 
-                        $homeScreenPost->parent_post->thumbnail          =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
+                        $homeScreenPost->parent_post->thumbnail          =  addBaseUrl($homeScreenPost->parent_post->thumbnail);
                     }
 
 
-                    $homeScreenPost->parent_post->postedAt = time_elapsed_string($homeScreenPost->parent_post->created_at);
+                    $homeScreenPost->parent_post->postedAt              = time_elapsed_string($homeScreenPost->parent_post->created_at);
+
                     $isExist                                           = $this->IsPostLiked($homeScreenPost->parent_post['id'], $authId, 1);
 
                     $homeScreenPost->parent_post->is_liked              = $isExist['is_liked'];
+
                     $homeScreenPost->parent_post->reaction              = $isExist['reaction'];
+
                     $homeScreenPost->parent_post->total_likes_count     = $isExist['total_likes_count'];
+
                     $homeScreenPost->parent_post->total_comment_count   = $isExist['total_comment_count'];
+
                     $homeScreenPost->is_reposted                        = $isExist['is_reposted'];
                 }
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
 
-                    $homeScreenPost->media_url = $this->addBaseInImage($homeScreenPost->media_url);
+                    $homeScreenPost->media_url                  = addBaseUrl($homeScreenPost->media_url);
                 }
 
                 if (isset($homeScreenPost->post_user) && !empty($homeScreenPost->post_user)) {
 
-                    $homeScreenPost->thumbnail = $this->addBaseInImage($homeScreenPost->thumbnail);
+                    $homeScreenPost->thumbnail                  = addBaseUrl($homeScreenPost->thumbnail);
                 }
                 // $homeScreenPost->postedAt = Carbon::parse($homeScreenPost->created_at)->diffForHumans();
                 $homeScreenPost->postedAt               = time_elapsed_string($homeScreenPost->created_at);
@@ -973,8 +999,11 @@ class DicoverService extends BaseController
                 $homeScreenPost->total_comment_count    = $isExist['total_comment_count'];
                 $homeScreenPost->is_reposted            = $isExist['is_reposted'];
             });
+
             $notification_count                         =   notification_count();
+
             return $this->sendResponse($homeScreenPosts, trans("message.dicover_post"), 200, $notification_count);
+
         } catch (Exception $e) {
 
             Log::error('Error caught: "getDiscoverPost" ' . $e->getMessage());
@@ -1092,10 +1121,10 @@ class DicoverService extends BaseController
             // });
             if (isset($type) && !empty($type)) {
 
-                $discoveredCommunity       = $discoverCommunity->limit($limit)->get();
+                $discoveredCommunity       = $discoverCommunity->limit($limit)->orderByDesc('id')->get();
             } else {
 
-                $discoveredCommunity       = $discoverCommunity->simplePaginate($limit);
+                $discoveredCommunity       = $discoverCommunity->orderByDesc('id')->simplePaginate($limit);
             }
 
 
@@ -1214,15 +1243,11 @@ class DicoverService extends BaseController
 
         try {
 
-            $data                      =   [];
-
-           $support                    =   supportUserS($request, $authId, $limit, 1);
-
+            $data                       =   [];
+            $support                    =   supportUserS($request, $authId, $limit, 1);
            //return $this->sendResponse($support, trans('message.discover_people'), 200);
             // dd($support);
-
             //$support                            =   $this->supportUsers($request, $authId, $limit, 1);
-            
             if ($support !== "400") {
                 $data['show_your_support']      = $support;
             } else {
@@ -1231,7 +1256,7 @@ class DicoverService extends BaseController
 
             // Fetch top health provider
             //$topHealthProvider = $this->topHealthProvider($request, $authId, $limit, 1);
-            $topHealthProvider = topHealthProvider($request, $authId, $limit, 1);
+            $topHealthProvider          = topHealthProvider($request, $authId, $limit, 1);
             // dd($topHealthProvider);
 
         

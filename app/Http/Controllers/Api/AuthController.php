@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\Notifications;
 use App\Http\Controllers\Api\BaseController;
 use App\Jobs\CalculateScore\scoreCalculation;
-use App\Models\Notification;
+// use App\Models\Notification;
 use App\Services\VerifyEmail as verifyEmailService;
 
 
@@ -41,10 +41,10 @@ class AuthController extends BaseController
 
     public function __construct(RegisterUserService $signUpUser,verifyEmailService $verifyEmail,ForgotPasswordService $forgotPassword,GetUserService $user)
     {
-        $this->getUser      =  $user;
-        $this->signUpService = $signUpUser;
-        $this->verifyEmail = $verifyEmail;
-        $this->forgotPassword = $forgotPassword;
+        $this->getUser          =   $user;
+        $this->signUpService    =   $signUpUser;
+        $this->verifyEmail      =   $verifyEmail;
+        $this->forgotPassword   =   $forgotPassword;
     }
     //
     #----------********   S I G N      U P     N E W       U S E R  *********----------#   
@@ -256,7 +256,7 @@ class AuthController extends BaseController
                 //saved user token
             }
             DB::commit();
-            $loginUser   =   $this->getUser->getAuthUser($userID);
+            $loginUser                      =   $this->getUser->getAuthUser($userID);
             return response()->json(['status' => 200, 'message' => 'User Login successfully', 'data' => $loginUser], 200);
 
         } catch (Exception $e) {

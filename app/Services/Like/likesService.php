@@ -160,34 +160,30 @@ class likesService extends BaseController
                 } else {
 
                     $post->delete();
-                    // Remove associated activity log and notification
-                    $this->cleanupLikeActivityAndNotification($authId, $request->post_id);
+                    $this->cleanupLikeActivityAndNotification($authId, $request->post_id);                    // Remove associated activity log and notification
                 }
-            } else {
-                // liked/update
+            } else {   #----------------- liked/update-------------------#
 
-                if (empty($post)) {
-                    // Insert new like
-                    $postLike   = PostLike::create([
+                if (empty($post)) {     #-----------------  Insert new like ----------------- #
 
-                        'post_id' => $request->post_id,
-                        'user_id' => $authId,
-                        'reaction' => $request->reaction
+                    $postLike       =           PostLike::create([
+                                                    'post_id' => $request->post_id,
+                                                    'user_id' => $authId,
+                                                    'reaction' => $request->reaction
 
-                    ]);
+                                                ]);
 
-                    // Update activity log and send notification
-                    $this->updateLikeActivityAndNotification($authId, $request->post_id, $postLike);
+                    $this->updateLikeActivityAndNotification($authId, $request->post_id, $postLike);     // Update activity log and send notification
+                } else {   #-----------------  Update existing like-----------------#
 
-                } else {
-                    // Update existing like
                     $post->reaction = $request->reaction;
+
                     $post->save();
+
+                    $this->UpdateNotiAct($authId, $post->post_id, $post->id, $request->reaction);
                 }
             }
-
             // Get updated like count
-
             $data               =       $this->postLikeCount($request->post_id);
 
             DB::commit();
@@ -195,10 +191,8 @@ class likesService extends BaseController
             dispatch(new AiScoreCalculatedJob($request->post_id));
 
             return $this->sendResponse($data, trans('message.updated_successfully'), 200);
-
         } catch (Exception $e) {
 
-            
             DB::rollBack();
 
             Log::error('Error caught: "postLike" ' . $e->getMessage());
@@ -239,6 +233,52 @@ class likesService extends BaseController
             $this->notification->sendNotificationNew($sender, $receiver, trans('notification_message.like_post_type'), $data);
         }
     }
+
+
+    private function UpdateNotiAct($authId, $postId, $likeID, $reaction)
+    {
+        // Retrieve the post and related information in one query using eager loading
+        $groupPost = Post::with(['user:id', 'group:id'])->select('group_id', 'user_id', 'title')->findOrFail($postId);
+        
+        $type = trans('notification_message.like_post_type');
+        $title = $groupPost->title;
+    
+        // Use Auth facade to get the current authenticated user
+        $sender = Auth::user();
+    
+        // Construct action details and message
+        $actionDetails = "**{$sender->user_name}** reacted with " . likeTypes($reaction) . " on post: **{$title}**";
+        
+        $message = "**{$sender->user_name}** reacted with " . likeTypes($reaction) . " to your post: **{$title}**";
+    
+        try {
+            // Begin the transaction
+            DB::beginTransaction();
+    
+            // Update or create the activity log
+            ActivityLog::updateOrCreate(
+                ['user_id' => $authId, 'post_id' => $postId, 'community_id' => $groupPost->group_id, 'action' => $type],
+                ['action_details' => $actionDetails]
+            );
+    
+            // Update or create the notification
+            Notification::updateOrCreate(
+                ['receiver_id' => $groupPost->user_id, 'sender_id' => $authId, 'like_id' => $likeID, 'post_id' => $postId, 'community_id' => $groupPost->group_id, 'notification_type' => $type],
+                ['message' => $message]
+            );
+    
+            // Commit the transaction
+            DB::commit();
+        } catch (Exception $e) {
+            // Rollback the transaction on error
+            DB::rollBack();
+            // Optionally, handle the exception (e.g., log the error or rethrow it)
+            Log::info("update notification in like:".$e->getMessage());
+        }
+    }
+    
+    
+
     private function cleanupLikeActivityAndNotification($authId, $postId)
     {
         ActivityLog::where(['user_id' => $authId, 'post_id' => $postId, 'action' => 1])->delete();
@@ -291,7 +331,7 @@ class likesService extends BaseController
                     // $message       =       $sender->name . " liked your comment in: " . $group->name;
                     $message       =       "**{$sender->user_name}** found your comment " . likeTypes($request->reaction) . " on {$post1->title}";
                     #-------  T R A C K       A C T V I T Y -----------#
-                    
+
                     $addActivityLog                 =    new ActivityLog();
                     $addActivityLog->user_id        =    $authId;
                     $addActivityLog->post_id        =    $request->post_id;

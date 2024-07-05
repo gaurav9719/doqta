@@ -3,6 +3,7 @@
 use Carbon\Carbon;
 use App\Models\Post;
 use App\Models\Group;
+use App\Models\Inbox;
 use BaconQrCode\Writer;
 use App\Models\UserRole;
 use Illuminate\Support\Str;
@@ -1016,9 +1017,9 @@ if (!function_exists('time_elapsed_string')) {
         $diff->w = floor($diff->d / 7);
         $diff->d -= $diff->w * 7;
         $string = array(
-            'y' => 'y',
-            'm' => 'm',
-            'w' => 'w',
+            'y' => 'yr',
+            'm' => 'mo',
+            'w' => 'wk',
             'd' => 'd',
             'h' => 'hr',
             'i' => 'min',
@@ -1124,7 +1125,23 @@ if (!function_exists('post_reaction_count')) {
     if (!function_exists('notification_count')) {
         function notification_count()
         {
-            return Notification::where('receiver_id', Auth::id())->where('is_read', 0)->count();
+
+            $authId                 =   Auth::id();
+
+            $unreadNotifications    =   Notification::where('receiver_id', $authId)->where('is_read', 0)->count();
+
+            $unreadInbox            =   Inbox::where(function($query) use($authId){
+
+                $query->where('sender_id',$authId)->orWhere('receiver_id',$authId);
+
+            })->where(function($query) use($authId){
+
+                $query->where('user1_unread',$authId)->orWhere('user2_unread',$authId);
+
+            })->count();
+
+            return ['unread_notification'=>$unreadNotifications,'unread_thread'=>$unreadInbox,'total_unread'=>$unreadNotifications+$unreadInbox];
+
         }
     }
 }
