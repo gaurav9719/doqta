@@ -240,7 +240,7 @@ function topHealthProvider($request, $authId, $limit, $type = "")
                 $user1                      =   $topLikeUser['id'];
                 $allTopHealthProviders[]    =   $topLikeUser;
             }
-            
+
             $topConfidenceCommentUser       =   getTopHighConfidenceComment($request, $authId,$user1);
 
             if(isset($topConfidenceCommentUser) && !empty($topConfidenceCommentUser)){
@@ -248,6 +248,7 @@ function topHealthProvider($request, $authId, $limit, $type = "")
                 $allTopHealthProviders[]    = $topConfidenceCommentUser;
             }
 
+            return $allTopHealthProviders;
 
         } else {
 
@@ -262,7 +263,8 @@ function topHealthProvider($request, $authId, $limit, $type = "")
         ]);
     } catch (Exception $e) {
         Log::error('Error caught: "topHealthProvider" ' . $e->getMessage());
-        return response()->json(['status' => 400, 'message' => $e->getMessage()]);
+        return 400;
+        // return response()->json(['status' => 400, 'message' => $e->getMessage()]);
     }
 }
 
