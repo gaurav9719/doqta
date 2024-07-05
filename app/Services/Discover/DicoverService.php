@@ -1255,7 +1255,7 @@ class DicoverService extends BaseController
            //return $this->sendResponse($support, trans('message.discover_people'), 200);
             // dd($support);
             //$support                            =   $this->supportUsers($request, $authId, $limit, 1);
-            if ($support !== "400") {
+            if ($support != "400" || $support != 400) {
                 $data['show_your_support']      = $support;
             } else {
                 $data['show_your_support']      = [];
@@ -1267,7 +1267,7 @@ class DicoverService extends BaseController
             // dd($topHealthProvider);
 
         
-            if ($topHealthProvider !== "400") {
+            if ($topHealthProvider != "400" || $topHealthProvider != 400) {
 
                 $data['top_health_provider'] = $topHealthProvider; // Use correct variable here
 
@@ -1279,7 +1279,7 @@ class DicoverService extends BaseController
            // $careTaker  =   $this->careTakerBySearch($request, $authId, $limit, 1);
 
             $careTaker                   =   supportUserS($request, $authId, $limit, 1,1);
-            if ($careTaker !== "400") {
+            if ($careTaker != "400" || $careTaker != 400) {
 
                 $data['care_takers']       =  $careTaker;
             } else {
