@@ -760,6 +760,8 @@ class GetCommunityService extends BaseController
 
                     })->where(['group_id' => $request->community_id, 'role' => "owner"])->first();
 
+                    $type           =       trans('notification_message.joined_community_type');
+                    
                     if ($receiver) {
                         // Retrieve only the group_user data
                         $receiver = $receiver->group_user;
@@ -773,7 +775,7 @@ class GetCommunityService extends BaseController
                             "community_member_id"   => $addGroupMember->id,
                             "community_id"          => $group->id
                         ];
-                        $type           =       trans('notification_message.joined_community_type');
+                    
 
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
                     }
