@@ -671,7 +671,7 @@ class DicoverService extends BaseController
                         #------------ parent post data-----------------#
                     if (isset($topArticle->parent_post) && !empty($topArticle->parent_post)) {
 
-                        $topArticle= transformParentPostData($topArticle, $authId);
+                        $topArticle = transformParentPostData($topArticle, $authId);
                     }
                     return $topArticle;
                 }); 

@@ -370,6 +370,7 @@ function getTopLikesPost($request, $authId)
 function getTopHighConfidenceComment($request, $authId,$user1="")
 {
     $query = User::query()
+            ->where('role',1)
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId);
         if(isset($user1) && !empty($user1)){
@@ -422,9 +423,10 @@ function getAllTopHealthProviders($request, $authId, $limit)
     
 
     $query = User::query()
+
         ->where('users.is_active', 1)
         ->where('users.id','<>' ,$authId)
-
+        ->where('role',1)
         ->whereNotNull('users.user_name')
         ->whereHas('user_medical_certificate.medical_certificate')
          ->whereHas('userParticipant',function($q){
