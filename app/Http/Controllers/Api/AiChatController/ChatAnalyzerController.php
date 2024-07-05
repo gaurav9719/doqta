@@ -40,9 +40,7 @@ class ChatAnalyzerController extends BaseController
                                     $query->where('sender_id', $myId)
                                         ->orWhere('receiver_id', $myId);
                                     })->pluck('id')->toArray();
-
-      
-        
+                                    
         if (count($inbox_ids) > 0) {
             
             #check report available for request time
@@ -182,17 +180,15 @@ class ChatAnalyzerController extends BaseController
                 }
                 else{
     
-                    return $this->sendResponse([],'Insufficent data', 201);
+                    return $this->sendResponse(null,'Insufficent data', 201);
                 }
             }
             else{
-
-                return $this->sendResponse([],'No message found', 201);
+                return $this->sendResponse(null,'No message found', 201);
             }
         }
         else{
-
-            return $this->sendResponse([],'No message found', 200);
+            return $this->sendResponse(null,'No message found', 200);
         }
     }
 
