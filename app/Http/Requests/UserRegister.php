@@ -26,7 +26,7 @@ class UserRegister extends FormRequest
     public function rules(): array
     {
         return [
-            // "^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
+
             'email' => 'required|email|unique:users,email',
             'password' => [
                 'required',
@@ -61,7 +61,6 @@ class UserRegister extends FormRequest
 
     public function failedValidation(Validator $validator)
     {
-
         throw new HttpResponseException(response()->json([
             'success'   => 422,
             'message'   => $validator->errors()->first(),

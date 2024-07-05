@@ -40,45 +40,48 @@ class RegisterUserService extends BaseController
 
         try {
 
-            // $existingUser = User::where('email', $request['email'])->lockForUpdate()->exists();
-        
-            // if ($existingUser) {
-
-            //     return response()->json(['status' => 400, 'message' => 'This email address is already registered.']);
-
-            // }
-
             $user                   =   new User();
+
             $user->email            =   $request->email;
+
             $user->password         =   Hash::make($request->password);
+
             $user->dob              =   $request->dob;
+
             $user->device_type      =   $request->device_type;
+
             $user->device_token     =   $request->device_token;
+
             $user->lat              =   $request->lat??null;
+
             $user->long             =   $request->long??null;
+
             $user->save();
+
             $userID                 =   $user->id;
+
             UserDevice::where(["device_token" => $request->device_token])->delete();
             $UserDevice             = new UserDevice();
             $UserDevice->user_id    = $userID;
             $UserDevice->device_type = $request->device_type;
             $UserDevice->device_token = $request->device_token;
             $UserDevice->save();
-
+            DB::commit();
             $this->createByDefaultJournal($userID);         #------- create default journal ------____#
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
-
             $this->verify_email->sendVerificationEmail($userID);
             //dispatch(new SendVerificationEmailJob($userID));
             #----------  S E N D        V E R I F I C A T I O N          E M A I L ---------------#
-            DB::commit();
             $userData   =   $this->getUser->getAuthUser($userID);
+
             return $this->sendResponse($userData, trans("message.register"), 200);
 
         } catch (Exception $e) { 
 
             DB::rollback();
+
             Log::error('Error caught: "signUpUser" ' . $e->getMessage());
+
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
