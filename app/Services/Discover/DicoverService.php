@@ -348,6 +348,8 @@ class DicoverService extends BaseController
             #------------------ T O P        A R T I C L E S -------------------#
             $topArticles                     =   $this->topArticles($request, $authId, $limit, 1);
 
+            
+
             if ($topArticles != "400") {
 
                 $data['care_articles']       =  $topArticles;
@@ -635,6 +637,7 @@ class DicoverService extends BaseController
         try {
 
             $topArticles        =       Post::where(['is_active'=>1,'media_type'=>4]);
+           
 
             $topArticles        =       getPost($authId,$topArticles);
 
@@ -648,7 +651,7 @@ class DicoverService extends BaseController
                 });
             }
 
-            $topArticles           =       $topArticles->orderByRaw('like_count + comment_count DESC');
+            $topArticles           =       $topArticles->orderByRaw('total_likes_count + total_comment_count DESC');
             // $topArticles        =       $topArticles->orderByDesc('like_count');
             
             if (!empty($type)) {
@@ -657,12 +660,16 @@ class DicoverService extends BaseController
 
                 $topArticles      = $topArticles->limit($limit)->get();
 
+               
+
                // $topArticles = $topArticles->limit($limit)->get();
             } else {
 
                 $topArticles = $topArticles->simplePaginate($limit);
             }
 
+
+          
             if (isset($topArticles[0]) && !empty($topArticles[0])) {
 
                 $topArticles->each(function ($topArticle) use ($authId) {
@@ -688,6 +695,7 @@ class DicoverService extends BaseController
         } catch (Exception $e) {
 
             Log::error('Error caught: "topArticles" ' . $e->getMessage());
+            dd($e);
             return 400;
         }
     }
@@ -944,6 +952,8 @@ class DicoverService extends BaseController
                     $homeScreenPost->post_user->profile = addBaseUrl($homeScreenPost->post_user->profile);
                 }
 
+                $homeScreenPost->can_you_delete     =   checkPostPermission($homeScreenPost->id,$authId);
+
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
                     $homeScreenPost->media_url = addBaseUrl($homeScreenPost->media_url);
@@ -960,6 +970,8 @@ class DicoverService extends BaseController
 
                         $homeScreenPost->parent_post->post_user->profile = addBaseUrl($homeScreenPost->parent_post->post_user->profile);
                     }
+
+                    $homeScreenPost->can_you_delete                     =   checkPostPermission($homeScreenPost->id,$authId);
 
 
                     if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
@@ -1085,7 +1097,7 @@ class DicoverService extends BaseController
             }
 
             $data               =   [];
-
+            $authId             =   Auth::id();
             $discoverCommunity  =   Group::where('is_active', 1);
 
                 #----------- jun 27 commented ----------------____#
@@ -1108,6 +1120,15 @@ class DicoverService extends BaseController
             if (!empty($request->search)) {
 
                 $discoverCommunity =   $discoverCommunity->where('name', 'like', "%$request->search%");
+
+            }else{
+
+                $discoverCommunity = $discoverCommunity->whereDoesntHave('groupMember', function($query) use($authId) {
+
+                    $query->where('user_id', $authId);
+
+                });
+
             }
             // $discoveredCommunity  =   $discoverCommunity->whereNotExists(function ($query) use ($authId) {
 

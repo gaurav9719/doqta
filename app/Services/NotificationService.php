@@ -93,9 +93,6 @@ class NotificationService
 
     public function sendNotificationNew($sender, $receiver, $type, $data)
     {
-        Log::info($data);
-        Log::info("type:".$type);
-    
         DB::beginTransaction();
         try {
             #1=Document verified

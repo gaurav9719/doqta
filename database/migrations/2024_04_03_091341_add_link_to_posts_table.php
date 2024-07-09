@@ -26,9 +26,9 @@ return new class extends Migration
             $table->bigInteger('total_comment_count')->after('total_likes_count')->default(0);
             #---------- NEW ---------#
             $table->bigInteger('repost_count')->after('total_likes_count')->default(0);
-            $table->bigInteger('share_count')->after('total_likes_count')->default(0);
-            $table->boolean('is_high_confidence')->after('total_likes_count')->default(0);
-            $table->tinyInteger('is_active')->after('repost_count')->default(1)->comment('1:active,0:inactive,2:hide');
+            $table->bigInteger('share_count')->after('repost_count')->default(0);
+            $table->boolean('is_high_confidence')->after('share_count')->default(0);
+            $table->tinyInteger('is_active')->after('is_high_confidence')->default(1)->comment('1:active,0:inactive,2:hide');
 
         });
     }

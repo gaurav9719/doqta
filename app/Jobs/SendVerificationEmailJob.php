@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 class SendVerificationEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-    public $tries = 3; // Specify the number of times the job should be retried
+   // public $tries = 3; // Specify the number of times the job should be retried
 
     /**
      * Create a new job instance.
@@ -33,17 +33,13 @@ class SendVerificationEmailJob implements ShouldQueue
      */
     public function handle(): void
     {
-        //
+        
         Mail::to($this->details['email'])->send(new VerifyEmail($this->details));
 
-        Log::error('Error caught: "signUpUser"');
-
-
-
     }
 
-    public function backoff(): array
-    {
-        return [1, 5, 10];
-    }
+    // public function backoff(): array
+    // {
+    //     //return [1, 5, 10];
+    // }
 }

@@ -102,6 +102,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::delete('community/removeMember', [CommunityController::class,'removeMember']);
     Route::get('community/members', [CommunityController::class,'communityUsers']);
     Route::put('community/udpateRequest', [CommunityController::class,'acceptRejectCommunityRequest']);
+    Route::put('community/invitation', [CommunityController::class,'invitation']);
     Route::resource('community', CommunityController::class);
 });
 

@@ -42,8 +42,9 @@ class CommunityController extends BaseController
         try {
             // Get the authenticated user's ID
             $authId             = Auth::id();
-
+            
             return  $this->get_community_service->getAllCommunity($request, $authId);
+
         } catch (Exception $e) {
             // Handle exceptions
             Log::error('Error caught: "get community" ' . $e->getMessage());
@@ -316,7 +317,6 @@ class CommunityController extends BaseController
         try {
 
             $authId             =       Auth::id();
-
             $validator          =       Validator::make(['id' => $id], [
 
                 'id' => 'required|integer|exists:groups,id'
@@ -343,7 +343,7 @@ class CommunityController extends BaseController
 
                         //check in community have other user post or not
 
-                        $isPostExist            =           Post::where(['group_id'=>$id])->where('user_id','<>',$authId)->first();
+                        $isPostExist            =           Post::where(['group_id'=>$id,'is_active'=>1])->where('user_id','<>',$authId)->first();
                         
                         if(isset($isPostExist) && !empty($isPostExist)){
 
@@ -510,6 +510,7 @@ class CommunityController extends BaseController
                 $hasOwner   =           GroupMember::where(['group_id' => $requestId->group_id, 'user_id' => $authId])->where(function ($query) {
 
                     $query->where('role', 'admin')->orWhere('role', 'moderator');
+                    
                 })->exists();
 
                 if ($hasOwner) {
@@ -555,7 +556,6 @@ class CommunityController extends BaseController
 
         try {
             $authId         =       Auth::id();
-
             $sender         =       Auth::user();
 
             $validator      =       Validator::make($request->all(), [
@@ -641,10 +641,8 @@ class CommunityController extends BaseController
                                 }
 
                             }else{
-
                                 $checkMember->role = $request->role;
                                 $checkMember->save();
-
                             }
                             // if ($request->role == "owner" && $checkAuthority->role == "owner") {
 
@@ -681,58 +679,69 @@ class CommunityController extends BaseController
     public function invitation(Request $request){
 
         DB::beginTransaction();
+
         try {
+           
+            $validation      =       Validator::make($request->all(),['invitation_id'=>'required|integer|exists:role_invitations,id','action'=>'required|integer|between:0,1'],['action.integer'=>"invalid action",'action.between'=>"invalid action"]);
 
-            $validator      =       Validator::make($request->all(),['invitation_id'=>'required|integer|exists:role_invitations,id','action'=>'requierd|integer|between:0,1']);
+            if($validation->fails()){
 
-            if($validator->fails()){
-
-                return $this->sendResponsewithoutData($validator->errors()->first(), 422);
+                return $this->sendResponsewithoutData($validation->errors()->first(), 422);
             }
+
             $authId         =       Auth::id();
+
             $invitation     =       RoleInvitation::where(['id'=>$request->invitation_id,'user_id'=>$authId])->first();
+
+           
+
+            $isExistInGroup =       GroupMember::where(['group_id'=>$invitation->community_id,'user_id'=>$authId])->first();
+
+            if(empty($isExistInGroup)){
+
+                return $this->sendResponsewithoutData(trans('message.not_group_member'), 409);
+
+            }
+
             if(isset($invitation) && !empty($invitation)){
 
-                $type               =   trans('notification_message.role_invitation_type');
+                $type       =   trans('notification_message.role_invitation_type');
 
-                if($invitation->accepted==1){
+                if($invitation->accepted    ==  1){
     
                     return $this->sendResponsewithoutData(trans('message.already_accepted'), 400);
     
-                }elseif ($invitation->accepted==0) {
+                }elseif ($invitation->accepted  ==  0 && $invitation->accepted!=null ) {
+
+                   
                     
                     return $this->sendResponsewithoutData(trans('message.already_rejected'), 400);
 
-                }else{  //pending accept/reject
-                    //check user is member of the group 
-                    $isExistInGroup                     =   GroupMember::where(['group_id'=>$invitation->community_id,'user_id'=>$authId])->first();
+                }else{  //pending accept/reject    
 
-                    if(isset($isExistInGroup) && !empty($isExistInGroup)){
+                    if($request->action==1){
 
-                        if($request->action==1){
+                        if($invitation->role=="owner"){
 
-                            if($invitation->role=="owner"){
+                            $groupOwner                     =   GroupMember::where(['group_id'=>$invitation->community_id,'role'=>"owner"])->first();
 
-                                $groupOwner                     =   GroupMember::where(['group_id'=>$invitation->community_id,'role'=>"owner"])->first();
+                            if(isset($groupOwner) && !empty($groupOwner)){
 
-                                if(isset($groupOwner) && !empty($groupOwner)){
-
-                                    $groupOwner->role           =   $isExistInGroup->role;
-                                    $groupOwner->save();
-                                }
+                                $groupOwner->role           =   $isExistInGroup->role;
+                                $groupOwner->save();
                             }
-
-                            $isExistInGroup->role                =   $invitation->role;
-                            $isExistInGroup->save();
-                            // delete the notification 
                         }
-                        $invitation->delete();
-                      //  Notification::where(['receiver_id'=>$authId,'community_id'=>$invitation->community_id,'notification_type'=>$type])->delete();
-
-                    }else{
-
-                        return $this->sendResponsewithoutData(trans('message.not_group_member'), 409);
+                        $isExistInGroup->role                =   $invitation->role;
+                        $isExistInGroup->save();
+                        // delete the notification 
                     }
+
+                    $invitation->delete();
+                    DB::commit();
+                    return $this->sendResponsewithoutData(trans('message.updated_successfully'), 200);
+
+
+                      //  Notification::where(['receiver_id'=>$authId,'community_id'=>$invitation->community_id,'notification_type'=>$type])->delete();
                 }
             }else{  // invalid request
 
@@ -854,6 +863,8 @@ class CommunityController extends BaseController
                     $limit              =       $request->limit;
                 }
 
+                $communityID            =       $request->community_id;
+
                 $groupMember            =       GroupMember::with(['groupUser' => function ($query) use ($authId) {
 
                                                     $query->select('id', 'name', 'user_name', 'profile', 'is_active')
@@ -869,7 +880,6 @@ class CommunityController extends BaseController
                                                             $q->select('id', 'name');
                                                         }
                                                     ])
-
                                                     ->whereDoesntHave('blockedBy', function ($query) use ($authId) {
 
                                                         $query->where('user_id', $authId);
@@ -878,6 +888,11 @@ class CommunityController extends BaseController
 
                                                         $query->where('blocked_user_id', $authId);
                                                     });
+
+                                                },'groupRoleInvitation' => function ($query) use($communityID){
+                                                    
+                                                    $query->where('community_id', $communityID);
+
                                                 }])->where(['group_id' => $request->community_id, 'is_active' => 1])->whereNotNull('user_id');
 
                 $role                   =   "id";
@@ -889,8 +904,7 @@ class CommunityController extends BaseController
 
                 }else{                      // get all user from group member
 
-                   
-
+    
                         if($request->role=="owner"){
     
                             $groupMember    =   $groupMember->where('role','<>',$request->role);
@@ -918,7 +932,7 @@ class CommunityController extends BaseController
                 }               
 
                 $groupMember                =   $groupMember->simplePaginate($limit);
-
+              
                 if ($groupMember) {
 
                     $groupMember->each(function ($query) {

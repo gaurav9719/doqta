@@ -23,12 +23,13 @@ use App\Http\Requests\ForgotPassword;
 use App\Services\RegisterUserService;
 use Illuminate\Contracts\Cache\Store;
 use Illuminate\Support\Facades\Crypt;
+use App\Jobs\SendVerificationEmailJob;
 use App\Services\ForgotPasswordService;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\Notifications;
 use App\Http\Controllers\Api\BaseController;
-use App\Jobs\CalculateScore\scoreCalculation;
 // use App\Models\Notification;
+use App\Jobs\CalculateScore\scoreCalculation;
 use App\Services\VerifyEmail as verifyEmailService;
 
 
@@ -315,7 +316,21 @@ class AuthController extends BaseController
     public function calculateScore(){
 
        // Generated @ codebeautify.org
-      dispatch(new scoreCalculation(233));
+       $otp                        =          rand(111111, 999999);
+       $emailVerify                =          array('otp' => $otp, 'email' => "param@yopmail.com");
+      
+     dispatch(new SendVerificationEmailJob($emailVerify));
+       // dispatch::SendVerificationEmailJob($emailVerify);
+
+        // SendVerificationEmailJob::dispatch($emailVerify);
+        //dispatch(new \App\Jobs\SendVerificationEmailJob($emailVerify));
+
+
+
+    //    dispatch(new \App\Jobs\SendVerificationEmailJob($emailVerify));
+
+
+      //dispatch(new scoreCalculation(233));
     //    scoreCalculation::dispatch(233);
       
     //    $curl = curl_init();

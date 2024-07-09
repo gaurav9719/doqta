@@ -60,7 +60,7 @@ use App\Services\NotificationService;
             #------ CHECK IF HEALTH PROVIDER -----------#
             if (!empty($request->health_provider)) {
 
-                $posts->whereHas('post_user.userParticipant', fn ($query) => $query->where('participant_id', 3));
+                $posts->whereHas('post_user.userParticipant', fn ($query) => $query->where(['participant_id'=>3,'is_active'=>1]));
             }
             #-------------------------------------------#
 

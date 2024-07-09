@@ -69,7 +69,7 @@ class FeedPostNotification implements ShouldQueue
 
                     if (isset($receiver) && !empty($receiver)) {
 
-                        $message                                =      "New post in **{$group->name}**:  {$post['title']}";
+                        $message                                =      "New post in **{$group->name}** community:{$post['title']}";
 
                         if (isset($message) && !empty($message)) {
                             // Create a new notification

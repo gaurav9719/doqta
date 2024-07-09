@@ -123,15 +123,21 @@ class SignStepsController extends BaseController
 
                     $userStep1->name        =   filter_text($request->name);
                 }
+
                 $userStep1->complete_step   =  1;
                 $userStep1->save();
-                createStripeCustomer($auth->id);
+                //createStripeCustomer($auth->id);
                 DB::commit();
+
                 $userData   =   $this->getUser->getUser($auth->id);
+
                 return $this->sendResponse($userData, trans("message.steps_completed"), 200);
+
             }
         } catch (Exception $e) {
+
             DB::rollBack();
+            
             Log::error('Error caught: "step1" ' . $e->getMessage());
             return $this->sendError("Failed to update", [], 400);
         }

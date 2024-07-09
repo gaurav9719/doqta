@@ -14,16 +14,14 @@ use Illuminate\Support\Facades\Log;
 class VerifyEmail extends Mailable
 {
     use Queueable, SerializesModels;
-    public $data;
+    protected $data;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($data)
+    public function __construct($email_data)
     {
-        //
-        $this->data = $data;
-        Log::info("email data".$this->data);
+        $this->data = $email_data;
     }
 
     /**
@@ -47,6 +45,7 @@ class VerifyEmail extends Mailable
     {
       
         $appImage   =   asset('storage/app_icon/ai.png'); // Adjust the path as necessary
+        
         return new Content(
 
             view: 'email.Common_Template',

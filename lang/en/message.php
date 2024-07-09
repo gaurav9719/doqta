@@ -146,10 +146,11 @@ return [
     "you_have_left_group" => "You have left the group",
     "location_updated" => "location_updated",
     "community_name_exist" => "The community name is already in use",
-
+    "not_permission"=>"You have no permission to perform this action",
     "comments"=>"Comments",
     "no_permission"=>"You have no permission for this",
     "cannot_delete_community"=>"You cannot delete community",
+    "cannot_delete_post"=>"You cannot delete post",
     "invalid_invitation"=>"Invalid invitation",
     "already_accepted"=>"Already accepted",
     "already_rejected"=>"Already rejected",

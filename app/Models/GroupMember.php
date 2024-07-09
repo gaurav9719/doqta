@@ -53,11 +53,10 @@ class GroupMember extends Model
 
     }
 
-    
 
-
-
-
-
-
-}
+    public function groupRoleInvitation()
+    {
+        return $this->hasOne(RoleInvitation::class, 'user_id', 'user_id');
+    }
+        
+    }

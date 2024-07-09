@@ -120,10 +120,13 @@ class AddCommunityPost extends BaseController
                 if (strlen($post->content) > 75) {
 
                     dispatch(new SummarizePostJob($postId))->chain([
+
                         new ScoreCalculation($postId)
+
                     ]);
 
-                    $this->summerize($postId);
+                    //$this->summerize($postId);
+
                 } else {
 
                     dispatch(new ScoreCalculation($postId));
@@ -148,7 +151,7 @@ class AddCommunityPost extends BaseController
 
             $activity->community_id     =    $group->id;
 
-            $activity->action_details   =    "**{$user->user_name}** posted new post in  **{$post->title}**";
+            $activity->action_details   =    "**{$user->user_name}** posted new post in **{$group->name}** community:{$post->title}";
 
             $activity->action           =    trans('notification_message.posted_in_community');    //Posted in community
 

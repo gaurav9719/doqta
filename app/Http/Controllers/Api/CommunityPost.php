@@ -39,6 +39,7 @@ use Illuminate\Validation\ValidationException;
 use App\Traits\SummarizePost;
 use App\Traits\CommentTrait\Comments;
 use App\Jobs\CommentNotificaton\CommentNotificationJob;
+
 class CommunityPost extends BaseController
 {
     use CommonTrait, IsCommunityJoined, postCommentLikeCount, SummarizePost, Comments;
@@ -57,12 +58,15 @@ class CommunityPost extends BaseController
     public function index(Request $request)
     {
         $limit          = 10;
+
         $authId         = Auth::id();
 
         if (isset($request->limit) && !empty($request->limit)) {
 
             $limit      = $request->limit;
         }
+
+        // dd($authId);
         return $this->getCommunityPost->homeScreenComponent($request, $authId);
     }
 
@@ -203,55 +207,159 @@ class CommunityPost extends BaseController
     // }
 
     #-----------------------  D E L E T E      P O S T          --------------------------------#
+    // public function destroy(string $id)
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+
+    //         $authId             =       Auth::id();
+
+    //         if (empty($id)) {
+
+    //             return $this->sendError(trans("message.post_id_required"), [], 422);
+    //         }
+
+    //         $isExist            =       Post::where(['id' => $id, 'user_id' => $authId])->first();
+
+    //         if (empty($isExist)) {
+    //             //check group member owner and moderator
+    //             $PostData       =   Post::where('id',$id)->first();
+    //             //check group member
+    //             $isExist        =   GroupMember::where(['user_id'=>$authId,'group_id'=>$PostData->group_id])->whereIn('role',['owner','moderator'])->first();
+
+    //             if(isset($isExist) && !empty($isExist)){
+
+    //                 Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+
+    //             }else{
+
+    //                 return $this->sendError(trans("message.cannot_delete_post"), [], 403);
+    //             }
+
+    //         }else{
+
+    //             Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+
+    //         }
+    //         // Define notification types
+    //         $nType = [
+    //             trans('notification_message.posted_in_community'), //10
+    //             trans('notification_message.like_post_type'),   //11
+    //             trans('notification_message.comment_on_post_type'), //12
+    //             trans('notification_message.like_comment_post_type'), //13
+    //             trans('notification_message.comment_reply_type'), //14
+    //             trans('notification_message.reposted_post_type') //15
+    //         ];
+
+    //         // Delete notifications and activity logs
+
+    //         DB::table('notifications')->where(function ($query) use ($id) {
+
+    //             $query->where('post_id', $id)->orWhere('parent_id', $id);
+
+    //         })->whereIn('notification_type', $nType)->delete();
+
+    //         ActivityLog::where(function ($query) use ($id, $nType) {
+
+    //             $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
+    //         })->delete();
+
+    //         DB::commit();
+
+    //         dispatch(new PostRecalculation($isExist->group_id));
+
+    //         return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
+
+    //     } catch (Exception $e) {
+
+    //         DB::rollBack();
+
+    //         Log::error('Error caught: "destroy post" ' . $e->getMessage());
+
+    //         return $this->sendError($e->getMessage(), [], 400);
+    //     }
+    // }
+
+
     public function destroy(string $id)
     {
         DB::beginTransaction();
-
         try {
 
-            $authId             =       Auth::id();
-
+            $authId         =       Auth::id();
+            
             if (empty($id)) {
 
                 return $this->sendError(trans("message.post_id_required"), [], 422);
             }
 
-            $isExist            =       Post::where(['id' => $id, 'user_id' => $authId])->first();
+            // Check if the post exists and the user is authorized to delete it
+            $post           =   Post::where('id', $id)
 
-            if (empty($isExist)) {
+                              ->where('user_id', $authId)
 
-                return $this->sendError(trans("message.no_post_found"), [], 422);
+                ->orWhere(function ($query) use ($id, $authId) {
+
+                    // Check if the user is an owner or moderator of the group
+                    $query->where('id', $id)
+
+                    
+                        ->whereExists(function ($query) use ($authId) {
+
+                            $query->select(DB::raw(1))
+
+                                ->from('group_members')
+
+                                ->whereColumn('group_members.group_id', 'posts.group_id')
+
+                                ->where('group_members.user_id', $authId)
+
+                                ->whereIn('group_members.role', ['owner', 'moderator']);
+                        });
+                })->first();
+
+            if (empty($post)) {
+
+                return $this->sendError(trans("message.cannot_delete_post"), [], 403);
             }
 
+            // Soft delete the post and its children
             Post::where('id', $id)->orWhere('parent_id', $id)->update(['is_active' => 0]);
+
             // Define notification types
             $nType = [
-                trans('notification_message.posted_in_community'), //10
-                trans('notification_message.like_post_type'),   //11
-                trans('notification_message.comment_on_post_type'), //12
-                trans('notification_message.like_comment_post_type'), //13
-                trans('notification_message.comment_reply_type'), //14
-                trans('notification_message.reposted_post_type') //15
+                trans('notification_message.posted_in_community'),       // 10
+                trans('notification_message.like_post_type'),             // 11
+                trans('notification_message.comment_on_post_type'),       // 12
+                trans('notification_message.like_comment_post_type'),     // 13
+                trans('notification_message.comment_reply_type'),         // 14
+                trans('notification_message.reposted_post_type')          // 15
             ];
 
-            // Delete notifications and activity logs
-            DB::table('notifications')->where(function ($query) use ($id) {
+            // Delete related notifications
+            DB::table('notifications')
+                ->where(function ($query) use ($id) {
+                    $query->where('post_id', $id)
+                        ->orWhere('parent_id', $id);
+                })
+                ->whereIn('notification_type', $nType)
+                ->delete();
 
-                $query->where('post_id', $id)->orWhere('parent_id', $id);
-            })->whereIn('notification_type', $nType)->delete();
-
+            // Delete related activity logs
             ActivityLog::where(function ($query) use ($id, $nType) {
-
-                $query->where('post_id', $id)->orWhere('parent_id', $id)->whereIn('action', $nType);
+                $query->where('post_id', $id)
+                    ->orWhere('parent_id', $id)
+                    ->whereIn('action', $nType);
             })->delete();
 
             DB::commit();
 
-            dispatch(new PostRecalculation($isExist->group_id));
+            // Dispatch a job for post recalculation
+            dispatch(new PostRecalculation($post->group_id));
 
             return $this->sendResponsewithoutData(trans('message.post_deleted_successfully'), 200);
         } catch (Exception $e) {
-
             DB::rollBack();
 
             Log::error('Error caught: "destroy post" ' . $e->getMessage());
@@ -259,6 +367,7 @@ class CommunityPost extends BaseController
             return $this->sendError($e->getMessage(), [], 400);
         }
     }
+
     #-----------------------  D E L E T E      P O S T         --------------------------------#
 
 
@@ -769,13 +878,12 @@ class CommunityPost extends BaseController
 
                 $receiver               =   User::find($parentComment->user_id);
 
-                $message                =   "**{$sender->name}** replied to your comment on post: ** {$post->title}**";
+                $message                =   "**{$sender->user_name}** replied to your comment on post: ** {$post->title}**";
 
                 // $activityLogMessage     =   "Replied the comment in " . $group->name;
-                $activityLogMessage     =   "**{$sender->name}** replied to the comment on post: ** {$post->title}**";
+                $activityLogMessage     =   "**{$sender->user_name}** replied to the comment on post: ** {$post->title}**";
 
                 $type                   =   trans('notification_message.comment_reply_type');
-                
             } else {
 
                 #notification data preparation
@@ -785,9 +893,9 @@ class CommunityPost extends BaseController
 
                 $title                  =   $post->title;
 
-                $message                =   "**{$sender->name}** commented on your post: ** {$post->title}**";
+                $message                =   "**{$sender->user_name}** commented on your post: ** {$post->title}**";
 
-                $activityLogMessage     =   "**{$sender->name}** commented on post: ** {$post->title}**";
+                $activityLogMessage     =   "**{$sender->user_name}** commented on post: ** {$post->title}**";
 
                 $type                   =   trans('notification_message.comment_on_post_type');
             }
@@ -858,13 +966,12 @@ class CommunityPost extends BaseController
 
             //  send notification to all user who ever comment on post
 
-            dispatch(new CommentNotificationJob($sender, $data,$type));
+            dispatch(new CommentNotificationJob($sender, $data, $type));
 
             #-------- generate comment thread summary----------#
             dispatch(new CommentThreadSummary($request->post_id, $commentId));
             #-----------        R E C O R D        A C T I V I T Y  -------------#
             return $this->addCommunityPost->getCommentById($request, $authId, trans('message.add_comment'));
-
         } catch (Exception $e) {
 
             DB::rollBack();

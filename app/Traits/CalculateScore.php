@@ -338,7 +338,7 @@ trait CalculateScore
 
                     $post->repost_count     =       $rePostCount;
 
-                    $post->total_comment_count  =       Comment::where(['post_id' =>$post->id])->count();
+                    $post->total_comment_count  =       Comment::where(['post_id' =>$post->id,'is_active'=>1])->count();
 
                     $post->save();
             }

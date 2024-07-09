@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
 use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
- //use Barryvdh\DomPDF\PDF;
+//use Barryvdh\DomPDF\PDF;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
@@ -30,7 +30,7 @@ class JournalAnalyzerControllerNew extends BaseController
     use postCommentLikeCount;
 
     #make general report
-    function generateReportNew(Request $request)
+    function generateReportNewCOmmentOn8July(Request $request) //COmmentOn8July
     {
         $validate               = Validator::make($request->all(), [
 
@@ -50,7 +50,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
         $user_id                =   Auth::id();
         // dd($user_id);
-       // dd($request->journal_ids);
+        // dd($request->journal_ids);
 
         #Check if any journals belong to a different user
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
@@ -74,7 +74,6 @@ class JournalAnalyzerControllerNew extends BaseController
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
 
             $journal_ids = $request->journal_ids;
-
         } else {
 
             $journal_ids = Journal::where('user_id', $user_id)->pluck('id')->toArray();
@@ -87,10 +86,10 @@ class JournalAnalyzerControllerNew extends BaseController
 
         $moodPain       =   $this->getInsightSymptoms($request);
 
-       
+
         #check report available
         $availableReport = $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
-        
+
 
         // $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
         // dd($availableReport);
@@ -98,9 +97,9 @@ class JournalAnalyzerControllerNew extends BaseController
 
         if (isset($availableReport) && count($availableReport['data']) > 0) {
 
-          
+
             $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
-       
+
             return response()->json($availableReport, 200);
             // return response()->json([
             //     'status' => 200,
@@ -119,7 +118,7 @@ class JournalAnalyzerControllerNew extends BaseController
             ->toArray();
         $data = array();
 
-      
+
         foreach ($journal_ids as $journal_id) {
 
             $journal = Journal::find($journal_id);
@@ -223,7 +222,7 @@ class JournalAnalyzerControllerNew extends BaseController
                 $report = $this->generateReportAI($data, 2);
             }
 
-           
+
             #insert in database if success
             if (isset($report['status']) && $report['status'] == "200") {
 
@@ -243,7 +242,224 @@ class JournalAnalyzerControllerNew extends BaseController
                 return $this->insertReport($response, $data1, $moodPain);
             } else {
 
-                $report['moodPain']=$moodPain;
+                $report['moodPain'] = $moodPain;
+
+                // dd($report);
+                return response()->json($report, $report['status']);
+            }
+        } else {
+            return $this->sendResponsewithoutData('No entry found in given journal', 400);
+        }
+    }
+
+
+    function generateReportNew(Request $request)
+    {
+        $validate               = Validator::make($request->all(), [
+
+            'journal_ids'       => 'nullable|array',
+            // 'journal_ids.*'     => 'distinct|exists:journals,id',
+            'start_date'        => 'required|date_format:Y-m-d',
+            'end_date'          => 'required|date_format:Y-m-d|after_or_equal:start_date',
+            'type'              => 'required|integer|between:1,2',
+            'include_chat'      => 'required|integer|between:0,1',
+
+        ]);
+
+        if ($validate->fails()) {
+
+            return $this->sendResponsewithoutData($validate->errors()->first(), 422);
+        }
+        $user_id                =   Auth::id();
+        $auth                   =   Auth::user();
+        $authTimezone           =   $auth->timezone ?? 'UTC'; //'Asia/Kolkata'
+        $authTimezone_offset    =   timezone_offset($authTimezone);
+        #Check if any journals belong to a different user
+        if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
+
+            $invalidJournals    =   Journal::whereIn('id', $request->journal_ids)
+
+                ->where('user_id', '<>', $user_id)
+                ->count();
+
+            if ($invalidJournals > 0) {
+
+                return $this->sendResponsewithoutData("Invailed journals", 422);
+            }
+        }
+
+        $start_time     = Carbon::parse($request->start_date, $authTimezone)->startOfDay();
+
+        $end_time       = Carbon::parse($request->end_date, $authTimezone)->isToday() || Carbon::parse($request->end_date, $authTimezone)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date, $authTimezone)->endOfDay();
+
+
+        if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
+
+            $journal_ids        =   $request->journal_ids;
+
+        } else {
+
+            $journal_ids        =   Journal::where('user_id', $user_id)->pluck('id')->toArray();
+
+            if (count($journal_ids) == 0) {
+
+                return $this->sendResponsewithoutData("Journal not available", 422);
+            }
+        }
+        $moodPain              =   $this->getInsightSymptoms($request);
+        #check report available
+        $availableReport       =   $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
+        // $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
+        // dd($availableReport);
+        //  echo response()->json($availableReport, 200);
+        if (isset($availableReport) && count($availableReport['data']) > 0) {
+
+            $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
+
+            return response()->json($availableReport, 200);
+            // return response()->json([
+            //     'status' => 200,
+            //     'message' => $request->type == 1 ? trans('message.insight') : trans('message.report'),
+            //     'data' =>  $availableReport,
+            //     'moodPain' => isset($moodPain) ? $moodPain : null,
+
+            // ], 200);
+        }
+
+
+        $request_ids = JournalEntry::whereIn('journal_id', $journal_ids)
+            ->where('is_active', 1)
+            ->whereBetween('created_at', [$start_time, $end_time])
+            ->pluck('id')
+            ->toArray();
+        $data = array();
+
+
+        foreach ($journal_ids as $journal_id) {
+
+            $journal = Journal::find($journal_id);
+
+            #check report available for request time
+            $entries_id    = JournalEntry::where('journal_id', $journal->id)->where('is_active', 1)->whereBetween('created_at', [$start_time, $end_time])->pluck('id')->toArray();
+
+            ///dd($entries_id);
+
+            if (count($entries_id) > 0) {
+
+                $journalData = array(['text' => "-------------------------------------------------------------------------"], ['text' => "Journal Name : $journal->title"], ['text' => "Disease: " . $journal->topic->name], ['text' => 'Journal Entries']);
+                #preparing journal entries as input in array
+                $entries = JournalEntry::where('journal_id', $journal->id)->whereBetween('created_at', [$start_time, $end_time])->with(['feeling', 'feeling_types.feeling_type_details', 'symptom.journalSymtom'])->get();
+
+                foreach ($entries as $entry) {
+
+                    #date
+                    $date   = Carbon::parse($entry->journal_on)->format('Y-m-d H:i A');
+
+                    array_push($journalData, ['text' => "Date: $date"]);
+                    #entry id
+                    $details = "id: " . $entry->id;
+                    #mood
+                    $details = $details . ", Mood: " . $entry->feeling->name;
+                    #feeling
+                    $felling_types  = $entry->feeling_types->pluck('feeling_type_details.name')->implode(", ");
+                    $details        = $details . ", Feelings: $felling_types";
+                    #symptoms
+                    $symptoms       = $entry->symptom->pluck('journalSymtom.symptom')->implode(", ");
+                    $details        = $details . ", Symptoms: $symptoms";
+                    #pain
+                    $painScale = [
+                        0 => "No Pain",
+                        1 => "Mild Pain",
+                        2 => "Discomforting Pain",
+                        3 => "Moderate Pain",
+                        4 => "Severe Pain",
+                        5 => "Very Severe Pain",
+                    ];
+
+                    $pain       = $painScale[$entry->pain];
+                    $details    = $details . ". Pain: $pain";
+
+                    #description
+                    $details    = $details . ". Description: $entry->content";
+                    array_push($journalData, ['text' => $details]);
+                }
+
+                $data = array_merge($data, $journalData);
+            }
+        }
+
+        if (count($data) > 0) {
+            #----------  3 J U N -----------------#
+            if (isset($request->include_chat) && $request->include_chat == 1) {
+
+                $chat = $this->includeChat($request);
+
+                if (isset($chat) && count($chat) > 0) {
+
+                    $data = array_merge($data, $chat);
+                }
+            }
+            #----------  3 J U N -----------------#
+            // return $data;
+
+
+            #Insides & Suggestion
+            if ($request->type == 1) {
+
+                array_push(
+                    $data,
+                    array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= insights and sugestions"),
+                    array("text" => "provide result in json format"),
+                    array("text" => "give the keys values in array format, even if only one key is available. and give minimum  five points in each key"),
+                    array("text" => "also provide the ids in array on the basis of which that line has been made"),
+                    array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the journal entries'"),
+                    array("text" => "if Media link available in chat section, analyze the image and give response accordingly"),
+                    array("text" => "format must be in this format => \n{\n  \"insights\": [\n    {\"text\": \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\", \"ids\":[12, 35 ,51, 64]},\n    {\"text\": \"Exercise has a noticeable positive impact on blood sugar management.\", \"ids\":[14, 37 ,53, 60, 68]},\n    {\"text\": \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\", \"ids\":[10, 32 ,51, 54, 64]},\n    {\"text\": \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\", \"ids\":[6, 22 ,47, 49, 54]},\n    {\"text\": \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\", \"ids\":[21, 37 ,41, 49, 53]}\n  ],\n  \"suggestions\": [\n    {\"text\": \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\", \"ids\":[12, 35 ,51, 64]},\n    {\"text\": \"Incorporate regular physical activity, such as daily walks, into the routine.\", \"ids\":[14, 37 ,53, 60, 68]},\n    {\"text\": \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\", \"ids\":[10, 32 ,51, 54, 64]},\n    {\"text\": \"Monitor blood sugar closely during illness and seek medical attention if necessary.\", \"ids\":[6, 22 ,47, 49, 54]},\n    {\"text\": \"Actively engage in diabetes support groups to learn from and share experiences with others.\", \"ids\":[21, 37 ,41, 49, 53]}\n  ]\n}\n"),
+                    //array("text" => "format must be in this format => \n{\n  \"insights\": [\n    \"High blood sugar can occur even when following a meal plan, requiring investigation and adjustments.\",\n    \"Exercise has a noticeable positive impact on blood sugar management.\",\n    \"Resisting unhealthy food choices during social events is crucial for maintaining stable blood sugar levels.\",\n    \"Illness can disrupt blood sugar control, highlighting the need for close monitoring and medical advice when sick.\",\n    \"Connecting with others through support groups provides motivation and valuable insights for diabetes management.\"\n  ],\n  \"suggestions\": [\n    \"Consult healthcare professionals when blood sugar fluctuations occur despite following a plan.\",\n    \"Incorporate regular physical activity, such as daily walks, into the routine.\",\n    \"Explore healthy dessert alternatives to satisfy cravings while managing blood sugar.\",\n    \"Monitor blood sugar closely during illness and seek medical attention if necessary.\",\n    \"Actively engage in diabetes support groups to learn from and share experiences with others.\"\n  ]\n}\n"),
+                );
+                $report = $this->generateReportAI($data, 1);
+            }
+
+            #report
+            elseif ($request->type == 2) {
+                array_push(
+                    $data,
+                    array("text" => "-------------------------------------------------------------------------------------------------------------------------------summarize this content in only these keys= symptoms, mood, pain and questions_to_ask_your_doctor"),
+                    array("text" => "provide result in json format"),
+                    array("text" => "give the values of keys in array format not in string, even if only one value is available. and give minimum five points in each key"),
+
+                    array("text" => "expain all point, do not give one word in the array"),
+                    array("text" => "expain every symtoms, mood and pain. Do not give the same output as the input"),
+                    array("text" => "don't give any key null or black, suppose if pain not mention above, give in the response like: 'No pain metion in the journal entries'"),
+                    array("text" => "if Media link available in chat section, analyze the image and give response accordingly"),
+
+                    array("text" => 'format must be in this format => { "symptoms": [ "Sweating of your palms before participating in social scenarios", "Shortness of breath while surrounded by others you are not familiar with, which worsens your asthma", "Rapid heartbeat in classroom and work settings before thinking about answering a question", "Thoughts and feelings of worthlessness, sadness, and low self-esteem" ], "mood": [ "20% of your emotions were positive, 10% of your emotions were neutral, and 70% of your emotions were negative", "Your most common negative emotions were sadness, anger, and frustration. You encountered these emotions in situations before and after approaching unfamiliar people.", "Your most common positive emotions were happiness and excitement. You encountered these emotions when you were with your friends and family" ], "pain": [ "On average, you experienced mild physical pain", "You experienced moderate pain relating to your shortness of breath", "You experienced mild pain related to your shaking" ], "questions_to_ask_your_doctor": [ "How can I modulate my emotions?", "How can I alleviate my physical symptoms, such as shortness of breath, shaking, and rapid heartbeat?" ] }'),
+                );
+                // return $data;
+                $report = $this->generateReportAI($data, 2);
+            }
+
+
+            #insert in database if success
+            if (isset($report['status']) && $report['status'] == "200") {
+
+                $response = json_encode($report['data']);
+                $data1   = [
+                    'user_id'           => $user_id,
+                    'request_ids'       => $request_ids,
+                    'start_time'        => $start_time,
+                    'end_time'          => $end_time,
+                    'chat_ids_count'    => isset($chat_ids_count) ? $chat_ids_count : null,
+                    'chat_start_id'     => isset($chat_start_id) ? $chat_start_id : null,
+                    'chat_end_id'       => isset($chat_end_id) ? $chat_end_id : null,
+                    'is_chat_included'  => $request->include_chat,
+                    'type'              => $request->type,
+                ];
+
+                return $this->insertReport($response, $data1, $moodPain);
+            } else {
+
+                $report['moodPain'] = $moodPain;
 
                 // dd($report);
                 return response()->json($report, $report['status']);
@@ -297,7 +513,7 @@ class JournalAnalyzerControllerNew extends BaseController
         // Execute cURL request
         $response = curl_exec($curl);
 
-        
+
         // Check for errors
         if ($response === false) {
             $error = curl_error($curl);
@@ -313,10 +529,10 @@ class JournalAnalyzerControllerNew extends BaseController
             // Close cURL session
             curl_close($curl);
             $response = json_decode($response, true);
-            
+
             // return $response;
             try {
-                
+
                 if (isset($response['candidates']) && isset($response['candidates'][0]) && isset($response['candidates'][0]['content']) && isset($response['candidates'][0]['content']['parts']) && isset($response['candidates'][0]['content']['parts'][0]) && isset($response['candidates'][0]['content']['parts'][0]['text'])) {
 
                     $result = $response['candidates'][0]['content']['parts'][0]['text'];
@@ -388,13 +604,116 @@ class JournalAnalyzerControllerNew extends BaseController
 
 
 
-
     function getInsightSymptoms($request)
     {
+        $auth               =   Auth::User();
         $authId             =   Auth::id();
         $start_date         =   $request->start_date;
         $end_date           =   $request->end_date;
+        $authTimezone       =   $auth->timezone ?? 'UTC';
+        $authTimezone_offset =  timezone_offset($authTimezone);
         $dates              =   getDatesBetween($start_date, $end_date);
+        $insight            =   array();
+
+        if (isset($dates[0]) && !empty($dates[0])) {
+
+            foreach ($dates as $date) {
+                //========== AS UTC TIME ZONE   ======//
+                $insights                   =   JournalEntry::with([
+
+                    'feeling' => function ($query) {
+
+                        $query->select('id', 'name');
+                    }
+
+                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
+
+
+                if (isset($request->journal_ids) && !empty($request->journal_ids)) {
+
+                    $insights = $insights->whereIn('journal_id', $request->journal_ids);
+                }
+
+                $insights = $insights
+                    ->select('*')
+                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
+                    ->havingRaw("local_created_date = '$date' ")
+                    ->orderByDesc('id')
+                    ->get();
+
+                if ($insights->isNotEmpty()) {
+
+                    $query                  =   JournalEntry::where('is_active', 1);
+
+                    if (!empty($request->journal_ids)) {
+
+                        $query->whereIn('journal_id', $request->journal_ids);
+                    }
+
+                    $query      =     $query->select('*')
+                    
+                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
+                    ->havingRaw("local_created_date = '$date' ")
+                    ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
+                    ->first();
+
+                    $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
+
+                    $avg_pain    =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_pain'] : 0);
+
+                    $insight[] = [
+                        'date' => $date,
+                        'count' => count($insights),
+                        'avg_mood' => $avg,
+                        'avg_pain' => $avg_pain,
+                        'mood' => $insights[0]['feeling_id'],
+                        'pain' => $insights[0]['pain'],
+                        'mood_pain' => $insights,
+                    ];
+                }
+            }
+        }
+        return $insight;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    function getInsightSymptomsOLd($request)
+    {
+        $authId             =   Auth::id();
+
+        $start_date         =   $request->start_date;
+
+        $end_date           =   $request->end_date;
+
+        $dates              =   getDatesBetween($start_date, $end_date);
+
+        $auth               =   Auth::User();
+
+
+        $authTimezone       =   $auth->timezone ?? 'UTC';
+
+        $authTimezone_offset =  timezone_offset($authTimezone);
+
+        $dates              =   getDatesBetween($start_date, $end_date);
+
         $insight            =   array();
 
         if (isset($dates[0]) && !empty($dates[0])) {
@@ -403,17 +722,16 @@ class JournalAnalyzerControllerNew extends BaseController
 
                 $insights                   =   JournalEntry::with([
 
-                                                'feeling' => function ($query) {
+                    'feeling' => function ($query) {
 
-                                                    $query->select('id', 'name'); // Rename 'id' and 'name'
-                                                }
+                        $query->select('id', 'name'); // Rename 'id' and 'name'
+                    }
 
-                                                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
+                ])->select('id', 'feeling_id', 'pain')->where(['user_id' => $authId, 'is_active' => 1]);
 
                 if (isset($request->journal_ids) && !empty($request->journal_ids)) {
 
                     $insights = $insights->whereIn('journal_id', $request->journal_ids);
-
                 }
 
                 $insights                   =   $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
@@ -433,7 +751,7 @@ class JournalAnalyzerControllerNew extends BaseController
                         ->first();
 
                     $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
-                    
+
                     $avg_pain    =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_pain'] : 0);
 
                     $insight[] = [
@@ -540,6 +858,7 @@ class JournalAnalyzerControllerNew extends BaseController
     {
 
         $request_ids = JournalEntry::whereIn('journal_id', $journal_ids)
+
             ->where('is_active', 1)
             ->whereBetween('created_at', [$start_time, $end_time])
             ->pluck('id')
@@ -599,7 +918,7 @@ class JournalAnalyzerControllerNew extends BaseController
                             if ($chat_start_id == $report->chat_start_id && $chat_end_id == $report->chat_end_id) {
 
                                 if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids)) && empty(array_diff($chatReportIds, $chat_request_ids)) && empty(array_diff($chat_request_ids, $chatReportIds))) {
-                                    $reportLink      =  JournalReport::select('pdf_link')->where('id',$report->id)->first();
+                                    $reportLink      =  JournalReport::select('pdf_link')->where('id', $report->id)->first();
                                     if ($request->type == 1) {
                                         $finalReport = $this->getInsights($report->id, 1);
 
@@ -611,20 +930,18 @@ class JournalAnalyzerControllerNew extends BaseController
                                             'status' => 200,
                                             'message' => $typeMessage,
                                             'data' => $finalReport,
-                                            'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                            'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
                                         );
-
-
                                     } elseif ($request->type == 2) {
 
                                         $finalReport = json_decode($report->report, true);
                                         $typeMessage = $request->type == 1 ? trans('message.insight') : trans('message.report');
-                                        
-                                        $ar= array(
+
+                                        $ar = array(
                                             'status' => 200,
                                             'message' => $typeMessage,
                                             'data' => $finalReport,
-                                            'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                            'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
                                         );
 
                                         return $ar;
@@ -656,7 +973,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
                 if (count($request_ids) == $report->ids_count) {
                     if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids))) {
-                        $reportLink      =  JournalReport::select('pdf_link')->where('id',$report->id)->first();
+                        $reportLink      =  JournalReport::select('pdf_link')->where('id', $report->id)->first();
                         if ($request->type == 1) {
                             $finalReport = $this->getInsights($report->id, 1);
 
@@ -664,7 +981,7 @@ class JournalAnalyzerControllerNew extends BaseController
                                 'status' => 200,
                                 'message' => trans('message.insight'),
                                 'data' => $finalReport,
-                                'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
                             );
 
                             // return $ar;
@@ -675,10 +992,10 @@ class JournalAnalyzerControllerNew extends BaseController
                                 'status' => 200,
                                 'message' => trans('message.insight'),
                                 'data' => $finalReport,
-                                'pdf_link'=>(isset($reportLink) && !empty($reportLink['pdf_link'])?$this->addBaseInImage($reportLink['pdf_link']):null)
+                                'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
                             );
 
-                           // return $finalReport;
+                            // return $finalReport;
                         }
                     }
                 }
@@ -739,6 +1056,7 @@ class JournalAnalyzerControllerNew extends BaseController
         ]);
 
         if ($validate->fails()) {
+
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
         if ($request->type == 1) {
@@ -790,20 +1108,18 @@ class JournalAnalyzerControllerNew extends BaseController
             $response               = ChatInsight::find($request->id);
             $ids                    = ChatInsightEntry::where('insight_id', $request->id)->pluck('entry_id')->toArray();
 
-            $response['entries']    = AiMessage::whereIn('id',$ids)->with(['sender' => function($query){
+            $response['entries']    = AiMessage::whereIn('id', $ids)->with(['sender' => function ($query) {
 
                 $query->select('id', 'name', 'user_name', 'profile');
-
-            } ])->get(['id', 'message','sender_id']);
+            }])->get(['id', 'message', 'sender_id']);
 
             if (count($response['entries']) > 0) {
-                foreach($response['entries'] as $entry){
-                    $entry->sender->profile=$this->addBaseInImage($entry->sender->profile);
+                foreach ($response['entries'] as $entry) {
+                    $entry->sender->profile = $this->addBaseInImage($entry->sender->profile);
                 }
             }
             // return $response;
             return $this->sendResponse($response, "Insight entries details", 200);
-
         }
     }
 
@@ -844,7 +1160,7 @@ class JournalAnalyzerControllerNew extends BaseController
         // $newReport = JournalReport::where('user_id', $user_id)->where('type', $request_type)->where('report_type', 1)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->where('is_chat_included', $is_chat_included)->first();
         // if (empty($newReport)) {
         $newReport                      = new JournalReport;
-        
+
         // }
         // else{
         //     JournalInsight::where('report_id', $newReport->id)->delete();
@@ -866,7 +1182,7 @@ class JournalAnalyzerControllerNew extends BaseController
         $newReport->report_type         = 1;
         $newReport->save();
         $reportId       =   $newReport->id;
-         #----------- generate pdf -------------#
+        #----------- generate pdf -------------#
         $this->getJournalReport($reportId);
         #insights & suggestion
         if ($request_type == 1) {
@@ -904,7 +1220,7 @@ class JournalAnalyzerControllerNew extends BaseController
                 }
             }
             $finalReport =  $this->getInsights($reportId, 1); //type: 1=insights, 2=suggestion, 3=chat insights
-            $pdfLink     =  JournalReport::select('pdf_link')->where('id',$reportId)->first();
+            $pdfLink     =  JournalReport::select('pdf_link')->where('id', $reportId)->first();
 
 
             return response()->json([
@@ -912,19 +1228,19 @@ class JournalAnalyzerControllerNew extends BaseController
                 'message' => trans('message.insight'),
                 'data' =>  $finalReport,
                 'moodPain' => $moodPain,
-                'pdf_link'=> (isset($pdfLink) && !empty($pdfLink['pdf_link']))?  $this->addBaseInImage($pdfLink->pdf_link):null,
+                'pdf_link' => (isset($pdfLink) && !empty($pdfLink['pdf_link'])) ?  $this->addBaseInImage($pdfLink->pdf_link) : null,
             ], 200);
         }
 
         #Journal report
         elseif ($request_type == 2) {
-            $pdfLink     =  JournalReport::select('pdf_link')->where('id',$reportId)->first();
+            $pdfLink     =  JournalReport::select('pdf_link')->where('id', $reportId)->first();
             return response()->json([
                 'status' => 200,
                 'message' => trans('message.report'),
                 'data' =>  $result,
                 'moodPain' => $moodPain,
-                'pdf_link'=> (isset($pdfLink) && !empty($pdfLink['pdf_link']))?  $this->addBaseInImage($pdfLink['pdf_link']):null,
+                'pdf_link' => (isset($pdfLink) && !empty($pdfLink['pdf_link'])) ?  $this->addBaseInImage($pdfLink['pdf_link']) : null,
             ], 200);
         }
     }
@@ -958,31 +1274,25 @@ class JournalAnalyzerControllerNew extends BaseController
                 $directory      =   "uploads/pdf/{$currentYear}/{$currentMonth}";
                 // Store the QR code image directly into the storage disk
                 $filename       = $directory . '/' . Str::uuid() . '.pdf';
-                Storage::disk('public')->put($filename,$pdf->output());
+                Storage::disk('public')->put($filename, $pdf->output());
                 // Return the path to the stored QR code image
                 // Save PDF to storage and update the report's PDF link
                 $report->pdf_link = $filename;
                 $report->save();
-
             } else {
                 Log::warning('Report not found: ID ' . $reportId);
-               // return $this->sendError(trans('message.report_not_found'), [], 404);
+                // return $this->sendError(trans('message.report_not_found'), [], 404);
             }
         } catch (Exception $e) {
             Log::error('Error in getJournalReport: ' . $e->getMessage() . ' at line ' . $e->getLine());
-           // return $this->sendError(trans('message.something_went_wrong'), [], 500);
+            // return $this->sendError(trans('message.something_went_wrong'), [], 500);
         }
     }
-    
-
-     public function checkPdf()
-        {
-           
-            return $this->getJournalReport(4);
-
-          
-        }
 
 
+    public function checkPdf()
+    {
 
+        return $this->getJournalReport(4);
+    }
 }

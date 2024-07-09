@@ -43,15 +43,16 @@ class GetCommunityService extends BaseController
     {
         try {
 
-            $limit          =       10;
+            $limit          =       $request->input('limit',10);
 
-            if (isset($request->limit) && !empty($request->limit)) {
+            // if (isset($request->limit) && !empty($request->limit)) {
 
-                $limit      =       $request->limit;
-            }
-            $user = User::findOrFail($authId);
+            //     $limit      =       $request->limit;
+            // }
 
-            $homeScreenPosts = $user->posts()
+            $user           =       User::findOrFail($authId);
+
+            $homeScreenPosts=       $user->posts()
 
                 ->where('posts.is_active', 1)
 
@@ -72,15 +73,21 @@ class GetCommunityService extends BaseController
                     $query->where('user_id', $authId);
                 })
                 ->where(function ($query) {
+
                     $query->whereDoesntHave('parent_post')
+
                         ->orWhereHas('parent_post', function ($query) {
+
                             $query->where('is_active', 1)
+
                                 ->whereHas('post_user');
                         });
                 })
                 ->with([
+
                     'post_user:id,name,user_name,profile',
                     'group:id,name,description,cover_photo,member_count,post_count,created_by',
+
                     'parent_post' => function ($query) {
 
                         $query->select('*')
@@ -91,7 +98,6 @@ class GetCommunityService extends BaseController
                             ]);
                     }
                 ])
-
                 ->withCount(['total_likes', 'total_comment'])
                 ->orderByDesc('id')
                 ->simplePaginate($limit);
@@ -100,27 +106,27 @@ class GetCommunityService extends BaseController
 
                 if (isset($homeScreenPost->media_url) && !empty($homeScreenPost->media_url)) {
 
-                    $homeScreenPost->media_url      =  $this->addBaseInImage($homeScreenPost->media_url);
+                    $homeScreenPost->media_url      =  addBaseUrl($homeScreenPost->media_url);
                 }
 
                 if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
 
-                    $homeScreenPost->thumbnail      =  $this->addBaseInImage($homeScreenPost->thumbnail);
+                    $homeScreenPost->thumbnail      =  addBaseUrl($homeScreenPost->thumbnail);
                 }
 
 
                 if ($homeScreenPost->parent_post && $homeScreenPost->parent_post->post_user && $homeScreenPost->parent_post->post_user->profile) {
 
-                    $homeScreenPost->parent_post->post_user->profile = $this->addBaseInImage($homeScreenPost->parent_post->post_user->profile);
+                    $homeScreenPost->parent_post->post_user->profile = addBaseUrl($homeScreenPost->parent_post->post_user->profile);
                 }
 
                 if (isset($homeScreenPost->post_user) &&  !empty($homeScreenPost->post_user->profile)) {
 
-                    $homeScreenPost->post_user->profile      =  $this->addBaseInImage($homeScreenPost->post_user->profile);
+                    $homeScreenPost->post_user->profile      =  addBaseUrl($homeScreenPost->post_user->profile);
                 }
                 if ($homeScreenPost->group &&  $homeScreenPost->group->cover_photo) {
 
-                    $homeScreenPost->group->cover_photo      =  $this->addBaseInImage($homeScreenPost->group->cover_photo);
+                    $homeScreenPost->group->cover_photo      =  addBaseUrl($homeScreenPost->group->cover_photo);
                 }
                 $isExist                         =   $this->IsPostLiked($homeScreenPost->id, $authId);
                 $homeScreenPost->is_liked        =   $isExist['is_liked'];
@@ -133,17 +139,16 @@ class GetCommunityService extends BaseController
 
                     if (isset($homeScreenPost->parent_post->media_url) && !empty($homeScreenPost->parent_post->media_url)) {
 
-                        $homeScreenPost->parent_post->media_url   =  $this->addBaseInImage($homeScreenPost->parent_post->media_url);
+                        $homeScreenPost->parent_post->media_url   =  addBaseUrl($homeScreenPost->parent_post->media_url);
                     }
 
                     if (isset($homeScreenPost->parent_post->thumbnail) && !empty($homeScreenPost->parent_post->thumbnail)) {
 
-                        $homeScreenPost->parent_post->thumbnail   =  $this->addBaseInImage($homeScreenPost->parent_post->thumbnail);
+                        $homeScreenPost->parent_post->thumbnail   =  addBaseUrl($homeScreenPost->parent_post->thumbnail);
                     }
 
 
                     $isExist                                      =   $this->IsPostLiked($homeScreenPost->parent_post->id, $authId);
-
 
                     $homeScreenPost->parent_post->is_liked        =   $isExist['is_liked'];
                     $homeScreenPost->parent_post->reaction        =   $isExist['reaction'];
@@ -158,7 +163,7 @@ class GetCommunityService extends BaseController
                 $homeScreenPost->postedAt                         =   time_elapsed_string($homeScreenPost->created_at);
             });
 
-            $new_health_insight_available     =   $this->checkNewHealthInsights($authId);
+            $new_health_insight_available                         =   $this->checkNewHealthInsights($authId);
 
             $notification_count     =   notification_count();
             return response()->json([
@@ -282,6 +287,7 @@ class GetCommunityService extends BaseController
                             ]);
                     }
                 ])
+
                 ->withCount(['total_likes', 'total_comment'])
                 ->orderByDesc('id')
                 ->simplePaginate($limit);
@@ -360,15 +366,24 @@ class GetCommunityService extends BaseController
                 //         ->where('blocked_users.blocked_user_id','=','posts.user_id'); // Check if the current user has reported the post
                 // })
                 ->whereNotExists(function ($query) use ($authId) {
+                    
                     $query->select(DB::raw(1))
+
                         ->from('hidden_posts')
+
                         ->whereColumn('hidden_posts.post_id', '=', 'posts.id') // Assuming 'post_id' is the column name for the post's ID in the 'report_posts' table
                         ->where('hidden_posts.user_id', '=', $authId); // Check if the current user has reported the post 
+
                 })->where(function ($query) {
+
                     $query->whereDoesntHave('parent_post') // No parent post
+
                         ->orWhereHas('parent_post', function ($query) {
+
                             $query->where('is_active', 1) // Parent post is active
+
                                 ->whereHas('post_user', function ($query) {
+
                                     $query->where('is_active', 1); // Parent post user is active
                                 });
                         });
@@ -543,11 +558,12 @@ class GetCommunityService extends BaseController
     {
 
         try {
-            $limit = 10;
+
+            $limit          =    10;
 
             if (isset($request->limit) && !empty($request->limit)) {
 
-                $limit = $request->limit;
+                $limit      =   $request->limit;
             }
             // $communitiesQuery = GroupMember::where('user_id', $authId)
 
@@ -652,7 +668,7 @@ class GetCommunityService extends BaseController
                 }
             }
             //check i am the member of the community or not
-            $isExist = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
+            $isExist                  = GroupMember::where(['group_id' => $community->id, 'is_active' => 1, 'user_id' => $authId])->first();
 
             if (isset($isExist) && !empty($isExist)) {
 
@@ -754,21 +770,22 @@ class GetCommunityService extends BaseController
 
                     //   $receiver      =   User::find($group->created_by);
 
-                    $receiver      =   GroupMember::with('group_user')->whereHas('groupUser', function ($query) {
+                    $receiver      =   GroupMember::with('groupUser')->whereHas('groupUser', function ($query) {
 
-                        $query->where('is_active');
+                        $query->where('is_active',1);
 
                     })->where(['group_id' => $request->community_id, 'role' => "owner"])->first();
-
+                  
                     $type           =       trans('notification_message.joined_community_type');
 
-                    if ($receiver) {
+                  
+                    if (isset($receiver) && !empty($receiver)) {
                         // Retrieve only the group_user data
-                        $receiver = $receiver->group_user;
+                        $receiverUser = $receiver->groupUser;
 
                         // Use $groupUser for further processing
 
-                        $mesage        =   "**{$sender->name}** " . trans('notification_message.joined_community') . " **{$group->name}** community";
+                        $mesage        =   "**{$sender->user_name}** " . trans('notification_message.joined_community') . " **{$group->name}** community";
 
                         $data          =   [
                             "message"               => $mesage,
@@ -776,7 +793,7 @@ class GetCommunityService extends BaseController
                             "community_id"          => $group->id
                         ];
                     
-                        $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
+                        $this->notification->sendNotificationNew($sender, $receiverUser, $type, $data);
                     }
 
                     #-------  A C T I V I T Y -----------#
@@ -788,7 +805,7 @@ class GetCommunityService extends BaseController
 
                     $activity->community_member_id  =    $addGroupMember->id;
 
-                    $activity->action_details       =    "**{$sender->name}** Joined the **{$group->name}** community";
+                    $activity->action_details       =    "**{$sender->user_name}** Joined the **{$group->name}** community";
 
                     $activity->action               =    $type;    //Joined the community
 

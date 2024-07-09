@@ -203,8 +203,6 @@ if (!function_exists('upload_file')) {
         } catch (Exception $e) {
 
             Log::error('Error caught: "getJournalReport" ' . $e->getLine());
-
-          
         }
     }
 }
@@ -574,7 +572,6 @@ if (!function_exists('checkFileExist')) {
         if (File::exists(public_path('stroage/' . $file))) {
 
             return true;
-            
         } else {
 
             return false;
@@ -953,9 +950,9 @@ if (!function_exists('increment')) {
 if (!function_exists('decrement')) {
     function decrement($tableName, $conditions, $field, $incrementBy)
     {
-       
-        $post = Post::select('repost_count')->where('id',$conditions['id'])->first();
-        if(isset($post) && $post['repost_count']>=1){
+
+        $post = Post::select('repost_count')->where('id', $conditions['id'])->first();
+        if (isset($post) && $post['repost_count'] >= 1) {
 
             return DB::table($tableName)
                 ->updateOrInsert(
@@ -1042,11 +1039,13 @@ if (!function_exists('getDatesBetween')) {
     function getDatesBetween($start_date, $end_date)
     {
         $start      = Carbon::createFromFormat('Y-m-d', $start_date);
+
         $end        = Carbon::createFromFormat('Y-m-d', $end_date);
+        
         $dates      = [];
         // Loop through each date from start to end (inclusive)
         for ($date = $start; $date->lte($end); $date->addDay()) {
-            
+
             $dates[] = $date->format('Y-m-d'); // Format date as 'Y-m-d' and add to array
         }
         return $dates;
@@ -1084,7 +1083,7 @@ if (!function_exists('post_category')) {
 if (!function_exists('post_reaction_count')) {
     function post_reaction_count($type, $reaction, $post_id)
     {
-       
+
         // Retrieve the post
         $post = Post::find($post_id);
 
@@ -1130,18 +1129,39 @@ if (!function_exists('post_reaction_count')) {
 
             $unreadNotifications    =   Notification::where('receiver_id', $authId)->where('is_read', 0)->count();
 
-            $unreadInbox            =   Inbox::where(function($query) use($authId){
+            $unreadInbox            =   Inbox::where(function ($query) use ($authId) {
 
-                $query->where('sender_id',$authId)->orWhere('receiver_id',$authId);
+                $query->where('sender_id', $authId)->orWhere('receiver_id', $authId);
+            })->where(function ($query) use ($authId) {
 
-            })->where(function($query) use($authId){
-
-                $query->where('user1_unread',$authId)->orWhere('user2_unread',$authId);
-
+                $query->where('user1_unread', $authId)->orWhere('user2_unread', $authId);
             })->count();
 
-            return ['unread_notification'=>$unreadNotifications,'unread_thread'=>$unreadInbox,'total_unread'=>$unreadNotifications+$unreadInbox];
-
+            return ['unread_notification' => $unreadNotifications, 'unread_thread' => $unreadInbox, 'total_unread' => $unreadNotifications + $unreadInbox];
         }
     }
+
+    //------------------------  TIME ZONE OFFSET ------------------------------//
+    if (!function_exists('timezone_offset')) {
+        function timezone_offset($authTimezone)
+        {
+
+            $timezone           =       new DateTimeZone($authTimezone);
+
+            $datetime           =       new DateTime('now', $timezone);
+
+            $offset_in_seconds  =       $timezone->getOffset($datetime);
+
+            $offset_hours       =       floor(abs($offset_in_seconds) / 3600);
+
+            $offset_minutes     =       floor((abs($offset_in_seconds) % 3600) / 60);
+
+            $offset_sign        =       ($offset_in_seconds >= 0) ? '+' : '-';
+
+            $utc_offset         =       sprintf('%s%02d:%02d', $offset_sign, $offset_hours, $offset_minutes);
+
+            return  $utc_offset;
+        }
+    }
+
 }

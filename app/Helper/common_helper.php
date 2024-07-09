@@ -12,6 +12,7 @@ use App\Models\BlockedUser;
 use App\Models\GroupMember;
 use App\Models\UserFollower;
 use App\Models\GroupMemberRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,6 +25,8 @@ if (!function_exists('transformParentPostData')) {
 
             $post->parent_post->post_user->profile =    addBaseUrl($post->parent_post->post_user->profile);
         }
+
+        $post->parent_post->can_you_delete          =   checkPostPermission($post->parent_post->id,$authId);
 
         if (isset($post->parent_post->media_url) && !empty($post->parent_post->media_url)) {
 
@@ -58,6 +61,9 @@ if (!function_exists('transformPostData')) {
             $homeScreenPost->media_url      =  addBaseUrl($homeScreenPost->media_url);
         }
 
+        $homeScreenPost->can_you_delete     =   checkPostPermission($homeScreenPost->id,$authId);
+
+ 
         if (isset($homeScreenPost->thumbnail) && !empty($homeScreenPost->thumbnail)) {
 
             $homeScreenPost->thumbnail      =  addBaseUrl($homeScreenPost->thumbnail);
@@ -602,7 +608,7 @@ if (!function_exists('supportUserS')) {
             $userQuery = User::select('id', 'name', 'user_name', 'profile', 'is_active')
                 ->where('is_active', 1)
                 ->whereNotNull('user_name')
-                ->where('role',1)
+                ->where('role', 1)
                 //->whereNotIn('role', [2, 3])
                 ->whereDoesntHave('blockedBy', fn ($query) => $query->where('user_id', $authId))
                 ->whereDoesntHave('blockedUsers', fn ($query) => $query->where('blocked_user_id', $authId))
@@ -922,5 +928,67 @@ if (!function_exists('likeTypes')) {
 
         // Return the corresponding reaction or default to 'Support'
         return $reactions[$like] ?? 'Support';
+    }
+}
+
+
+
+if (!function_exists('checkPostPermission')) {
+    function checkPostPermission($post_id, $authId)
+    {
+        // Define an associative array to map the like values to their respective reactions
+
+        return (Post::where('id', $post_id)
+
+            ->where('user_id', $authId)
+
+            ->orWhere(function ($query) use ($post_id, $authId) {
+                // Check if the user is an owner or moderator of the group
+                $query->where('id', $post_id)
+
+                    ->whereExists(function ($query) use ($authId) {
+
+                        $query->select(DB::raw(1))
+
+                            ->from('group_members')
+
+                            ->whereColumn('group_members.group_id', 'posts.group_id')
+
+                            ->where('group_members.user_id', $authId)
+
+                            ->whereIn('group_members.role', ['owner', 'moderator', 'admin']);
+                    });
+            })->exists())?1:0;
+    }
+}
+
+
+if (!function_exists('checkCommentPermission')) {
+    function checkCommentPermission($comment_id, $authId)
+    {
+        // Define an associative array to map the like values to their respective reactions
+
+        return (Comment::where('id', $comment_id)
+
+            ->where('user_id', $authId)
+
+            ->orWhere(function ($query) use ($comment_id, $authId) {
+                // Check if the user is an owner or moderator of the group
+                $query->where('id', $comment_id)
+
+                    ->whereExists(function ($query) use ($authId) {
+
+                        $query->select(DB::raw(1))
+
+                            ->from('group_members')
+
+                            ->whereColumn('group_members.group_id', 'posts.group_id')
+
+                            ->where('group_members.user_id', $authId)
+
+                            ->whereIn('group_members.role', ['owner', 'moderator', 'admin']);
+                    });
+                    
+            })->exists())?1:0;
     }
 }

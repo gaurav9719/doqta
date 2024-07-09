@@ -361,17 +361,18 @@ class Notifications extends BaseController
                                                             ->orWhere(['receiver_id'=>$authId]);
 
                                                         })->first();
-
+                                                       
                         if(isset($isExist) && !empty($isExist)){
 
                             if($isExist->sender_id==$authId){
 
-                                $isExist->user1_unread      =   $authId;
+                                $isExist->user1_unread      =   ($request->action==0)?$authId:null;
 
                             }else{
 
-                                $isExist->user2_unread      =   $authId;
+                                $isExist->user2_unread      =   ($request->action==0)?$authId:null;$authId;
                             }
+
                             $isExist->save();
                         }
 
