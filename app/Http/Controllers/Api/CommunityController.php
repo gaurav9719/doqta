@@ -740,7 +740,6 @@ class CommunityController extends BaseController
                     DB::commit();
                     return $this->sendResponsewithoutData(trans('message.updated_successfully'), 200);
 
-
                       //  Notification::where(['receiver_id'=>$authId,'community_id'=>$invitation->community_id,'notification_type'=>$type])->delete();
                 }
             }else{  // invalid request
