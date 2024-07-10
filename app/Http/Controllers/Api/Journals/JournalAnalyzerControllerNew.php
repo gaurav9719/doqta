@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\Journals;
 
-use PDF;
 use Exception;
 use Carbon\Carbon;
 use App\Models\Journal;
 use App\Models\AiThread;
+use Barryvdh\DomPDF\PDF;
 use App\Models\AiMessage;
 use App\Models\ChatInsight;
 use Illuminate\Support\Str;
@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\Log;
 use App\Traits\postCommentLikeCount;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
-//use Barryvdh\DomPDF\PDF;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\BaseController;
@@ -88,7 +87,7 @@ class JournalAnalyzerControllerNew extends BaseController
 
 
         #check report available
-        $availableReport = $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
+        // $availableReport = $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
 
 
         // $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
@@ -175,7 +174,7 @@ class JournalAnalyzerControllerNew extends BaseController
             #----------  3 J U N -----------------#
             if (isset($request->include_chat) && $request->include_chat == 1) {
 
-                $chat = $this->includeChat($request);
+                //$chat = $this->includeChat($request);
 
                 if (isset($chat) && count($chat) > 0) {
 
@@ -270,16 +269,22 @@ class JournalAnalyzerControllerNew extends BaseController
 
             return $this->sendResponsewithoutData($validate->errors()->first(), 422);
         }
+
         $user_id                =   Auth::id();
+
         $auth                   =   Auth::user();
+        
         $authTimezone           =   $auth->timezone ?? 'UTC'; //'Asia/Kolkata'
+
         $authTimezone_offset    =   timezone_offset($authTimezone);
+
         #Check if any journals belong to a different user
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
 
             $invalidJournals    =   Journal::whereIn('id', $request->journal_ids)
 
                 ->where('user_id', '<>', $user_id)
+
                 ->count();
 
             if ($invalidJournals > 0) {
@@ -288,9 +293,10 @@ class JournalAnalyzerControllerNew extends BaseController
             }
         }
 
-        $start_time     = Carbon::parse($request->start_date, $authTimezone)->startOfDay();
+        $start_time             =   Carbon::parse($request->start_date, $authTimezone)->startOfDay();
 
-        $end_time       = Carbon::parse($request->end_date, $authTimezone)->isToday() || Carbon::parse($request->end_date, $authTimezone)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date, $authTimezone)->endOfDay();
+        $end_time               =   Carbon::parse($request->end_date, $authTimezone)->isToday() || Carbon::parse($request->end_date, $authTimezone)->isFuture() ? Carbon::now() : Carbon::parse($request->end_date, $authTimezone)->endOfDay();
+
 
 
         if (isset($request->journal_ids) && count($request->journal_ids) > 0) {
@@ -306,9 +312,11 @@ class JournalAnalyzerControllerNew extends BaseController
                 return $this->sendResponsewithoutData("Journal not available", 422);
             }
         }
+
         $moodPain              =   $this->getInsightSymptoms($request);
+
         #check report available
-        $availableReport       =   $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time);
+        $availableReport       =   $this->checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time, $authTimezone, $authTimezone_offset);
         // $availableReport['moodPain']    =   isset($moodPain) ? $moodPain : null;
         // dd($availableReport);
         //  echo response()->json($availableReport, 200);
@@ -325,20 +333,16 @@ class JournalAnalyzerControllerNew extends BaseController
 
             // ], 200);
         }
-
-
-        $request_ids = JournalEntry::whereIn('journal_id', $journal_ids)
+        $request_ids    =   JournalEntry::whereIn('journal_id', $journal_ids)
             ->where('is_active', 1)
             ->whereBetween('created_at', [$start_time, $end_time])
             ->pluck('id')
             ->toArray();
-        $data = array();
-
+        $data           =   array();
 
         foreach ($journal_ids as $journal_id) {
 
             $journal = Journal::find($journal_id);
-
             #check report available for request time
             $entries_id    = JournalEntry::where('journal_id', $journal->id)->where('is_active', 1)->whereBetween('created_at', [$start_time, $end_time])->pluck('id')->toArray();
 
@@ -392,7 +396,7 @@ class JournalAnalyzerControllerNew extends BaseController
             #----------  3 J U N -----------------#
             if (isset($request->include_chat) && $request->include_chat == 1) {
 
-                $chat = $this->includeChat($request);
+                $chat = $this->includeChat($request, $authTimezone_offset);
 
                 if (isset($chat) && count($chat) > 0) {
 
@@ -607,12 +611,19 @@ class JournalAnalyzerControllerNew extends BaseController
     function getInsightSymptoms($request)
     {
         $auth               =   Auth::User();
+
         $authId             =   Auth::id();
+
         $start_date         =   $request->start_date;
+
         $end_date           =   $request->end_date;
+
         $authTimezone       =   $auth->timezone ?? 'UTC';
+
         $authTimezone_offset =  timezone_offset($authTimezone);
+
         $dates              =   getDatesBetween($start_date, $end_date);
+
         $insight            =   array();
 
         if (isset($dates[0]) && !empty($dates[0])) {
@@ -651,11 +662,11 @@ class JournalAnalyzerControllerNew extends BaseController
                     }
 
                     $query      =     $query->select('*')
-                    
-                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
-                    ->havingRaw("local_created_date = '$date' ")
-                    ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
-                    ->first();
+
+                        ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
+                        ->havingRaw("local_created_date = '$date' ")
+                        ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
+                        ->first();
 
                     $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
 
@@ -675,22 +686,6 @@ class JournalAnalyzerControllerNew extends BaseController
         }
         return $insight;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -734,7 +729,13 @@ class JournalAnalyzerControllerNew extends BaseController
                     $insights = $insights->whereIn('journal_id', $request->journal_ids);
                 }
 
-                $insights                   =   $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
+                // $insights                   =   $insights->whereDate('created_at', '=', $date)->orderByDesc('id')->get();
+                $insights                   = $insights
+                    ->select('*')
+                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
+                    ->havingRaw("local_created_date = '$date' ")
+                    ->orderByDesc('id')
+                    ->get();
 
                 if ($insights->isNotEmpty()) {
 
@@ -745,10 +746,14 @@ class JournalAnalyzerControllerNew extends BaseController
                         $query->whereIn('journal_id', $request->journal_ids);
                     }
 
-                    $moodAvg    =   $query->whereDate('created_at', $date)
 
-                        ->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
+                    $query      =   $query->select('*')
+                        ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d') AS local_created_date")
+                        ->havingRaw("local_created_date = '$date' ");
+
+                    $moodAvg    =   $query->selectRaw('AVG(feeling_id) AS avg_mood, AVG(pain) AS avg_pain')
                         ->first();
+
 
                     $avg         =   ceil((isset($moodAvg) && !empty($moodAvg)) ? $moodAvg['avg_mood'] : 0);
 
@@ -854,7 +859,7 @@ class JournalAnalyzerControllerNew extends BaseController
     }
 
     #---------------------- CHECK REPORT AVAILABLE ----------------------#
-    public function checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time)
+    public function checkReportAvailableOLd($request, $user_id, $journal_ids, $start_time, $end_time)
     {
 
         $request_ids = JournalEntry::whereIn('journal_id', $journal_ids)
@@ -961,13 +966,139 @@ class JournalAnalyzerControllerNew extends BaseController
         }
     }
 
+    public function checkReportAvailable($request, $user_id, $journal_ids, $start_time, $end_time, $authTimezone, $authTimezone_offset)
+    {
+
+        $request_ids = JournalEntry::whereIn('journal_id', $journal_ids)
+            ->select('*')
+            ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d %H:%i:%s') AS local_created_at")
+            ->havingRaw("local_created_at BETWEEN '$start_time' AND '$end_time'")
+            ->where('is_active', 1)
+            ->pluck('id')
+            ->toArray();
+
+
+        $reports = JournalReport::where('user_id', $user_id)
+            ->where('type', $request->type)
+            ->where('report_type', 1)
+            ->where('is_chat_included', $request->include_chat)
+            ->get();
+
+
+        $ids_count = count($request_ids);
+
+        if ($ids_count > 0 && count($reports) > 0) {
+            if (isset($request->include_chat) && $request->include_chat == 1) {
+                # Get chat ids
+                $inbox_ids          =       AiThread::where(function ($query) use ($user_id) {
+
+                                                $query->where('sender_id', $user_id)
+
+                                                    ->orWhere('receiver_id', $user_id);
+                                            })
+                                            ->pluck('id')
+                                            ->toArray();
+
+                if (count($inbox_ids) > 0) {
+
+                    $chat_request_ids       =       AiMessage::whereIn('inbox_id', $inbox_ids)
+
+                                                    ->select('*')
+
+                                                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d %H:%i:%s') AS local_created_at")
+
+                                                    ->havingRaw("local_created_at BETWEEN '$start_time' AND '$end_time'")
+
+                                                    ->where(function ($query) use ($user_id) {
+                                                        $query->where('is_user1_trash', '!=', $user_id)
+                                                            ->orWhere('is_user2_trash', '!=', $user_id);
+                                                    })
+
+                                                    ->where('is_active', 1)
+                                                    ->pluck('id')
+                                                    ->toArray();
+
+                    $chat_ids_count         =       count($chat_request_ids);
+                    $chat_start_id          =       reset($chat_request_ids);
+                    $chat_end_id            =       end($chat_request_ids);
+                }
+
+                if (isset($chat_ids_count) && isset($chat_start_id) && isset($chat_end_id) && $chat_ids_count > 0) {
+                    foreach ($reports as $report) {
+                        # ChatIds
+
+                        $chatReportIds      = AiMessage::select('*')
+                            ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d %H:%i:%s') AS local_created_at")
+                            ->havingRaw("local_created_at BETWEEN '$report->start_date' AND '$report->end_date'")
+                            ->whereIn('inbox_id', $inbox_ids)
+                            ->where(function ($query) use ($user_id) {
+                                $query->where('is_user1_trash', '!=', $user_id)
+                                    ->orWhere('is_user2_trash', '!=', $user_id);
+                            })
+                            ->where('is_active', 1)
+                            ->pluck('id')
+                            ->toArray();
+
+
+                        $reportIds = json_decode($report->ids, true);
+
+                        if ($ids_count == $report->ids_count && $chat_ids_count == $report->chat_ids_count) {
+
+                            if ($chat_start_id == $report->chat_start_id && $chat_end_id == $report->chat_end_id) {
+
+                                if (empty(array_diff($request_ids, $reportIds)) && empty(array_diff($reportIds, $request_ids)) && empty(array_diff($chatReportIds, $chat_request_ids)) && empty(array_diff($chat_request_ids, $chatReportIds))) {
+                                    $reportLink      =  JournalReport::select('pdf_link')->where('id', $report->id)->first();
+                                    if ($request->type == 1) {
+                                        $finalReport = $this->getInsights($report->id, 1);
+
+                                        // return $finalReport;
+
+
+                                        $typeMessage = $request->type == 1 ? trans('message.insight') : trans('message.report');
+                                        return array(
+                                            'status' => 200,
+                                            'message' => $typeMessage,
+                                            'data' => $finalReport,
+                                            'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
+                                        );
+                                    } elseif ($request->type == 2) {
+
+                                        $finalReport = json_decode($report->report, true);
+                                        $typeMessage = $request->type == 1 ? trans('message.insight') : trans('message.report');
+
+                                        $ar = array(
+                                            'status' => 200,
+                                            'message' => $typeMessage,
+                                            'data' => $finalReport,
+                                            'pdf_link' => (isset($reportLink) && !empty($reportLink['pdf_link']) ? $this->addBaseInImage($reportLink['pdf_link']) : null)
+                                        );
+
+                                        return $ar;
+
+                                        // return $finalReport;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return $this->CheckreportWithoutChat($request, $request_ids, $user_id);
+                }
+            } else {
+                return $this->CheckreportWithoutChat($request, $request_ids, $user_id);
+            }
+        }
+    }
+
     #---------------------- CHECK REPORT AVAILABLE WITHOUT CHAT ----------------------#
     function CheckreportWithoutChat($request, $request_ids, $user_id)
     {
         $reports  = JournalReport::where('user_id', $user_id)->where('type', $request->type)->where('report_type', 1)->where('is_chat_included', '<>', 1)->get();
 
         if (count($reports) > 0) {
+
             foreach ($reports as $report) {
+
                 $reportIds = json_decode($report->ids);
 
 
@@ -1004,7 +1135,7 @@ class JournalAnalyzerControllerNew extends BaseController
     }
 
     #---------------------- INCLUDE CHAT ----------------------#
-    function includeChat($request)
+    function includeChat($request, $authTimezone_offset)
     {
         $myId = Auth::id();
         $inbox_ids = AiThread::where(function ($query) use ($myId) {
@@ -1022,16 +1153,20 @@ class JournalAnalyzerControllerNew extends BaseController
 
             $messages = AiMessage::with(['sender' => function ($query) {
                 $query->select('id', 'name', 'user_name');
-            }])->where(function ($query) use ($myId) {
-                $query->where('is_user1_trash', '!=', $myId)
-                    ->orWhere('is_user2_trash', '!=', $myId);
-            })->whereIn('inbox_id', $inbox_ids)->whereBetween('created_at', [$start_time, $end_time])->get();
-
+            }])
+                ->select('*')
+                ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d %H:%i:%s') AS local_created_at")
+                ->havingRaw("local_created_at BETWEEN '$start_time' AND '$end_time'")
+                ->where(function ($query) use ($myId) {
+                    $query->where('is_user1_trash', '!=', $myId)
+                        ->orWhere('is_user2_trash', '!=', $myId);
+                })->whereIn('inbox_id', $inbox_ids)
+                ->get();
             $chatData = array(['text' => "-------------------------------------------------------------------------"], ['text' => "Chat Data:"]);
 
             foreach ($messages as $message) {
 
-                $date = Carbon::parse($message->created_at)->format('Y-m-d H:i A');
+                $date = Carbon::parse($message->local_created_at)->format('Y-m-d H:i A');
                 $details = "Date:" . $date;
                 $details .= ", Sender: " . $message->sender->name;
                 $details .= ", Message: " . $message->message;
@@ -1124,42 +1259,53 @@ class JournalAnalyzerControllerNew extends BaseController
     }
 
 
-    function insertReport($report, $data1, $moodPain)
+    function insertReport($report, $data1, $moodPain, $authTimezone_offset)
     {
         $user_id                = $data1['user_id'];
-        $start_time             = $data1['start_time'];
-        $end_time               = $data1['end_time'];
+        $start_time             = $data1['start_time']; //coming local time request
+        $end_time               = $data1['end_time']; //coming local time request
         $is_chat_included       = $data1['is_chat_included'];
         $request_type           = $data1['type'];
-        $request_ids          = $data1['request_ids'];
+        $request_ids            = $data1['request_ids'];
 
         #if chat include
         if (isset($is_chat_included) && $is_chat_included == 1) {
-            $inbox_ids = AiThread::where(function ($query) use ($user_id) {
-                $query->where('sender_id', $user_id)
-                    ->orWhere('receiver_id', $user_id);
-            })
-                ->pluck('id')
-                ->toArray();
+
+            $inbox_ids          =   AiThread::where(function ($query) use ($user_id) {
+
+                                        $query->where('sender_id', $user_id)
+
+                                            ->orWhere('receiver_id', $user_id);
+                                    })
+                                    ->pluck('id')
+                                    ->toArray();
 
             if (count($inbox_ids) > 0) {
-                $chat_request_ids    = AiMessage::whereIn('inbox_id', $inbox_ids)
+
+                $chat_request_ids    =      AiMessage::select('*')
+
+                    ->selectRaw("DATE_FORMAT(CONVERT_TZ(created_at, '+00:00', '$authTimezone_offset'), '%Y-%m-%d %H:%i:%s') AS local_created_at")
+                    ->havingRaw("local_created_at BETWEEN '$start_time' AND '$end_time'")
+                    ->whereIn('inbox_id', $inbox_ids)
                     ->where(function ($query) use ($user_id) {
+
                         $query->where('is_user1_trash', '!=', $user_id)->orWhere('is_user2_trash', '!=', $user_id);
                     })
+
                     ->where('is_active', 1)
-                    ->whereBetween('created_at', [$start_time, $end_time])
+
                     ->pluck('id')->toArray();
-                $chat_ids_count  = count($chat_request_ids);
-                $chat_start_id   = reset($chat_request_ids);
-                $chat_end_id     = end($chat_request_ids);
+
+
+                $chat_ids_count  =          count($chat_request_ids);
+                $chat_start_id   =          reset($chat_request_ids);
+                $chat_end_id     =          end($chat_request_ids);
             }
         }
-        $result = json_decode($report, true);
-
+        $result                  =          json_decode($report, true);
         // $newReport = JournalReport::where('user_id', $user_id)->where('type', $request_type)->where('report_type', 1)->whereDate('start_date', '=', $start_time)->whereDate('end_date', '=', $end_time)->where('is_chat_included', $is_chat_included)->first();
         // if (empty($newReport)) {
-        $newReport                      = new JournalReport;
+        $newReport               =          new JournalReport;
 
         // }
         // else{
@@ -1181,21 +1327,26 @@ class JournalAnalyzerControllerNew extends BaseController
         $newReport->type                = $request_type;
         $newReport->report_type         = 1;
         $newReport->save();
-        $reportId       =   $newReport->id;
+        $reportId                       =   $newReport->id;
         #----------- generate pdf -------------#
         $this->getJournalReport($reportId);
+
         #insights & suggestion
         if ($request_type == 1) {
+
+
             foreach ($result['insights'] as $insights) {
 
-                $insig = JournalInsight::create([
+                $insig          = JournalInsight::create([
                     'report_id' => $newReport->id,
                     'type'      => 1,
                     'details'   => $insights['text'],
                 ]);
 
                 foreach ($insights['ids'] as $id) {
+
                     JournalInsideEntry::create([
+
                         'report_id'     => $newReport->id,
                         'insight_id'    => $insig->id,
                         'entry_id'      => $id,
@@ -1205,22 +1356,28 @@ class JournalAnalyzerControllerNew extends BaseController
 
             foreach ($result['suggestions'] as $suggestion) {
 
-                $sugg = JournalInsight::create([
+                $sugg           = JournalInsight::create([
+
                     'report_id' => $newReport->id,
                     'type'      => 2,
                     'details'   => $suggestion['text'],
+
                 ]);
 
                 foreach ($suggestion['ids'] as $id) {
+
                     JournalInsideEntry::create([
                         'report_id'     => $newReport->id,
                         'insight_id'    => $sugg->id,
                         'entry_id'      => $id,
+
                     ]);
                 }
             }
-            $finalReport =  $this->getInsights($reportId, 1); //type: 1=insights, 2=suggestion, 3=chat insights
-            $pdfLink     =  JournalReport::select('pdf_link')->where('id', $reportId)->first();
+            $finalReport            =  $this->getInsights($reportId, 1); //type: 1=insights, 2=suggestion, 3=chat insights
+
+            $pdfLink                =  JournalReport::select('pdf_link')->where('id', $reportId)->first();
+
 
 
             return response()->json([
@@ -1234,7 +1391,9 @@ class JournalAnalyzerControllerNew extends BaseController
 
         #Journal report
         elseif ($request_type == 2) {
+
             $pdfLink     =  JournalReport::select('pdf_link')->where('id', $reportId)->first();
+
             return response()->json([
                 'status' => 200,
                 'message' => trans('message.report'),
@@ -1248,10 +1407,13 @@ class JournalAnalyzerControllerNew extends BaseController
 
     function getInsights($report_id, $type)
     {
-        $data = [];
+        $data           = [];
+
         if ($type == 1) {
-            $data['insights'] = JournalInsight::where('report_id', $report_id)->where('type', 1)->get(['id', 'details']);
-            $data['suggestions'] = JournalInsight::where('report_id', $report_id)->where('type', 2)->get(['id', 'details']);
+
+            $data['insights']       =   JournalInsight::where('report_id', $report_id)->where('type', 1)->get(['id', 'details']);
+
+            $data['suggestions']    =   JournalInsight::where('report_id', $report_id)->where('type', 2)->get(['id', 'details']);
         }
         return $data;
     }

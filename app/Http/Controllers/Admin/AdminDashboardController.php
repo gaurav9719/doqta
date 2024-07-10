@@ -7,6 +7,8 @@ use App\Models\Post;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Models\MyTeam;
+use App\Models\UserMedicalCredentials;
+use App\Models\UserParticipantCategory;
 use App\Models\MyRoster;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
@@ -22,20 +24,7 @@ class AdminDashboardController extends Controller
     public function index(Request $request)
     {
         $auth=Auth::user();
-        $last_month=Carbon::today()->subDays(30);
 
-        $user_count=User::whereDate('created_at', '>=', $last_month)->count();
-        $community_count=Group::whereDate('created_at', '>=', $last_month)->count();
-        $post_count=Post::whereDate('created_at', '>=', $last_month)->count();
-        // $auth_user=Auth::user();
-        // return $match_count;
-        $data1=array(
-            'user'=>$user_count,
-            'community'=>$community_count,
-            'post'=>$post_count,
-        );
-        // return $data1;
-        
         if($request->ajax()){
             
             $data=User::where('is_active',1)->where('role', 1)
@@ -94,8 +83,29 @@ class AdminDashboardController extends Controller
             
         }
 
-        
-        return view('admin.index', compact('data1', 'auth'));
+        $patient_count= UserParticipantCategory::whereHas('user',function($query){
+            $query->where('role',1);
+        })
+        ->where(['participant_id'=>1])
+        ->count();
+
+        $caretaker_count= UserParticipantCategory::whereHas('user',function($query){
+            $query->where('role',1);
+        })
+        ->where(['participant_id'=>2])
+        ->count();
+          
+        $health_provider_count= UserParticipantCategory::whereHas('user',function($query){
+            $query->where('role',1);
+        })
+        ->where(['participant_id'=>3])
+        ->count();
+
+        $post_count=Post::count();
+
+        $community_count=Group::count();
+
+        return view('admin.index',compact( 'patient_count' , 'caretaker_count' , 'health_provider_count' , 'post_count' , 'community_count', 'auth'));
     }
 
     /**

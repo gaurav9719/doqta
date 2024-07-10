@@ -42,6 +42,9 @@ class AddCommunityPost extends BaseController
     public function __construct(NotificationService $notification)
     {
         $this->notification = $notification;
+
+        
+
     }
     #*********-------     A D D        P O S T     ---------------********#
     public function addPost($request, $authId)
@@ -115,6 +118,7 @@ class AddCommunityPost extends BaseController
             }
             #--------------  RECORD USER QUOTA PER DAY-------------#\
             DB::commit();
+
             try {
 
                 if (strlen($post->content) > 75) {

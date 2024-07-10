@@ -145,8 +145,8 @@ class ChatController extends BaseController
      */
     public function store(ChatRequest $request)
     {
-        //
         DB::beginTransaction();
+        
         try {
 
             $myId                           =               Auth::id();

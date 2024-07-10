@@ -7,14 +7,14 @@
     <!-- Navbar items-->
     <div class="d-flex align-items-center mx-3 me-lg-0">
         <!-- Navbar-->
-        <ul class="navbar-nav d-none d-lg-flex">
+        {{-- <ul class="navbar-nav d-none d-lg-flex">
             <li class="nav-item"><a class="nav-link" href="{{url('admin/dashboard')}}">Overview</a></li>
             <!-- <li class="nav-item"><a class="nav-link" href="https://docs.startbootstrap.com/material-admin-pro" target="_blank">Documentation</a></li> -->
-        </ul>
+        </ul> --}}
         <!-- Navbar buttons-->
         <div class="d-flex">
             <!-- Messages dropdown-->
-            <div class="dropdown dropdown-notifications d-none d-sm-block">
+            {{-- <div class="dropdown dropdown-notifications d-none d-sm-block">
             <button class="btn btn-lg btn-icon me-3" type="button" ><i class="material-icons">mail_outline</i></button>
                 <!-- <button class="btn btn-lg btn-icon dropdown-toggle me-3" id="dropdownMenuMessages" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="material-icons">mail_outline</i></button> -->
                 <ul class="dropdown-menu dropdown-menu-end me-3 mt-3 py-0 overflow-hidden" aria-labelledby="dropdownMenuMessages">
@@ -56,9 +56,9 @@
                         </a>
                     </li>
                 </ul>
-            </div>
+            </div> --}}
             <!-- Notifications and alerts dropdown-->
-            <div class="dropdown dropdown-notifications d-none d-sm-block">
+            {{-- <div class="dropdown dropdown-notifications d-none d-sm-block">
                 <button class="btn btn-lg btn-icon me-3"  type="button" ><i class="material-icons">notifications</i></button>
                 <!-- <button class="btn btn-lg btn-icon dropdown-toggle me-3" id="dropdownMenuNotifications" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="material-icons">notifications</i></button> -->
                 <ul class="dropdown-menu dropdown-menu-end me-3 mt-3 py-0 overflow-hidden" aria-labelledby="dropdownMenuNotifications">
@@ -103,7 +103,7 @@
                         </a>
                     </li>
                 </ul>
-            </div>
+            </div> --}}
             <!-- User profile dropdown-->
             <div class="dropdown">
                 <button class="btn btn-lg btn-icon dropdown-toggle" id="dropdownMenuProfile" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="material-icons">person</i></button>

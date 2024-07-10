@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\UserDevice;
 use App\Models\Group;
 use App\Jobs\FeedPostNotification as feedPostionJob;
+use Illuminate\Support\Facades\Log;
+
 trait FeedPostNotification
 {
     
@@ -15,7 +17,9 @@ trait FeedPostNotification
         $data['group_id']           =   $group_id;
         $data['post_id']            =   $post_id;
         $data['sender']             =   $sender;
-         feedPostionJob::dispatch($data);
+        Log::info("trait FeedPostNotification");
+        dispatch(new feedPostionJob($data));
+        
     }
 
 

@@ -51,20 +51,7 @@
                             </div>
                             
                             @endif
-                            <!-- <div class="col-md-6 mb-5"> -->
-                                <!-- Payment method card 2-->
-                                <!-- <div class="card ">
-                                    <img src="{{asset('assets/img/paper/back.jpg')}}" alt="Mastercard Icon" style="height: auto; border:2px solid black; border-radius: 5px; margin: 20px;" />
-                                       
-                                    <div class="card-actions p-2 justify-content-center bg-success" >
-                                        <h4 class="text-white">Verified</h4>  -->
-                                        <!-- <div class="card-action-buttons">
-                                            <button class="btn btn-text-primary" type="button">Reject</button>
-                                            <button class="btn btn-text-primary" type="button">Verify</button>
-                                        </div> -->
-                                    <!-- </div>
-                                </div>
-                            </div> -->
+                         
                             
                         </div>
                             <h2 class="font-monospace text-expanded text-uppercase fs-6 my-4">User Certificate</h2>

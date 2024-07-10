@@ -62,7 +62,8 @@ class FeedPostNotification implements ShouldQueue
             if (isset($allMembers) && !empty($allMembers)) {
 
                 $data                           =  [];
-
+Log::info($allMembers);
+                
                 foreach ($allMembers as $member) {
 
                     $receiver                                   =       User::where(['id' => $member->user_id, 'is_active' => 1])->first();

@@ -39,8 +39,9 @@ use Illuminate\Validation\ValidationException;
 use App\Traits\SummarizePost;
 use App\Traits\CommentTrait\Comments;
 use App\Jobs\CommentNotificaton\CommentNotificationJob;
-
-class CommunityPost extends BaseController
+use Illuminate\Routing\Controller\Middleware;
+use App\Http\Middleware\CheckFeatureUsage;
+class CommunityPost extends BaseController 
 {
     use CommonTrait, IsCommunityJoined, postCommentLikeCount, SummarizePost, Comments;
     /**
@@ -50,10 +51,11 @@ class CommunityPost extends BaseController
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification, GetCommunityService $getCommunityPost)
     {
 
-        $this->middleware('checkUserQuota:community_posts')->only('store');
+       
         $this->addCommunityPost = $addCommunityPost;
-        $this->notification = $notification;
+        $this->notification     = $notification;
         $this->getCommunityPost = $getCommunityPost;
+        Log::info('Middleware checkUserQuota:community_posts applied to store method');
     }
     public function index(Request $request)
     {
@@ -84,9 +86,7 @@ class CommunityPost extends BaseController
     public function store(AddPostRequest $request)
     {
         $authId             =            Auth::id();
-
-        //check if you are the member of 
-        //check group is active or not
+        
         $isGroupExist       =           Group::where(['id' => $request->community_id, 'is_active' => 1])->exists();
 
         if ($isGroupExist) {

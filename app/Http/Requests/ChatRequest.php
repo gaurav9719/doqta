@@ -61,7 +61,7 @@ class ChatRequest extends FormRequest
     
             default:
                 Log::error('Error caught: Invalid message type ' . $this->message_type);
-                throw new \Exception('Invalid message type ' . $this->message_type);
+                
         }
     
         return [

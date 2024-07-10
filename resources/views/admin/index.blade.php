@@ -8,48 +8,97 @@
             <div class="row justify-content-between align-items-center mb-5">
                 <div class="col flex-shrink-0 mb-5 mb-md-0">
                     <h1 class="display-4 mb-0">Dashboard</h1>
-                    <div class="text-muted">Business Growth Analytics</div>
+                    {{-- <div class="text-muted">Business Growth Analytics</div> --}}
                 </div>
                 
             </div>
             <!-- Colored status cards-->
             <div class="row gx-5">
+              
                 <div class="col-xxl-4 col-md-6 mb-5">
                     <div class="card card-raised border-start border-primary border-4">
                         <div class="card-body px-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="me-2">
-                                    <div class="display-5">{{$data1['user']}}</div>
-                                    <div class="card-text">Registration</div>
+                                    <div class="display-5">{{$patient_count}}</div>
+                                    <div class="card-text">Total Patient</div>
                                 </div>
                                 <div class="icon-circle bg-primary text-white"><i class="material-icons">person</i></div>
                             </div>
-                            <div class="card-text">
-                                <div class="d-inline-flex align-items-center">
+                             <div class="card-text">
+                                {{-- <div class="d-inline-flex align-items-center">
                                     <i class="material-icons icon-xs text-success">arrow_upward</i>
                                     <div class="caption text-success fw-500 me-2"></div>
-                                    <div class="caption">from this month</div>
-                                </div>
+                                     <div class="caption">from this month</div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> 
+
+
+
+                <div class="col-xxl-4 col-md-6 mb-5">
+                    <div class="card card-raised border-start border-primary border-4">
+                        <div class="card-body px-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="me-2">
+                                    <div class="display-5">{{$caretaker_count}}</div>
+                                    <div class="card-text">Total Caretaker</div>
+                                </div>
+                                <div class="icon-circle bg-primary text-white"><i class="material-icons">person</i></div>
+                            </div>
+                             <div class="card-text">
+                                {{-- <div class="d-inline-flex align-items-center">
+                                    <i class="material-icons icon-xs text-success">arrow_upward</i>
+                                    <div class="caption text-success fw-500 me-2"></div>
+                                     <div class="caption">from this month</div>
+                                </div> --}}
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+
+
+
+                <div class="col-xxl-4 col-md-6 mb-5">
+                    <div class="card card-raised border-start border-primary border-4">
+                        <div class="card-body px-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="me-2">
+                                    <div class="display-5">{{$health_provider_count}}</div>
+                                    <div class="card-text">Total Health Provider</div>
+                                </div>
+                                <div class="icon-circle bg-primary text-white"><i class="material-icons">person</i></div>
+                            </div>
+                             <div class="card-text">
+                                {{-- <div class="d-inline-flex align-items-center">
+                                    <i class="material-icons icon-xs text-success">arrow_upward</i>
+                                    <div class="caption text-success fw-500 me-2"></div>
+                                     <div class="caption">from this month</div>
+                                </div> --}}
+                            </div>
+                        </div>
+                    </div>
+                </div> 
+
+
                 <div class="col-xxl-4 col-md-6 mb-5">
                     <div class="card card-raised border-start border-warning border-4">
                         <div class="card-body px-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="me-2">
-                                    <div class="display-5">{{$data1['community']}}</div>
-                                    <div class="card-text">Community</div>
+                                    <div class="display-5">{{$community_count}}</div>
+                                    <div class="card-text">Total Community</div>
                                 </div>
                                 <div class="icon-circle bg-warning text-white"><i class="material-icons">groups</i></div>
                             </div>
                             <div class="card-text">
-                                <div class="d-inline-flex align-items-center">
+                                {{-- <div class="d-inline-flex align-items-center">
                                     <i class="material-icons icon-xs text-success">arrow_upward</i>
                                     <div class="caption text-success fw-500 me-2"></div>
                                     <div class="caption">from this month</div>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
@@ -59,17 +108,17 @@
                         <div class="card-body px-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="me-2">
-                                    <div class="display-5">{{$data1['post']}}</div>
-                                    <div class="card-text">Post</div>
+                                    <div class="display-5">{{$post_count}}</div>
+                                    <div class="card-text">Total Post</div>
                                 </div>
                                 <div class="icon-circle bg-secondary text-white"><i class="material-icons">view_comfy_alt</i></div>
                             </div>
                             <div class="card-text">
-                                <div class="d-inline-flex align-items-center">
+                                {{-- <div class="d-inline-flex align-items-center">
                                     <i class="material-icons icon-xs text-success">arrow_upward</i>
                                     <div class="caption text-success fw-500 me-2"></div>
                                     <div class="caption">from this month</div>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
@@ -96,7 +145,7 @@
                 </div> -->
             </div>
             
-            <div class="card card-raised">
+            {{-- <div class="card card-raised">
                 <div class="card-header bg-transparent px-4">
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="me-4">
@@ -124,12 +173,13 @@
                     </table>
      
                     </div>
-            </div>
+            </div> --}}
         </div>
     </main>
 
 
 <script type="text/javascript">
+/*
   $(function () {
       
     var table = $('.data-table').DataTable({
@@ -157,6 +207,7 @@
     });
       
   });
+  */
 </script>
             
             

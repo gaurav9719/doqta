@@ -373,9 +373,9 @@ class FollowFollowingController extends BaseController
 
                     return $this->sendError(trans('message.something_went_wrong'), [], 403);
                 }
-                $receiver= User::find($request->user_id);
+                $receiver                               =   User::find($request->user_id);
 
-                if ($request->type == 1) {
+                if($request->type == 1) {
                     //check if already follow or not 
 
                     $following                          =   UserFollower::where(['follower_user_id' => $authId, 'user_id' => $request->user_id])->first();
@@ -427,16 +427,15 @@ class FollowFollowingController extends BaseController
                         if ($userData['is_public'] == 0) {
 
                             $addFollowing->status           =   1;
-                            $responseMessage                =   trans('message.send_support_request');
+                            $responseMessage                =   trans('message.supporting_you_message');
                             $type                           =   trans('notification_message.support_request_sent_type');
-                            $message                        =    "**{Auth::user()->user_name}** ". trans('notification_message.support_request_sent');
+                            $message                        =    "**".Auth::user()->user_name."** ". trans('notification_message.support_request_sent');
 
                         } else {
 
                             $addFollowing->status           =   2;
-
                             $responseMessage                =   trans('message.supporting_you');
-                            $message                        =   "**{Auth::user()->user_name}** ".trans('.supporting_you_message');
+                            $message                        =    "**".Auth::user()->user_name."** ". trans('notification_message.supporting_you_message');
                             $type                           =   trans('notification_message.supporting_you_message_type');
                             increment('users', ['id' => $request->user_id], 'followers_count', 1);
                             increment('users', ['id' => $authId], 'followings_count', 1);
@@ -450,24 +449,21 @@ class FollowFollowingController extends BaseController
                             // #-------  A C T I V I T Y -----------#
                         }
                         $addFollowing->save();
+                        $insertedID     =  $addFollowing->id; 
 
                         if($userData['is_public']!=0){
 
                              #-------  A C T I V I T Y -----------#
                              $activity                   =    new ActivityLog();
-
                              $activity->user_id          =    $authId;
-
                              $activity->support_user_id  =    $request->user_id;
-
-                             $activity->action_details   =    "**{Auth::user()->user_name}** started supporting  **{$receiver->user_name}**";
+                             $activity->action_details   =    "**".Auth::user()->user_name."** started supporting  **$receiver->user_name}**";
                              $activity->action           =    1;    //Started supporting
                              $activity->save();
                              #-------  A C T I V I T Y -----------#
                         }
-
                         #--------------  RECORD USER QUOTA PER DAY-------------#
-                        if (isset($commentId) && !empty($commentId)) {
+                        if (isset($insertedID) && !empty($insertedID)) {
 
                             $quotaUpdated               =   UserQuota::updateQuota($authId, 'community_join_request');
                         }
@@ -476,8 +472,8 @@ class FollowFollowingController extends BaseController
                         #send notification
                         $sender        =   Auth::user();
                         // $mesage        =   $sender->user_name ." ".$message;
-                        $mesage        =   $message;
-                        $data          =   ["message" => $mesage];
+                       
+                        $data          =   ["message" => $message];
                         $this->notification->sendNotificationNew($sender, $receiver, $type, $data);
 
                         DB::commit();

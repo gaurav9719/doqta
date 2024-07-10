@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use App\Models\UserQuota;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckFeatureUsage
@@ -33,14 +34,13 @@ class CheckFeatureUsage
 
         if ($user->plan_status == 1 || $user->plan_status == "1") {
 
+            Log::info("middleware working");
             return $next($request);
         }
         $date       =   Carbon::today()->toDateString();
 
         $usage      =   UserQuota::firstOrCreate(['user_id' => $user->id, 'date' => $date]);
-
         if ($usage->$feature >= $this->limits[$feature]) {
-
             return response()->json([
                 'status' => 406,
                 'message' => "We’re so sorry, but your account has exceeded the maximum amount of {$feature} allowed per day.Please upgrade your account to premium to receive unlimited access to all of Doqta’s features.",

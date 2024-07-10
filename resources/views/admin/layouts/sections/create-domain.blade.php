@@ -17,8 +17,6 @@
                     </div>
                   </div>
                   <button type="submit" class="btn btn-primary mt-2" id="submitBtn" >Submit 
-                    
-                    <!-- <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"> </span> Loading... -->
                   </button>
                 </form>
             </div>

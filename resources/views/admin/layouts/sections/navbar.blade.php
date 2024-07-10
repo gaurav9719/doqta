@@ -1,5 +1,8 @@
 <div id="layoutDrawer_nav">
     <!-- Drawer navigation-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <nav class="drawer accordion drawer-light bg-white" id="drawerAccordion">
         <div class="drawer-menu">
             <div class="nav">
@@ -23,33 +26,44 @@
 
                 <!-- Drawer link (Dashboards)-->
                 <a class="nav-link collapsed {{ Request::path() == 'admin/dashboard' ? 'active' : '' }}"
-                    href="{{url('admin/dashboard')}}">
+                    href="{{ url('admin/dashboard') }}">
                     <div class="nav-link-icon"><i class="material-icons">dashboard</i></div>
                     Dashboards
                 </a>
 
                 <!-- Drawer link (Layouts)-->
                 <a class="nav-link collapsed  {{ Request::path() == 'admin/users' ? 'active' : '' }}"
-                    href="{{url('admin/users')}}">
+                    href="{{ url('admin/users') }}">
                     <div class="nav-link-icon"><i class="material-icons">person</i></div>
                     Users
 
                 </a>
                 <!-- Drawer link (Layouts)-->
                 <a class="nav-link collapsed  {{ Request::path() == 'admin/document-verification' ? 'active' : '' }}"
-                    href="{{url('admin/document-verification')}}">
+                    href="{{ url('admin/document-verification') }}">
                     <div class="nav-link-icon"><i class="material-icons">pending_actions</i></div>
                     Document Verification
                 </a>
 
-                <a class="nav-link collapsed  {{ Request::path() == 'admin/community' ? 'active' : '' }}"
-                    href="{{url('admin/community')}}">
+                <!-- Community -->
+                <a class="nav-link collapsed  {{( Request::path() == 'admin/community' ||Request::path()=='admin/members' ) ? 'active' : '' }}"
+                    href="{{ url('admin/community') }}">
                     <div class="nav-link-icon"><i class="material-icons">groups</i></div>
                     Community
                 </a>
 
+                <!-- posts -->
+                {{-- <a class="nav-link collapsed  {{ Request::path() == 'admin/posts' ? 'active' : '' }}"
+                    href="{{ url('admin/posts') }}">
+                    <div class="nav-link-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                    </div>
+                    Posts
+                </a> --}}
+
+                <!-- Domains -->
                 <a class="nav-link collapsed  {{ Request::path() == 'admin/partners-domain' ? 'active' : '' }}"
-                    href="{{url('admin/partners-domain')}}">
+                    href="{{ url('admin/partners-domain') }}">
                     <div class="nav-link-icon"><i class="material-icons">language</i></div>
                     Domains
                 </a>
@@ -62,7 +76,7 @@
                 <i class="material-icons text-muted">account_circle</i>
                 <div class="ms-3">
                     <div class="caption">Logged in as:</div>
-                    <div class="small fw-500">{{$auth->name}}</div>
+                    <div class="small fw-500">{{ $auth->name }}</div>
                 </div>
             </div>
         </div>

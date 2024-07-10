@@ -112,6 +112,7 @@ class NotificationService
                     $notification->sender_id            =   $sender['id'];
                     $notification->notification_type    =   $type;
                     $notification->message              =   $data['message'];
+                    
                 } else {
 
                     //return ['status' => 400, 'message' => "failed type 1/2/3/6/7/8/16/17/18 notification"];
