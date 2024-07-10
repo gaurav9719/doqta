@@ -460,7 +460,7 @@ class JournalAnalyzerControllerNew extends BaseController
                     'type'              => $request->type,
                 ];
 
-                return $this->insertReport($response, $data1, $moodPain);
+                return $this->insertReport($response, $data1, $moodPain,$authTimezone_offset);
             } else {
 
                 $report['moodPain'] = $moodPain;
@@ -469,7 +469,7 @@ class JournalAnalyzerControllerNew extends BaseController
                 return response()->json($report, $report['status']);
             }
         } else {
-            return $this->sendResponsewithoutData('No entry found in given journal', 400);
+            return $this->sendResponsewithoutData('No entry found in given journal', 200);
         }
     }
 
