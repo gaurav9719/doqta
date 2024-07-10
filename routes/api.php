@@ -138,7 +138,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::get('communityPosts/calculateScoreByAi', [CommunityPost::class,'calculateScoreByAi']);
 
     
-    Route::resource('communityPosts', CommunityPost::class)->middleware('checkUserQuota:community_posts')->only(['store']);
+    Route::resource('communityPosts', CommunityPost::class)->middleware('checkUserQuota:community_posts');
     
     
    
