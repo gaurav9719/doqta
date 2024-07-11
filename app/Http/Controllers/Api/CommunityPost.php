@@ -51,11 +51,11 @@ class CommunityPost extends BaseController
     public function __construct(AddCommunityPost $addCommunityPost, NotificationService $notification, GetCommunityService $getCommunityPost)
     {
 
-       
+       $this->middleware('checkUserQuota:community_posts')->only(['store']);
         $this->addCommunityPost = $addCommunityPost;
         $this->notification     = $notification;
         $this->getCommunityPost = $getCommunityPost;
-        Log::info('Middleware checkUserQuota:community_posts applied to store method');
+        
     }
     public function index(Request $request)
     {

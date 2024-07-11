@@ -26,7 +26,6 @@ use App\Http\Controllers\Api\BaseController;
 class PaymentController extends BaseController
 {
 
-
     protected $notificationService,$userPayment;
 
     public function __construct(NotificationService $notification_service, user_payment $userPayment)
@@ -82,8 +81,11 @@ class PaymentController extends BaseController
         try {
 
             $validator           =      Validator::make($request->all(), [
+
                 'plan_id'=>'nullable|integer|exists:plans,id',
+
                 ],
+
                 ['type.integer'=>"invalid type"]);
                 // Add custom rule for no special characters
 
@@ -96,9 +98,11 @@ class PaymentController extends BaseController
             if(isset($request->plan_id)){
                 
                 #Corporate plan
-                $plan= Plan::find($request->plan_id);
-                $request->type = $plan->type;
+                $plan           = Plan::find($request->plan_id);
+
+                $request->type  = $plan->type;
                 if($plan->type == 4){
+
                     $validation = Validator::make($request->all(), [
                         'email' => 'required|email',
                         'action' => 'required|integer|between:1,2',
@@ -106,6 +110,7 @@ class PaymentController extends BaseController
                     ]);
 
                     if ($validation->fails()) {
+
                         return $this->sendResponsewithoutData($validation->errors()->first(), 400);
                     }
 

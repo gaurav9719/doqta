@@ -43,8 +43,7 @@ class CheckFeatureUsage
         if ($usage->$feature >= $this->limits[$feature]) {
             return response()->json([
                 'status' => 406,
-                'message' => "We’re so sorry, but your account has exceeded the maximum amount of {$feature} allowed per day.Please upgrade your account to premium to receive unlimited access to all of Doqta’s features.",
-
+                'message' => "We're so sorry, but your account has exceeded the maximum amount of {$feature} allowed per day. Please upgrade your account to premium to receive unlimited access to all of Doqta's features.",
             ], 406);
         }
 

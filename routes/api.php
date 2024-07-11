@@ -134,11 +134,8 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
     Route::delete('communityPosts/deleteComment', [CommunityPost::class,'deleteComment']);
     Route::post('communityPosts/share', [CommunityPost::class,'sharePost']);
     Route::get('communityPosts/textSum', [CommunityPost::class,'textSum']);
-
     Route::get('communityPosts/calculateScoreByAi', [CommunityPost::class,'calculateScoreByAi']);
-
-    
-    Route::resource('communityPosts', CommunityPost::class)->middleware('checkUserQuota:community_posts');
+    Route::resource('communityPosts', CommunityPost::class);
     
     
    
@@ -224,10 +221,7 @@ Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(
 Route::middleware(['with_fast_api_key', 'auth:api','is_verified_email'])->group(function(){
 
     // Route::post('communityPost/likePost', [JournalEntries::class,'likePost']);
-   
-    
     Route::resource('planSubscription', PaymentController::class);
-
     
 });
 

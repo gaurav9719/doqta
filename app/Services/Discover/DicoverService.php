@@ -850,6 +850,7 @@ class DicoverService extends BaseController
 
                 $limit          =       $request->limit;
             }
+
             $search             =       "";
 
             if (isset($request->search) && !empty($request->search)) {
@@ -858,6 +859,12 @@ class DicoverService extends BaseController
             }
 
             $homeScreenPosts    =       Post::where('posts.is_active', 1)
+
+
+            ->whereDoesntHave('hiddenPosts', function ($query) use ($authId) {
+
+                $query->where('user_id', $authId);
+            })
 
                 ->whereNotExists(function ($query) use ($authId) {
 

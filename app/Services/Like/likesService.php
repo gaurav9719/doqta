@@ -191,6 +191,7 @@ class likesService extends BaseController
             dispatch(new AiScoreCalculatedJob($request->post_id));
 
             return $this->sendResponse($data, trans('message.updated_successfully'), 200);
+            
         } catch (Exception $e) {
 
             DB::rollBack();

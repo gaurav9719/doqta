@@ -23,6 +23,10 @@ class Post extends Model
         return $this->belongsTo(User::class,'user_id','id')->where('is_active',1);
     }
 
+    public function user(){
+        
+        return $this->belongsTo(User::class,'user_id','id')->where('is_active',1);
+    }
     public function parent_post(){
         
         return $this->belongsTo(Post::class,'parent_id','id');

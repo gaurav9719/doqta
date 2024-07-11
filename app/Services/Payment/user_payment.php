@@ -47,14 +47,20 @@ class user_payment extends BaseController
             else {
 
                 #check corporate plan active on user account
-                $check2=UserPlan::where('user_id', $userId)->where('is_active' , 1)->first();
+
+                $check2         =       UserPlan::where('user_id', $userId)->where('is_active' , 1)->first();
+
                 if(isset($check2) && $check2->plan_details->type  == 4){
+
                     return $this->sendResponsewithoutData("Carporate plan already active on your account", 400);
                 }
 
-                $check=UserPlan::where('user_id',$userId)->first();
+                $check          =       UserPlan::where('user_id',$userId)->first();
+
                 if(isset($check) && $check->plan_details->type  > 1){
+
                     if($request->type == 1) {
+
                         return $this->sendResponsewithoutData("Trial plan available for first-time users only", 400);
                     }
                 }
@@ -62,6 +68,7 @@ class user_payment extends BaseController
 
                 #check user transaction already used
                 $isPlanExist    =   UserPlan::where('original_transaction_id',$request->original_transaction_id)->first();
+
                 if(isset($isPlanExist) && !empty($isPlanExist)){
                     
                     if($isPlanExist->user_id != $userId){
@@ -69,6 +76,7 @@ class user_payment extends BaseController
                         return $this->sendResponsewithoutData(trans('message.this_payment_account_already_used'), 403);
                         
                     }
+
                     else{
                         
                         #update Existing plan
@@ -121,16 +129,17 @@ class user_payment extends BaseController
         
         #update payment History
         
-        $payment    =     PaymentHistory::where('user_id', $userId)
-        ->where('original_transaction_id', $request->original_transaction_id)
-        ->where('user_plan_id', $user_plan->id)
-        ->where('plan_id', $request->plan_id)
-        ->where('start_date', $startdate)
-        ->where('expiry_date', $enddate)
-        ->where('is_active', 1)
-        ->first();
+        $payment                                =     PaymentHistory::where('user_id', $userId)
+                                                    ->where('original_transaction_id', $request->original_transaction_id)
+                                                    ->where('user_plan_id', $user_plan->id)
+                                                    ->where('plan_id', $request->plan_id)
+                                                    ->where('start_date', $startdate)
+                                                    ->where('expiry_date', $enddate)
+                                                    ->where('is_active', 1)
+                                                    ->first();
 
         if(isset($payment)){
+
             $payment->transaction_id           =     $transactionId;
             $payment->amount                   =     $request->amount;
             $payment->currency                 =     $request->currency;
@@ -280,10 +289,14 @@ class user_payment extends BaseController
         #check corporate plan active on user account
         $check1=UserPlan::where('user_id', $userId)->where('is_active' , 1)->first();
         if(isset($check1) && $check1->plan_details->type  == 4){
+
             return $this->sendResponsewithoutData("Carporate plan already active on your account", 400);
         }
+
         $check2 = CorporativePlanUser::where('corporate_email', $request->email)->where('is_verified', 1)->first();
+        
         if ($check2) {
+
             return $this->sendResponsewithoutData( "Provided email already in use", 400);
         }
 

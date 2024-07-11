@@ -97,12 +97,11 @@ class ChatController extends BaseController
                     
                     if($result->sender_id==$myId){
                        
-
-                        $is_read        =       $result->user1_unread;
+                        $is_read        =       ($result->user1_unread)?0:1;
 
                     }else{
 
-                        $is_read        =       $result->user2_unread;
+                        $is_read        =       ($result->user2_unread)?0:1;
 
                     }
                     $result->is_read    =   $is_read;

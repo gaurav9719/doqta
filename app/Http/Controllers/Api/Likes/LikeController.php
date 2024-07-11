@@ -157,7 +157,7 @@ class LikeController extends BaseController
 
         $totalLike                  =   PostLike::select('id','user_id','post_id','reaction','created_at')->where('post_id',$id)->with(['user'=>function($user) use($authId){
 
-                                            $user->select('id','name','user_name','profile')
+                                            $user->select('id','name','user_name','profile','bio')
 
                                             ->with(['user_medical_certificate'=>function($q){
 
